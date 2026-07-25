@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Mockup · Cream</title>
+<style>
+  :root{
+    --ink:#2A2620; --sec:#8A8377; --hair:rgba(70,60,40,.12);
+    --sage:#4F7D58; --clay:#C25E3C; --claybright:#D97757; --espresso:#2E2A22;
+    --card:#FFFDF7;
+    --glass-bg:rgba(255,252,244,.55);
+    --glass-edge:rgba(255,255,255,.8);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+  body{
+    background:#141210; color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding:28px 14px 60px; display:flex; flex-direction:column; align-items:center; gap:44px;
+  }
+  .caption{color:#9A9288;font-size:13px;letter-spacing:.4px;text-transform:uppercase;margin-bottom:10px;text-align:center;}
+  .phone{
+    width:min(390px,100%); border-radius:52px; overflow:hidden; position:relative;
+    box-shadow:0 28px 70px rgba(0,0,0,.55); border:1px solid #2B2723;
+    display:flex; flex-direction:column; min-height:780px;
+    background:
+      radial-gradient(120% 70% at 12% 0%, #F8E9DC 0%, rgba(248,233,220,0) 55%),
+      radial-gradient(120% 80% at 100% 28%, #EDF0E3 0%, rgba(237,240,227,0) 60%),
+      radial-gradient(140% 90% at 45% 112%, #F6EBD9 0%, rgba(246,235,217,0) 55%),
+      #F3EFE6;
+  }
+  .statusbar{display:flex;justify-content:space-between;padding:16px 28px 4px;font-size:14px;font-weight:600;}
+  .amount{font-family:ui-rounded,-apple-system,sans-serif;font-variant-numeric:tabular-nums;font-weight:600;}
+  .pos{color:var(--sage);} .neg{color:var(--clay);} .zero{color:var(--sec);}
+
+  .glass{
+    background:var(--glass-bg);
+    -webkit-backdrop-filter:blur(22px) saturate(170%);
+    backdrop-filter:blur(22px) saturate(170%);
+    border:1px solid var(--glass-edge);
+    box-shadow:0 10px 30px rgba(60,45,25,.13), inset 0 1px 0 rgba(255,255,255,.9), inset 0 -1px 0 rgba(255,255,255,.3);
+  }
+  .glass-espresso{
+    background:rgba(46,42,34,.85); color:#F6F1E7;
+    -webkit-backdrop-filter:blur(22px) saturate(150%);
+    backdrop-filter:blur(22px) saturate(150%);
+    border:1px solid rgba(255,251,240,.25);
+    box-shadow:0 12px 30px rgba(46,42,34,.35), inset 0 1px 0 rgba(255,251,240,.3);
+  }
+  .glass-clay{
+    background:rgba(217,119,87,.88); color:#FFF9F2;
+    -webkit-backdrop-filter:blur(20px) saturate(160%);
+    backdrop-filter:blur(20px) saturate(160%);
+    border:1px solid rgba(255,240,230,.45);
+    box-shadow:0 12px 30px rgba(194,94,60,.35), inset 0 1px 0 rgba(255,240,230,.5);
+  }
+
+  .zl{position:relative;height:8px;border-radius:4px;background:rgba(70,60,40,.12);}
+  .zl::after{content:"";position:absolute;left:50%;top:-3px;width:2px;height:14px;background:#C9C0B0;border-radius:1px;transform:translateX(-50%);}
+  .zl .bar{position:absolute;top:0;height:8px;border-radius:4px;}
+  .zl .bar.pos{left:50%;background:var(--sage);}
+  .zl .bar.neg{right:50%;background:var(--claybright);}
+  .zl.mini{height:5px;} .zl.mini::after{top:-2px;height:9px;}
+
+  .pad{padding:0 18px;}
+  .largetitle{font-size:32px;font-weight:800;letter-spacing:.2px;padding:8px 22px 12px;}
+  .card{background:var(--card);border-radius:26px;padding:18px;box-shadow:0 1px 2px rgba(60,45,25,.06);}
+  .rowline{display:flex;justify-content:space-between;align-items:baseline;}
+  .sub{color:var(--sec);font-size:14px;}
+  .chev{color:#C6BDAE;font-size:17px;font-weight:600;}
+  .divider{height:1px;background:var(--hair);}
+  .grouprow{padding:14px 0;}
+  .grouprow .name{font-size:17px;font-weight:600;}
+  .cloud{font-size:12px;color:var(--sec);border:1px dashed #C6BDAE;border-radius:8px;padding:1px 6px;margin-left:8px;}
+
+  .fab{
+    position:absolute;bottom:110px;right:20px;width:62px;height:62px;border-radius:31px;
+    font-size:30px;font-weight:500;display:flex;align-items:center;justify-content:center;
+  }
+  .tabwrap{position:absolute;left:0;right:0;bottom:22px;display:flex;justify-content:center;pointer-events:none;}
+  .tabbar{border-radius:32px;display:flex;gap:6px;padding:7px;align-items:center;}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:#6E675B;
+       padding:7px 18px;border-radius:24px;min-width:76px;}
+  .tab .ic{font-size:20px;line-height:1;}
+  .tab.on{background:rgba(255,253,247,.95);color:var(--espresso);font-weight:700;box-shadow:0 3px 10px rgba(60,45,25,.10), inset 0 1px 0 #fff;}
+  .personicon{width:13px;height:13px;border-radius:7px;border:2px solid currentColor;position:relative;margin-bottom:6px;}
+  .personicon::after{content:"";position:absolute;left:-6px;top:14px;width:25px;height:12px;border:2px solid currentColor;border-bottom:none;border-radius:12px 12px 0 0;}
+  .scrollhint{height:120px;}
+
+  .grabber{width:38px;height:5px;border-radius:3px;background:rgba(70,60,40,.22);margin:12px auto 4px;}
+  .sheethead{display:flex;justify-content:space-between;align-items:center;padding:10px 20px;}
+  .menu{font-size:15px;font-weight:600;border-radius:16px;padding:7px 13px;}
+  .cancel{color:var(--clay);font-size:16px;font-weight:500;}
+  .bigamount{text-align:center;font-size:58px;padding:24px 0 8px;}
+  .bigamount .cur{font-size:26px;color:var(--sec);margin-left:6px;font-weight:500;}
+  .field{background:var(--card);border-radius:18px;padding:15px 16px;font-size:16px;color:#B5AC9C;margin:0 20px;box-shadow:0 1px 2px rgba(60,45,25,.06);}
+  .chips{display:flex;gap:8px;padding:12px 20px;}
+  .chip{border-radius:18px;padding:7px 14px;font-size:14px;font-weight:500;color:var(--ink);}
+  .splitrow{
+    margin:4px 20px 0;background:var(--card);border-radius:18px;padding:15px 16px;
+    display:flex;justify-content:space-between;align-items:center;font-size:15px;font-weight:500;
+    box-shadow:0 1px 2px rgba(60,45,25,.06);
+  }
+  .keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:16px 34px 4px;}
+  .key{text-align:center;font-size:27px;font-weight:400;padding:12px 0;font-family:ui-rounded,-apple-system,sans-serif;}
+  .save{margin:12px 20px 30px;border-radius:24px;text-align:center;padding:17px;font-size:17px;font-weight:600;}
+
+  .navback{color:var(--clay);font-size:16px;padding:8px 22px 0;font-weight:500;}
+  .section{color:var(--sec);font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:22px 24px 8px;}
+  .transfer{display:flex;justify-content:space-between;align-items:center;padding:13px 0;}
+  .settle{font-size:14px;font-weight:600;border-radius:17px;padding:8px 15px;color:var(--espresso);}
+  .emojiav{width:36px;height:36px;border-radius:18px;background:#F5EBDD;font-size:18px;display:flex;align-items:center;justify-content:center;margin-right:12px;}
+  .exp{display:flex;align-items:center;padding:12px 0;}
+  .exp .mid{flex:1;} .exp .t{font-size:16px;font-weight:500;} .exp .s{font-size:13px;color:var(--sec);margin-top:1px;}
+  .exp .right{text-align:right;} .exp .share{font-size:12px;color:var(--sec);margin-top:1px;}
+
+  .runrow{display:flex;justify-content:space-between;padding:11px 0;font-size:15px;}
+  .runrow .run{color:var(--sec);font-size:13px;margin-top:2px;}
+  .total{border-top:2px solid var(--ink);margin-top:6px;padding-top:12px;font-weight:700;font-size:17px;}
+
+  .swish{
+    margin:10px 20px 0;background:rgba(239,62,104,.9);color:#fff;border-radius:24px;text-align:center;
+    padding:16px;font-size:17px;font-weight:700;
+    -webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);
+    border:1px solid rgba(255,255,255,.4);box-shadow:0 12px 28px rgba(239,62,104,.28), inset 0 1px 0 rgba(255,255,255,.45);
+  }
+  .cash{margin:10px 20px 0;border-radius:24px;text-align:center;padding:16px;font-size:16px;font-weight:600;color:var(--ink);}
+  .homedot{width:130px;height:5px;border-radius:3px;background:#1B1915;opacity:.85;margin:16px auto 10px;}
+</style>
+</head>
+<body>
+
+<!-- 1. HOME -->
+<div>
+  <div class="caption">1 · Hem</div>
+  <div class="phone">
+    <div class="statusbar"><span>9:41</span><span>&#9679;&#9679;&#9679;</span></div>
+    <div class="largetitle">Grupper</div>
+    <div class="pad">
+      <div class="card">
+        <div class="sub">Totalt</div>
+        <div class="amount pos" style="font-size:34px;margin:2px 0 12px;">+512 kr</div>
+        <div class="zl"><div class="bar pos" style="width:34%;"></div></div>
+      </div>
+      <div class="card" style="margin-top:14px;padding-top:6px;padding-bottom:6px;">
+        <div class="grouprow">
+          <div class="rowline"><span class="name">&#127958;&#65039; Malmö-gänget</span><span><span class="amount pos" style="font-size:16px;">+340 kr</span> <span class="chev">&#8250;</span></span></div>
+          <div class="zl mini" style="margin-top:9px;"><div class="bar pos" style="width:30%;"></div></div>
+        </div>
+        <div class="divider"></div>
+        <div class="grouprow">
+          <div class="rowline"><span class="name">&#127968; Lägenheten</span><span><span class="amount neg" style="font-size:16px;">&#8722;152 kr</span> <span class="chev">&#8250;</span></span></div>
+          <div class="zl mini" style="margin-top:9px;"><div class="bar neg" style="width:14%;"></div></div>
+        </div>
+        <div class="divider"></div>
+        <div class="grouprow">
+          <div class="rowline"><span class="name" style="color:var(--sec);">&#127796; Mallorca 2026</span><span><span class="amount zero" style="font-size:16px;">0 kr</span> <span class="chev">&#8250;</span></span></div>
+          <div class="zl mini" style="margin-top:9px;"></div>
+        </div>
+      </div>
+      <div class="scrollhint"></div>
+    </div>
+    <div class="fab glass-clay">+</div>
+    <div class="tabwrap">
+      <div class="tabbar glass">
+        <div class="tab on"><span class="ic">&#9776;</span>Grupper</div>
+        <div class="tab"><span class="ic">&#8635;</span>Aktivitet</div>
+        <div class="tab"><span class="personicon"></span>Jag</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 2. ADD EXPENSE -->
+<div>
+  <div class="caption">2 · Ny utgift</div>
+  <div class="phone">
+    <div class="grabber"></div>
+    <div class="sheethead">
+      <span class="menu glass">&#127958;&#65039; Malmö-gänget &#9662;</span>
+      <span class="cancel">Avbryt</span>
+    </div>
+    <div class="bigamount amount">437<span class="cur">kr</span></div>
+    <div class="field">Beskrivning&#8230;</div>
+    <div class="chips"><span class="chip glass">&#128722; ICA</span><span class="chip glass">&#127863; Systembolaget</span><span class="chip glass">&#128661; Taxi</span></div>
+    <div class="splitrow"><span>Du betalade &#183; delas lika (4)</span><span class="chev">&#8250;</span></div>
+    <div class="keypad">
+      <div class="key">1</div><div class="key">2</div><div class="key">3</div>
+      <div class="key">4</div><div class="key">5</div><div class="key">6</div>
+      <div class="key">7</div><div class="key">8</div><div class="key">9</div>
+      <div class="key">,</div><div class="key">0</div><div class="key">&#9003;</div>
+    </div>
+    <div class="save glass-espresso">Spara</div>
+  </div>
+</div>
+
+<!-- 3. GROUP DETAIL -->
+<div>
+  <div class="caption">3 · Gruppvy</div>
+  <div class="phone">
+    <div class="statusbar"><span>9:41</span><span>&#9679;&#9679;&#9679;</span></div>
+    <div class="navback">&#8249; Grupper</div>
+    <div class="largetitle" style="padding-bottom:8px;">&#127958;&#65039; Malmö-gänget</div>
+    <div class="pad">
+      <div class="card">
+        <div class="sub">Din balans</div>
+        <div class="amount pos" style="font-size:30px;margin:2px 0 12px;">+340 kr</div>
+        <div class="zl"><div class="bar pos" style="width:30%;"></div></div>
+      </div>
+    </div>
+    <div class="section">Vem är skyldig vem</div>
+    <div class="pad">
+      <div class="card" style="padding-top:4px;padding-bottom:4px;">
+        <div class="transfer">
+          <span style="font-size:15px;">Jonas &#8594; Du <span class="amount pos">212 kr</span></span>
+          <span class="settle glass">Gör upp</span>
+        </div>
+        <div class="divider"></div>
+        <div class="transfer">
+          <span style="font-size:15px;">Sara &#8594; Du <span class="amount pos">128 kr</span></span>
+          <span class="settle glass">Gör upp</span>
+        </div>
+      </div>
+    </div>
+    <div class="section">Juli</div>
+    <div class="pad">
+      <div class="card" style="padding-top:4px;padding-bottom:4px;">
+        <div class="exp">
+          <div class="emojiav">&#127863;</div>
+          <div class="mid"><div class="t">Systembolaget<span class="cloud">&#9729;</span></div><div class="s">Du betalade</div></div>
+          <div class="right"><div class="amount" style="font-size:16px;">437 kr</div><div class="share">din del 109 kr</div></div>
+        </div>
+        <div class="divider"></div>
+        <div class="exp">
+          <div class="emojiav">&#129374;</div>
+          <div class="mid"><div class="t">Brunch</div><div class="s">Ellen betalade</div></div>
+          <div class="right"><div class="amount" style="font-size:16px;">240 kr</div><div class="share">din del 60 kr</div></div>
+        </div>
+        <div class="divider"></div>
+        <div class="exp">
+          <div class="emojiav">&#128661;</div>
+          <div class="mid"><div class="t">Taxi hem</div><div class="s">Jonas betalade</div></div>
+          <div class="right"><div class="amount" style="font-size:16px;">180 kr</div><div class="share">din del 45 kr</div></div>
+        </div>
+      </div>
+      <div class="scrollhint"></div>
+    </div>
+    <div class="tabwrap">
+      <div class="tabbar glass">
+        <div class="tab on"><span class="ic">&#9776;</span>Grupper</div>
+        <div class="tab"><span class="ic">&#8635;</span>Aktivitet</div>
+        <div class="tab"><span class="personicon"></span>Jag</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 4. AUDIT -->
+<div>
+  <div class="caption">4 · Balansgranskning</div>
+  <div class="phone">
+    <div class="grabber"></div>
+    <div class="largetitle" style="font-size:24px;">Din balans med Jonas</div>
+    <div class="pad" style="padding-bottom:26px;">
+      <div class="card" style="padding-top:6px;padding-bottom:14px;">
+        <div class="runrow">
+          <span>&#127863; Systembolaget &#183; din fordran<br><span class="run">löpande: +328 kr</span></span>
+          <span class="amount pos">+328 kr</span>
+        </div>
+        <div class="divider"></div>
+        <div class="runrow">
+          <span>&#128661; Taxi hem &#183; din del<br><span class="run">löpande: +283 kr</span></span>
+          <span class="amount neg">&#8722;45 kr</span>
+        </div>
+        <div class="divider"></div>
+        <div class="runrow">
+          <span>&#127934; Padel &#183; din del<br><span class="run">löpande: +212 kr</span></span>
+          <span class="amount neg">&#8722;71 kr</span>
+        </div>
+        <div class="runrow total">
+          <span>Jonas är skyldig dig</span>
+          <span class="amount pos">212 kr</span>
+        </div>
+      </div>
+      <div class="sub" style="text-align:center;margin-top:14px;">Varje siffra kan spåras till sina utgifter.</div>
+    </div>
+  </div>
+</div>
+
+<!-- 5. SETTLE -->
+<div>
+  <div class="caption">5 · Gör upp</div>
+  <div class="phone">
+    <div class="grabber"></div>
+    <div class="largetitle" style="font-size:24px;">Gör upp med Jonas</div>
+    <div class="bigamount amount" style="padding-top:8px;">212<span class="cur">kr</span></div>
+    <div class="pad" style="margin-bottom:6px;">
+      <div class="zl"><div class="bar pos" style="width:19%;"></div></div>
+      <div class="sub" style="text-align:center;margin-top:10px;">Efter betalningen: 0 kr &#183; ni är kvitt &#127881;</div>
+    </div>
+    <div class="swish">Betala med Swish</div>
+    <div class="cash glass">Markera som betald</div>
+    <div class="homedot" style="margin-top:40px;"></div>
+  </div>
+</div>
+
+</body>
+</html>
