@@ -1,4 +1,5 @@
 import Testing
+import KvittaCoreTestSupport
 @testable import KvittaCore
 
 @Suite("SplitCalculator")

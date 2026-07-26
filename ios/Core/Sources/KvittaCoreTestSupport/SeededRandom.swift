@@ -6,15 +6,15 @@ import Foundation
 /// A property test that fails on run 617 of 1000 is worthless if run 617 is different next time.
 /// Every generated history in this suite is a pure function of its seed, so a failure reported as
 /// "seed 617" can be reproduced exactly, forever, on any machine.
-struct SeededRandom: RandomNumberGenerator {
+public struct SeededRandom: RandomNumberGenerator {
     private var state: UInt64
 
-    init(seed: UInt64) {
+    public init(seed: UInt64) {
         // Any seed is legal, including zero — SplitMix64 has no bad states.
         self.state = seed
     }
 
-    mutating func next() -> UInt64 {
+    public mutating func next() -> UInt64 {
         state &+= 0x9E37_79B9_7F4A_7C15
         var z = state
         z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
@@ -24,7 +24,7 @@ struct SeededRandom: RandomNumberGenerator {
 
     /// A UUID drawn from this generator rather than the system's, so identifiers — and therefore
     /// every tie-break that depends on their ordering — are reproducible too.
-    mutating func nextUUID() -> UUID {
+    public mutating func nextUUID() -> UUID {
         let high = next()
         let low = next()
         func byte(_ value: UInt64, _ index: Int) -> UInt8 {
@@ -38,25 +38,25 @@ struct SeededRandom: RandomNumberGenerator {
         ))
     }
 
-    mutating func nextInt(in range: ClosedRange<Int>) -> Int {
+    public mutating func nextInt(in range: ClosedRange<Int>) -> Int {
         Int.random(in: range, using: &self)
     }
 
-    mutating func nextInt64(in range: ClosedRange<Int64>) -> Int64 {
+    public mutating func nextInt64(in range: ClosedRange<Int64>) -> Int64 {
         Int64.random(in: range, using: &self)
     }
 
-    mutating func chance(_ percent: Int) -> Bool {
+    public mutating func chance(_ percent: Int) -> Bool {
         nextInt(in: 1...100) <= percent
     }
 
-    mutating func pick<T>(_ options: [T]) -> T {
+    public mutating func pick<T>(_ options: [T]) -> T {
         options[nextInt(in: 0...(options.count - 1))]
     }
 
     /// A subset of at least `minimum` elements, chosen by index so the result never depends on
     /// `Set` iteration order.
-    mutating func pickSome<T>(_ options: [T], atLeast minimum: Int = 1) -> [T] {
+    public mutating func pickSome<T>(_ options: [T], atLeast minimum: Int = 1) -> [T] {
         precondition(minimum >= 1 && options.count >= minimum)
         var indices: [Int] = []
         for index in options.indices where chance(60) {

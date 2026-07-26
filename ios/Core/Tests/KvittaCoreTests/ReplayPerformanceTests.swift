@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import KvittaCoreTestSupport
 @testable import KvittaCore
 
 /// Guards the assumption the storage design rests on.
