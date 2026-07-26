@@ -29,6 +29,24 @@ Do not scaffold the app target, backend, or persistence in this session. Show me
 
 Read CLAUDE.md, docs/expense-app-sync-design.md sections 4-6, docs/ui-design.md, and open docs/mockup.html as the visual reference. Plan then build the local-only iOS app: GRDB event store (append-only events table, outbox table, per-group cursor table), projections persisted as GRDB records rebuilt from the log, and SwiftUI screens for group list, group detail with balances, add/edit expense with all split modes, settle up (record payment), and expense history. Placeholder members (no accounts) only. XcodeGen project.yml, min iOS 26 (glass-native from day one, per docs/ui-design.md). No networking. Acceptance: I can run it in the simulator, create a group, add expenses in every split mode, and balances match hand-calculated values. Debug menu item: rebuild projections from log.
 
+**Status: the data half is done and merged (PR #2).** One deviation from the above, accepted: projections are held in memory and rebuilt from the log at launch rather than persisted as GRDB records. A heavy group replays in ~20 ms, so a second copy of the truth would buy nothing and could drift from the first — and it makes launch and "rebuild projections" the same code path, so the recovery hatch runs constantly instead of never.
+
+---
+
+## Session 2b (Milestone 2: the screens) — run this in the **in-Xcode Claude Agent**
+
+Terminal Claude Code stops at the data layer per CLAUDE.md's tool split; the screens want Preview capture to verify them visually. Open ios/Kvitta.xcodeproj (run `xcodegen generate` from ios/ first if it is missing — it is gitignored) and paste:
+
+> Read CLAUDE.md, docs/ui-design.md, and open docs/mockup.html — it is authoritative for palette, layout and tone. Read ios/App/RootView.swift to see what exists and ios/Storage/Sources/KvittaStorage/LedgerStore.swift for the API you build against.
+>
+> The data layer is finished and tested (106 tests). Do not add persistence, networking, or money logic — all of it exists. In particular: never compute a split yourself, call `SplitCalculator.resolve`; never sum balances yourself, call `GroupState.balances()`; never write an event except through `LedgerStore.record`, which appends to the log and updates the projection in one call.
+>
+> Replace the placeholder RootView with the real screens from docs/ui-design.md §Screens, in this order: (1) Hem/Grupper with the Totalt card and the zero line, (2) Ny utgift as an amount-first sheet over a custom keypad with the split editor behind one summary row, (3) Gruppvy with simplified transfers and the expense list, (4) Balansgranskning — `GroupState.breakdown(for:)` already returns the lines with a running total that lands on exactly the displayed balance, (5) Gör upp, (6) Utgiftsdetalj with edit history from `Expense.revision`, (7) Aktivitet.
+>
+> Liquid Glass on the control layer only; content stays opaque. Never AnyView — use @ViewBuilder or a switch over an enum returning concrete views. Views over ~60 lines get split. Swedish and English from day one via String Catalog, Swedish is the reference copy. Amounts in SF Rounded with monospaced digits, and direction always in words next to the number so colour never carries meaning alone.
+>
+> Acceptance: create a group, add expenses in every split mode, and check the balances against hand-calculated values. 437.00 kr split three ways must read 145.67 / 145.67 / 145.66.
+
 ---
 
 ## Session 3 (Milestone 3: sync backend)
