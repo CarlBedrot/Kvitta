@@ -130,6 +130,17 @@
         }
       }
     },
+    "Återställ" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore"
+          }
+        }
+      }
+    },
     "Avbryt" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -294,6 +305,16 @@
         }
       }
     },
+    "Den går att återställa under Visa borttagna." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can restore it under Show deleted."
+          }
+        }
+      }
+    },
     "Diagnostik" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -332,6 +353,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your name"
+          }
+        }
+      }
+    },
+    "Dölj borttagna" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide deleted"
           }
         }
       }
@@ -822,12 +854,38 @@
         }
       }
     },
+    "Redigera" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit"
+          }
+        }
+      }
+    },
     "redigerad" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "edited"
+          }
+        }
+      }
+    },
+    "Redigerad %@ gånger · senast %@%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edited %@ times · last %@%@"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Redigerad %1$@ gånger · senast %2$@%3$@"
           }
         }
       }
@@ -875,6 +933,22 @@
         }
       }
     },
+    "Skapad %@%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Created %@%@"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Skapad %1$@%2$@"
+          }
+        }
+      }
+    },
     "Spara" : {
       "localizations" : {
         "en" : {
@@ -896,6 +970,27 @@
         }
       }
     },
+    "Ta bort" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        }
+      }
+    },
+    "Ta bort utgiften?" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete this expense?"
+          }
+        }
+      }
+    },
     "Taxi" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -913,6 +1008,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Total"
+          }
+        }
+      }
+    },
+    "Utgiften finns inte längre" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This expense no longer exists"
           }
         }
       }
@@ -977,6 +1083,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Who owes whom"
+          }
+        }
+      }
+    },
+    "Visa borttagna (%@)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show deleted (%@)"
           }
         }
       }

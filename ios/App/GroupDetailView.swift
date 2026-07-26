@@ -15,6 +15,9 @@ struct GroupDetailView: View {
 
     @State private var settlingTransfer: TransferPresentation?
     @State private var auditingMember: MemberID?
+    @State private var viewingExpense: ExpenseID?
+    @State private var showingDeleted = false
+    @State private var restoreFailure: String?
 
     /// The live group out of the projection. `nil` only if the group vanished mid-navigation,
     /// which a rebuild from a bad log could theoretically produce — show nothing rather than crash.
@@ -48,7 +51,13 @@ struct GroupDetailView: View {
                     onSettle: { settlingTransfer = TransferPresentation(transfer: $0) },
                     onAudit: { auditingMember = $0 }
                 )
-                ExpenseList(group: group, meId: meId)
+                ExpenseList(group: group, meId: meId) { viewingExpense = $0 }
+                DeletedExpensesSection(
+                    group: group,
+                    showingDeleted: $showingDeleted,
+                    failure: restoreFailure,
+                    onRestore: restore
+                )
                 Color.clear.frame(height: 120)
             }
             .padding(.horizontal, 18)
@@ -64,6 +73,19 @@ struct GroupDetailView: View {
         .sheet(item: $auditingMember) { memberId in
             BalanceAuditSheet(ledger: ledger, userId: userId, groupId: groupId, memberId: memberId)
                 .presentationDragIndicator(.visible)
+        }
+        .sheet(item: $viewingExpense) { expenseId in
+            ExpenseDetailSheet(ledger: ledger, userId: userId, groupId: groupId, expenseId: expenseId)
+                .presentationDragIndicator(.visible)
+        }
+    }
+
+    private func restore(_ expenseId: ExpenseID) {
+        do {
+            try ledger.record(.expenseRestored(EmptyPayload()), entityId: expenseId.rawValue, in: groupId)
+            restoreFailure = nil
+        } catch {
+            restoreFailure = String(describing: error)
         }
     }
 }
@@ -207,6 +229,7 @@ private struct TransferRow: View {
 private struct ExpenseList: View {
     let group: GroupState
     let meId: MemberID?
+    let onSelect: (ExpenseID) -> Void
 
     var body: some View {
         // visibleExpenses is already newest-first; chunk into months preserving that order.
@@ -218,10 +241,74 @@ private struct ExpenseList: View {
                     if index > 0 {
                         Rectangle().fill(Theme.hairline).frame(height: 1)
                     }
-                    ExpenseRow(group: group, meId: meId, expense: expense)
+                    Button {
+                        onSelect(expense.id)
+                    } label: {
+                        ExpenseRow(group: group, meId: meId, expense: expense)
+                            .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .cardSurface(padding: 6)
+        }
+    }
+}
+
+/// The recovery half of soft delete. Hidden entirely until the group has deleted expenses;
+/// restoring writes an `ExpenseRestored` and the row rejoins the list above.
+private struct DeletedExpensesSection: View {
+    let group: GroupState
+    @Binding var showingDeleted: Bool
+    let failure: String?
+    let onRestore: (ExpenseID) -> Void
+
+    var body: some View {
+        let deleted = group.deletedExpenses
+        if !deleted.isEmpty {
+            Button {
+                withAnimation { showingDeleted.toggle() }
+            } label: {
+                Text(showingDeleted ? "Dölj borttagna" : "Visa borttagna (\(deleted.count))")
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(Theme.secondary)
+                    .frame(maxWidth: .infinity)
+            }
+            .padding(.top, 4)
+
+            if showingDeleted {
+                VStack(spacing: 0) {
+                    ForEach(Array(deleted.enumerated()), id: \.element.id) { index, expense in
+                        if index > 0 {
+                            Rectangle().fill(Theme.hairline).frame(height: 1)
+                        }
+                        HStack {
+                            Text(expense.title)
+                                .font(.subheadline)
+                                .strikethrough()
+                                .foregroundStyle(Theme.secondary)
+                            Spacer()
+                            NeutralAmountText(
+                                amountMinor: expense.amountMinor,
+                                currency: expense.currency,
+                                size: 14
+                            )
+                            .foregroundStyle(Theme.secondary)
+                            Button("Återställ") { onRestore(expense.id) }
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Theme.espresso)
+                                .buttonStyle(.glass)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                    }
+                }
+                .cardSurface(padding: 6)
+
+                if let failure {
+                    Text(failure).font(.footnote).foregroundStyle(Theme.clay)
+                }
+            }
         }
     }
 }

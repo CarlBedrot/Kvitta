@@ -96,7 +96,16 @@ private struct EqualRows: View {
 private struct ExactRows: View {
     @Bindable var model: NewExpenseModel
     let shareMap: [MemberID: Int64]
-    @State private var text: [MemberID: String] = [:]
+    @State private var text: [MemberID: String]
+
+    init(model: NewExpenseModel, shareMap: [MemberID: Int64]) {
+        self.model = model
+        self.shareMap = shareMap
+        // Prefill from the draft so editing an existing expense shows its amounts, not blanks.
+        _text = State(initialValue: model.draft.exactMinor.compactMapValues { minor in
+            minor == 0 ? nil : SplitParse.text(fromMinor: minor)
+        })
+    }
 
     var body: some View {
         ForEach(model.members) { member in
@@ -127,7 +136,16 @@ private struct ExactRows: View {
 private struct PercentRows: View {
     @Bindable var model: NewExpenseModel
     let shareMap: [MemberID: Int64]
-    @State private var text: [MemberID: String] = [:]
+    @State private var text: [MemberID: String]
+
+    init(model: NewExpenseModel, shareMap: [MemberID: Int64]) {
+        self.model = model
+        self.shareMap = shareMap
+        // Prefill from the draft (basis points share the minor-units text shape: 5025 → "50,25").
+        _text = State(initialValue: model.draft.basisPoints.compactMapValues { points in
+            points == 0 ? nil : SplitParse.text(fromMinor: points)
+        })
+    }
 
     var body: some View {
         ForEach(model.members) { member in
@@ -236,6 +254,13 @@ private struct RemainderFooter: View {
 /// Parses the decimal-comma text the split fields use into integer minor units / basis points.
 /// Integer arithmetic only — no `Double` touches these numbers.
 enum SplitParse {
+    /// Inverse of `minor(_:)` for prefilling fields: `14567` → "145,67", `14500` → "145".
+    static func text(fromMinor minor: Int64) -> String {
+        let whole = minor / 100
+        let frac = minor % 100
+        return frac == 0 ? "\(whole)" : "\(whole),\(frac < 10 ? "0" : "")\(frac)"
+    }
+
     static func minor(_ raw: String) -> Int64 {
         let cleaned = raw.replacingOccurrences(of: ".", with: ",").filter { $0.isNumber || $0 == "," }
         guard !cleaned.isEmpty else { return 0 }

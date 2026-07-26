@@ -13,6 +13,20 @@ struct AmountInput: Equatable {
     /// Cap kronor length so the amount stays well inside `Int64` minor units.
     private static let maxKronorDigits = 9
 
+    init() {}
+
+    /// Prefilled state for editing an existing expense: `43_759` → "437,59", `43_700` → "437".
+    init(amountMinor: Int64) {
+        let magnitude = max(0, amountMinor)
+        kronor = magnitude / 100 == 0 ? "" : "\(magnitude / 100)"
+        let oreValue = magnitude % 100
+        if oreValue != 0 {
+            hasComma = true
+            if kronor.isEmpty { kronor = "0" }
+            ore = oreValue < 10 ? "0\(oreValue)" : "\(oreValue)"
+        }
+    }
+
     /// The amount in minor units (öre). A trailing single öre digit means tenths: "5" → 50 öre.
     var amountMinor: Int64 {
         let k = Int64(kronor) ?? 0

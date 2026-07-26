@@ -11,10 +11,19 @@ import KvittaStorage
 @MainActor
 @Observable
 final class NewExpenseModel: Identifiable {
+    /// Which event `save()` writes: a fresh expense, or a full-payload correction to an existing
+    /// one. Corrections are new `ExpenseUpdated` events on the same entity — never edits to
+    /// stored events (CLAUDE.md).
+    enum Purpose {
+        case create
+        case edit(ExpenseID)
+    }
+
     /// Identifies a presentation of the sheet, so `.sheet(item:)` can drive it.
     nonisolated let id = UUID()
     let ledger: LedgerStore
     let userId: UserID
+    let purpose: Purpose
 
     private(set) var groupId: GroupID
     var amount = AmountInput()
@@ -23,15 +32,45 @@ final class NewExpenseModel: Identifiable {
     var payerId: MemberID?
     var draft: SplitDraft
     var failure: String?
+    /// The day the expense belongs to. Today for a new expense; preserved on edit, because
+    /// correcting a typo in the amount does not move the dinner to another day.
+    private var date: CalendarDate
 
     init(ledger: LedgerStore, userId: UserID, groupId: GroupID) {
         self.ledger = ledger
         self.userId = userId
         self.groupId = groupId
+        self.purpose = .create
+        self.date = CalendarDate(Date())
         let group = ledger.state[groupId]
         let memberIds = (group?.activeMembers ?? []).map(\.id)
         self.draft = SplitDraft(members: memberIds)
         self.payerId = group?.me(for: userId)?.id ?? memberIds.first
+    }
+
+    /// Prefills the sheet from an existing expense, reopening the split editor in the mode the
+    /// expense was created in (`splitInput` is stored on the payload for exactly this).
+    init(ledger: LedgerStore, userId: UserID, groupId: GroupID, editing expense: Expense) {
+        self.ledger = ledger
+        self.userId = userId
+        self.groupId = groupId
+        self.purpose = .edit(expense.id)
+        self.date = expense.date
+        self.amount = AmountInput(amountMinor: expense.amountMinor)
+        self.descriptionText = expense.title
+        self.categoryId = expense.categoryId
+        self.payerId = expense.payload.payers.first?.memberId
+        let memberIds = (ledger.state[groupId]?.activeMembers ?? []).map(\.id)
+        self.draft = SplitDraft(
+            splitInput: expense.payload.splitInput,
+            resolvedShares: expense.payload.shares,
+            members: memberIds
+        )
+    }
+
+    var isEditing: Bool {
+        if case .edit = purpose { return true }
+        return false
     }
 
     // MARK: - Group context (derived from the live projection)
@@ -68,7 +107,7 @@ final class NewExpenseModel: Identifiable {
         return try ExpensePayload.make(
             description: descriptionText.trimmingCharacters(in: .whitespaces),
             categoryId: categoryId,
-            date: CalendarDate(Date()),
+            date: date,
             total: total,
             payers: [MoneyLine(memberId: payerId, amountMinor: amountMinor)],
             splitInput: draft.splitInput(members: memberIds)
@@ -85,7 +124,14 @@ final class NewExpenseModel: Identifiable {
     func save() -> Bool {
         do {
             let payload = try resolvedPayload()
-            try ledger.record(.expenseCreated(payload), entityId: ExpenseID().rawValue, in: groupId)
+            switch purpose {
+            case .create:
+                try ledger.record(.expenseCreated(payload), entityId: ExpenseID().rawValue, in: groupId)
+            case .edit(let expenseId):
+                // A full replacement on the same entity; the old version stays in the log and
+                // becomes the edit history.
+                try ledger.record(.expenseUpdated(payload), entityId: expenseId.rawValue, in: groupId)
+            }
             return true
         } catch {
             failure = String(describing: error)

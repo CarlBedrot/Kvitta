@@ -37,9 +37,14 @@ extension GroupState {
     }
 }
 
-/// Lets a member drive `.sheet(item:)` presentations (Balansgranskning). App-side only; Core
-/// stays free of UI-serving conformances.
+// Let ids drive `.sheet(item:)` presentations (Balansgranskning, Utgiftsdetalj). App-side only;
+// Core stays free of UI-serving conformances.
+
 extension MemberID: @retroactive Identifiable {
+    public var id: UUID { rawValue }
+}
+
+extension ExpenseID: @retroactive Identifiable {
     public var id: UUID { rawValue }
 }
 

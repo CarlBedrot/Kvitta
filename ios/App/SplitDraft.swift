@@ -50,6 +50,31 @@ struct SplitDraft {
         weights = Dictionary(uniqueKeysWithValues: members.map { ($0, 1) })
     }
 
+    /// Reopens the editor in the mode the expense was created in — the whole reason `splitInput`
+    /// is stored on the payload. An input this build cannot interpret (`unrecognized`, or a mode
+    /// from a newer client) falls back to Exakt over the *resolved shares*, which reproduces the
+    /// stored split precisely without guessing at the original intent.
+    init(splitInput: SplitInput?, resolvedShares: [MoneyLine], members: [MemberID]) {
+        self.init(members: members)
+        switch splitInput {
+        case .equal(let among):
+            mode = .equal
+            included = Set(among)
+        case .exact(let amounts):
+            mode = .exact
+            for line in amounts { exactMinor[line.memberId] = line.amountMinor }
+        case .percentage(let points):
+            mode = .percentage
+            for line in points { basisPoints[line.memberId] = line.weight }
+        case .shares(let lines):
+            mode = .shares
+            for line in lines { weights[line.memberId] = line.weight }
+        case .unrecognized, nil:
+            mode = .exact
+            for line in resolvedShares { exactMinor[line.memberId] = line.amountMinor }
+        }
+    }
+
     /// The un-resolved split as the user entered it, in the shape Core expects.
     func splitInput(members: [MemberID]) -> SplitInput {
         switch mode {

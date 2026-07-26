@@ -116,6 +116,17 @@ enum PreviewLedger {
     )
 }
 
+#Preview("Utgiftsdetalj") {
+    let ledger = PreviewLedger.populated()
+    let group = ledger.state.groupsByLastActivity.first { $0.activeMembers.count == 4 }!
+    ExpenseDetailSheet(
+        ledger: ledger,
+        userId: PreviewLedger.userId,
+        groupId: group.id,
+        expenseId: group.visibleExpenses.first!.id
+    )
+}
+
 #Preview("Aktivitet") {
     NavigationStack {
         ActivityView(ledger: PreviewLedger.populated(), userId: PreviewLedger.userId)

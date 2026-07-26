@@ -63,20 +63,30 @@ private struct SheetHeader: View {
 
     var body: some View {
         HStack {
-            Menu {
-                ForEach(groups) { group in
-                    Button(group.name) { model.selectGroup(group.id) }
+            if model.isEditing {
+                // An edit stays in its group: moving an expense between ledgers is not a
+                // correction, it is a delete and a re-add.
+                Text(model.group?.name ?? "")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.secondary)
+                    .padding(.horizontal, 13)
+                    .padding(.vertical, 7)
+            } else {
+                Menu {
+                    ForEach(groups) { group in
+                        Button(group.name) { model.selectGroup(group.id) }
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(model.group?.name ?? "")
+                        Image(systemName: "chevron.down").font(.caption)
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.ink)
+                    .padding(.horizontal, 13)
+                    .padding(.vertical, 7)
+                    .glassEffect(in: .capsule)
                 }
-            } label: {
-                HStack(spacing: 6) {
-                    Text(model.group?.name ?? "")
-                    Image(systemName: "chevron.down").font(.caption)
-                }
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.ink)
-                .padding(.horizontal, 13)
-                .padding(.vertical, 7)
-                .glassEffect(in: .capsule)
             }
 
             Spacer()
