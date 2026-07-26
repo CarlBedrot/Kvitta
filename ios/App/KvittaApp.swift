@@ -12,7 +12,7 @@ struct KvittaApp: App {
             // WindowGroup body is already a @ViewBuilder, so this costs nothing.
             switch startup {
             case .ready(let ledger):
-                RootView(ledger: ledger)
+                RootView(ledger: ledger, userId: DeviceIdentity.userId)
             case .failed(let message):
                 StartupFailureView(message: message)
             }

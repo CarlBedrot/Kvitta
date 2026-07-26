@@ -1,0 +1,105 @@
+import SwiftUI
+import KvittaCore
+import KvittaStorage
+
+/// A throwaway in-memory ledger for Previews, populated through the real write path so what a
+/// Preview renders is exactly what the app computes — including the 145,67 / 145,67 / 145,66
+/// worked example from the design doc. Never used outside Previews.
+@MainActor
+enum PreviewLedger {
+    static let userId = UserID()
+
+    static func populated() -> LedgerStore {
+        let ledger = empty()
+        do {
+            let malmo = try group(
+                in: ledger, name: "🏖️ Malmö-gänget",
+                members: [("Du", userId), ("Jonas", nil), ("Sara", nil), ("Ellen", nil)]
+            )
+            let apartment = try group(
+                in: ledger, name: "🏠 Lägenheten",
+                members: [("Du", userId), ("Alex", nil)]
+            )
+
+            try expense(in: ledger, group: malmo.0, description: "Systembolaget",
+                        categoryId: "alkohol", totalMinor: 43_700,
+                        paidBy: malmo.1[0], among: Array(malmo.1.prefix(3)))
+            try expense(in: ledger, group: apartment.0, description: "Städgrejer",
+                        categoryId: "groceries", totalMinor: 30_400,
+                        paidBy: apartment.1[1], among: apartment.1)
+        } catch {
+            // A preview fixture that cannot build is a programmer error worth hearing about.
+            assertionFailure(String(describing: error))
+        }
+        return ledger
+    }
+
+    static func empty() -> LedgerStore {
+        // Force-try is acceptable here: an in-memory database that fails to open means the
+        // preview host itself is broken.
+        // swiftlint:disable:next force_try
+        let ledger = LedgerStore(store: try! EventStore.inMemory(), authorId: userId)
+        return ledger
+    }
+
+    private static func group(
+        in ledger: LedgerStore, name: String, members: [(String, UserID?)]
+    ) throws -> (GroupID, [MemberID]) {
+        let groupId = GroupID()
+        try ledger.record(
+            .groupCreated(GroupCreatedPayload(name: name, currency: .sek)),
+            entityId: groupId.rawValue, in: groupId
+        )
+        var memberIds: [MemberID] = []
+        for (memberName, linked) in members {
+            let memberId = MemberID()
+            memberIds.append(memberId)
+            try ledger.record(
+                .memberAdded(MemberAddedPayload(displayName: memberName, linkedUserId: linked)),
+                entityId: memberId.rawValue, in: groupId
+            )
+        }
+        return (groupId, memberIds)
+    }
+
+    private static func expense(
+        in ledger: LedgerStore, group groupId: GroupID, description: String,
+        categoryId: String, totalMinor: Int64, paidBy: MemberID, among: [MemberID]
+    ) throws {
+        try ledger.record(
+            .expenseCreated(try ExpensePayload.make(
+                description: description,
+                categoryId: categoryId,
+                date: CalendarDate(Date()),
+                total: Money(amountMinor: totalMinor, currency: .sek),
+                paidBy: paidBy,
+                splitEquallyAmong: among
+            )),
+            entityId: ExpenseID().rawValue, in: groupId
+        )
+    }
+}
+
+#Preview("Hem") {
+    RootView(ledger: PreviewLedger.populated(), userId: PreviewLedger.userId)
+}
+
+#Preview("Hem – tom") {
+    RootView(ledger: PreviewLedger.empty(), userId: PreviewLedger.userId)
+}
+
+#Preview("Ny utgift") {
+    let ledger = PreviewLedger.populated()
+    let groupId = ledger.state.groupsByLastActivity.first!.id
+    NewExpenseSheet(
+        model: NewExpenseModel(ledger: ledger, userId: PreviewLedger.userId, groupId: groupId)
+    )
+}
+
+#Preview("Dela upp") {
+    let ledger = PreviewLedger.populated()
+    let groupId = ledger.state.groupsByLastActivity.first!.id
+    let model = NewExpenseModel(ledger: ledger, userId: PreviewLedger.userId, groupId: groupId)
+    let _ = { for d in "437" { model.amount.input(d) } }()
+    SplitEditorSheet(model: model)
+}

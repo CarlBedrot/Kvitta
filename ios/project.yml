@@ -8,6 +8,9 @@ options:
     iOS: "26.0"
   createIntermediateGroups: true
   groupSortPosition: top
+  # Swedish is the reference copy (ui-design.md); English ships alongside it. The Localizable
+  # String Catalog in App/ carries both localizations.
+  developmentLanguage: sv
 
 packages:
   KvittaCore:
