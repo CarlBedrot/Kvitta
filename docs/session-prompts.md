@@ -47,6 +47,8 @@ Terminal Claude Code stops at the data layer per CLAUDE.md's tool split; the scr
 >
 > Acceptance: create a group, add expenses in every split mode, and check the balances against hand-calculated values. 437.00 kr split three ways must read 145.67 / 145.67 / 145.66.
 
+**Status: done (PR #4).** All seven screens built and verified on device; ios/Core and ios/Storage untouched. Acceptance held: 437 kr three ways reads 145,67/145,67/145,66 through the app's own path. Two accepted deviations, documented in code: Balansgranskning audits a member's balance against the group (what `breakdown(for:)` guarantees to the öre) rather than the mockup's pairwise sketch, and the suggestion chips render opaque because glass chips would exceed the three-glass-elements rule. Deliberately deferred: Swish/MobilePay deep links (M5), settle-collapse animation polish, CSV export + group toolbar (add member/settings), dark mode tuning, and unsynced-row badges (meaningless until M3). The Jag tab is a stub holding diagnostics and the debug seed/rebuild tools.
+
 ---
 
 ## Session 3 (Milestone 3: sync backend)
