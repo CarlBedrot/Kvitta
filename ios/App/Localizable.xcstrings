@@ -21,6 +21,17 @@
         }
       }
     },
+    "%@ med flera betalade" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ and others paid"
+          }
+        }
+      }
+    },
     "%lld delar" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -50,6 +61,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Alcohol"
+          }
+        }
+      }
+    },
+    "Alla är kvitt 🎉" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All settled 🎉"
           }
         }
       }
@@ -240,6 +261,26 @@
         }
       }
     },
+    "Din balans" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your balance"
+          }
+        }
+      }
+    },
+    "din del %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "your share %@"
+          }
+        }
+      }
+    },
     "Ditt namn" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -293,6 +334,16 @@
         }
       }
     },
+    "Efter betalningen: 0 kr · ni är kvitt 🎉" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After the payment: 0 kr · you're settled 🎉"
+          }
+        }
+      }
+    },
     "Exakt" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -315,6 +366,16 @@
         }
       }
     },
+    "Gör upp" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settle up"
+          }
+        }
+      }
+    },
     "Grupp" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -322,6 +383,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Group"
+          }
+        }
+      }
+    },
+    "Gruppen finns inte längre" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This group no longer exists"
           }
         }
       }
@@ -495,6 +567,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Equal"
+          }
+        }
+      }
+    },
+    "Markera som betald" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark as paid"
           }
         }
       }
@@ -745,6 +827,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Awaiting push"
+          }
+        }
+      }
+    },
+    "Vem är skyldig vem" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Who owes whom"
           }
         }
       }

@@ -35,6 +35,9 @@ struct HomeView: View {
             .padding(.horizontal, 18)
             .padding(.top, 8)
         }
+        .navigationDestination(for: GroupID.self) { groupId in
+            GroupDetailView(ledger: ledger, userId: userId, groupId: groupId)
+        }
     }
 }
 
@@ -102,7 +105,10 @@ private struct GroupsCard: View {
                 if index > 0 {
                     Rectangle().fill(Theme.hairline).frame(height: 1)
                 }
-                GroupRow(group: group, userId: userId, scaleMinor: scaleMinor)
+                NavigationLink(value: group.id) {
+                    GroupRow(group: group, userId: userId, scaleMinor: scaleMinor)
+                }
+                .buttonStyle(.plain)
             }
         }
         .cardSurface(padding: 6)
@@ -130,6 +136,9 @@ private struct GroupRow: View {
                     )
                     Text(direction.word).font(.caption2).foregroundStyle(Theme.secondary)
                 }
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color(hex: 0xC6BDAE))
             }
             ZeroLine(amountMinor: net.amountMinor, scaleMinor: scaleMinor, mini: true)
         }
