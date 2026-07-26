@@ -27,7 +27,7 @@ Do not scaffold the app target, backend, or persistence in this session. Show me
 
 ## Session 2 (Milestone 2: local-only app)
 
-Read CLAUDE.md, docs/expense-app-sync-design.md sections 4-6, docs/ui-design.md, and open docs/mockup.html as the visual reference. Plan then build the local-only iOS app: GRDB event store (append-only events table, outbox table, per-group cursor table), projections persisted as GRDB records rebuilt from the log, and SwiftUI screens for group list, group detail with balances, add/edit expense with all split modes, settle up (record payment), and expense history. Placeholder members (no accounts) only. XcodeGen project.yml, min iOS 17. No networking. Acceptance: I can run it in the simulator, create a group, add expenses in every split mode, and balances match hand-calculated values. Debug menu item: rebuild projections from log.
+Read CLAUDE.md, docs/expense-app-sync-design.md sections 4-6, docs/ui-design.md, and open docs/mockup.html as the visual reference. Plan then build the local-only iOS app: GRDB event store (append-only events table, outbox table, per-group cursor table), projections persisted as GRDB records rebuilt from the log, and SwiftUI screens for group list, group detail with balances, add/edit expense with all split modes, settle up (record payment), and expense history. Placeholder members (no accounts) only. XcodeGen project.yml, min iOS 26 (glass-native from day one, per docs/ui-design.md). No networking. Acceptance: I can run it in the simulator, create a group, add expenses in every split mode, and balances match hand-calculated values. Debug menu item: rebuild projections from log.
 
 ---
 
