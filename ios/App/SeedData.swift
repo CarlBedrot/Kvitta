@@ -20,9 +20,12 @@ enum SeedData {
             in: groupId
         )
 
-        for (memberId, name) in zip(members, names) {
+        for (index, (memberId, name)) in zip(members, names).enumerated() {
+            // Link the first member to this device so the seeded group also shows a "Du"
+            // perspective on the home screen, exercising the same path a real group uses.
+            let linkedUserId = index == 0 ? DeviceIdentity.userId : nil
             try ledger.record(
-                .memberAdded(MemberAddedPayload(displayName: name)),
+                .memberAdded(MemberAddedPayload(displayName: name, linkedUserId: linkedUserId)),
                 entityId: memberId.rawValue,
                 in: groupId
             )
