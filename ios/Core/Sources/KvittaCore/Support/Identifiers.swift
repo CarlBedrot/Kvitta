@@ -27,6 +27,20 @@ extension EntityIdentifier {
     public static func < (lhs: Self, rhs: Self) -> Bool {
         UUIDOrdering.isLess(lhs.rawValue, rhs.rawValue)
     }
+
+    // Spelled out rather than left to `RawRepresentable`'s conditional conformance in the
+    // standard library. That conformance loses to Codable synthesis for a struct that declares
+    // conformance itself, and the synthesised version encodes `{"rawValue":"..."}` — which would
+    // have put a wire format the design doc never describes in front of the .NET server.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        self.init(rawValue: try container.decode(UUID.self))
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct GroupID: EntityIdentifier {
