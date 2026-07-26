@@ -49,6 +49,16 @@ public struct EventEnvelope: Hashable, Sendable {
 
     /// The same event with the sequence number the server assigned it.
     public func acknowledged(serverSeq: Int64) -> EventEnvelope {
+        withServerSeq(serverSeq)
+    }
+
+    /// The same event carrying a different sequence number, or none.
+    ///
+    /// Storage needs this: it keeps `serverSeq` in an indexed column so it can sort without
+    /// decoding, which means the column and the copy inside the stored payload can disagree once
+    /// an acknowledgement lands. The column is the authority, and this is how a decoded event is
+    /// reconciled with it.
+    public func withServerSeq(_ serverSeq: Int64?) -> EventEnvelope {
         EventEnvelope(
             eventId: eventId,
             groupId: groupId,

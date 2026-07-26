@@ -1,30 +1,30 @@
 import Foundation
-@testable import KvittaCore
+import KvittaCore
 
 /// Identifiers with a known sort order, so tests can assert *which* member gets the leftover öre
 /// rather than just that the amounts add up.
-enum Fixtures {
-    static let currency = CurrencyCode.sek
-    static let date = CalendarDate(year: 2026, month: 7, day: 21)!
-    static let timestamp = Timestamp(iso8601: "2026-07-21T18:30:00Z")!
+public enum Fixtures {
+    public static let currency = CurrencyCode.sek
+    public static let date = CalendarDate(year: 2026, month: 7, day: 21)!
+    public static let timestamp = Timestamp(iso8601: "2026-07-21T18:30:00Z")!
 
     /// `member(1) < member(2) < member(3)` by the same byte ordering `Allocator` sorts on.
-    static func member(_ index: Int) -> MemberID {
+    public static func member(_ index: Int) -> MemberID {
         MemberID(uuidString: "00000000-0000-0000-0000-\(pad(index, 12))")!
     }
 
-    static func expense(_ index: Int) -> ExpenseID {
+    public static func expense(_ index: Int) -> ExpenseID {
         ExpenseID(uuidString: "00000000-0000-0000-0001-\(pad(index, 12))")!
     }
 
-    static func payment(_ index: Int) -> PaymentID {
+    public static func payment(_ index: Int) -> PaymentID {
         PaymentID(uuidString: "00000000-0000-0000-0002-\(pad(index, 12))")!
     }
 
-    static let groupId = GroupID(uuidString: "00000000-0000-0000-000a-000000000001")!
-    static let authorId = UserID(uuidString: "00000000-0000-0000-000b-000000000001")!
+    public static let groupId = GroupID(uuidString: "00000000-0000-0000-000a-000000000001")!
+    public static let authorId = UserID(uuidString: "00000000-0000-0000-000b-000000000001")!
 
-    static func money(_ minor: Int64) -> Money {
+    public static func money(_ minor: Int64) -> Money {
         Money(amountMinor: minor, currency: currency)
     }
 
@@ -36,17 +36,17 @@ enum Fixtures {
 
 /// Builds envelopes with monotonically increasing `serverSeq`, which is the order the projector
 /// is entitled to assume.
-struct EventFactory {
-    let groupId: GroupID
-    let authorId: UserID
+public struct EventFactory {
+    public let groupId: GroupID
+    public let authorId: UserID
     private var seq: Int64 = 0
 
-    init(groupId: GroupID = Fixtures.groupId, authorId: UserID = Fixtures.authorId) {
+    public init(groupId: GroupID = Fixtures.groupId, authorId: UserID = Fixtures.authorId) {
         self.groupId = groupId
         self.authorId = authorId
     }
 
-    mutating func make(
+    public mutating func make(
         entityId: UUID,
         payload: EventPayload,
         eventId: EventID = EventID(),
@@ -64,45 +64,45 @@ struct EventFactory {
         )
     }
 
-    mutating func groupCreated(name: String = "Fjällresan", currency: CurrencyCode = Fixtures.currency) -> EventEnvelope {
+    public mutating func groupCreated(name: String = "Fjällresan", currency: CurrencyCode = Fixtures.currency) -> EventEnvelope {
         make(
             entityId: groupId.rawValue,
             payload: .groupCreated(GroupCreatedPayload(name: name, currency: currency))
         )
     }
 
-    mutating func memberAdded(_ memberId: MemberID, name: String) -> EventEnvelope {
+    public mutating func memberAdded(_ memberId: MemberID, name: String) -> EventEnvelope {
         make(
             entityId: memberId.rawValue,
             payload: .memberAdded(MemberAddedPayload(displayName: name))
         )
     }
 
-    mutating func memberRemoved(_ memberId: MemberID) -> EventEnvelope {
+    public mutating func memberRemoved(_ memberId: MemberID) -> EventEnvelope {
         make(entityId: memberId.rawValue, payload: .memberRemoved(EmptyPayload()))
     }
 
-    mutating func expenseCreated(_ expenseId: ExpenseID, _ payload: ExpensePayload) -> EventEnvelope {
+    public mutating func expenseCreated(_ expenseId: ExpenseID, _ payload: ExpensePayload) -> EventEnvelope {
         make(entityId: expenseId.rawValue, payload: .expenseCreated(payload))
     }
 
-    mutating func expenseUpdated(_ expenseId: ExpenseID, _ payload: ExpensePayload) -> EventEnvelope {
+    public mutating func expenseUpdated(_ expenseId: ExpenseID, _ payload: ExpensePayload) -> EventEnvelope {
         make(entityId: expenseId.rawValue, payload: .expenseUpdated(payload))
     }
 
-    mutating func expenseDeleted(_ expenseId: ExpenseID) -> EventEnvelope {
+    public mutating func expenseDeleted(_ expenseId: ExpenseID) -> EventEnvelope {
         make(entityId: expenseId.rawValue, payload: .expenseDeleted(EmptyPayload()))
     }
 
-    mutating func expenseRestored(_ expenseId: ExpenseID) -> EventEnvelope {
+    public mutating func expenseRestored(_ expenseId: ExpenseID) -> EventEnvelope {
         make(entityId: expenseId.rawValue, payload: .expenseRestored(EmptyPayload()))
     }
 
-    mutating func paymentRecorded(_ paymentId: PaymentID, _ payload: PaymentRecordedPayload) -> EventEnvelope {
+    public mutating func paymentRecorded(_ paymentId: PaymentID, _ payload: PaymentRecordedPayload) -> EventEnvelope {
         make(entityId: paymentId.rawValue, payload: .paymentRecorded(payload))
     }
 
-    mutating func unknownType(_ type: String, entityId: UUID = UUID()) -> EventEnvelope {
+    public mutating func unknownType(_ type: String, entityId: UUID = UUID()) -> EventEnvelope {
         seq += 1
         return EventEnvelope(
             groupId: groupId,

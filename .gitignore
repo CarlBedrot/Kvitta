@@ -1,0 +1,8 @@
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Xcode — the project is generated from ios/project.yml by XcodeGen, never edited by hand
+*.xcodeproj
+xcuserdata/
+DerivedData/

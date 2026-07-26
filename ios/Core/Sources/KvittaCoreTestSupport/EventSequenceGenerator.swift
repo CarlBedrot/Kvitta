@@ -1,13 +1,13 @@
 import Foundation
-@testable import KvittaCore
+import KvittaCore
 
-struct GeneratedHistory {
-    let seed: UInt64
-    let groupId: GroupID
-    let currency: CurrencyCode
-    let memberIds: [MemberID]
-    let events: [EventEnvelope]
-    var nextServerSeq: Int64
+public struct GeneratedHistory {
+    public let seed: UInt64
+    public let groupId: GroupID
+    public let currency: CurrencyCode
+    public let memberIds: [MemberID]
+    public let events: [EventEnvelope]
+    public var nextServerSeq: Int64
 }
 
 /// Produces a plausible group history from a seed: people joining and leaving, expenses in every
@@ -17,9 +17,9 @@ struct GeneratedHistory {
 /// Everything it emits is *valid* — the point of the property tests is not that the projector
 /// rejects garbage, it is that a legitimate sequence of events, in any order and combination,
 /// still leaves the books balanced.
-enum EventSequenceGenerator {
+public enum EventSequenceGenerator {
 
-    static func make(seed: UInt64, maxActions: Int = 60) throws -> GeneratedHistory {
+    public static func make(seed: UInt64, maxActions: Int = 60) throws -> GeneratedHistory {
         var rng = SeededRandom(seed: seed)
 
         let groupId = GroupID(rawValue: rng.nextUUID())
@@ -223,12 +223,12 @@ enum EventSequenceGenerator {
 }
 
 extension SeededRandom {
-    mutating func pickIfAny<T>(_ options: [T]) -> T? {
+    public mutating func pickIfAny<T>(_ options: [T]) -> T? {
         options.isEmpty ? nil : pick(options)
     }
 
     /// Two distinct elements. Used for payments, where paying yourself is not representable.
-    mutating func pickPair<T: Equatable>(_ options: [T]) -> (T, T) {
+    public mutating func pickPair<T: Equatable>(_ options: [T]) -> (T, T) {
         precondition(options.count >= 2)
         let firstIndex = nextInt(in: 0...(options.count - 1))
         var secondIndex = nextInt(in: 0...(options.count - 2))

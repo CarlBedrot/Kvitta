@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import KvittaCoreTestSupport
 @testable import KvittaCore
 
 @Suite("Projector")

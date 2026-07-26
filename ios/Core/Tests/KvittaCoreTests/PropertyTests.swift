@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import KvittaCoreTestSupport
 @testable import KvittaCore
 
 /// The four properties from CLAUDE.md's testing policy, each over 1 000 randomly generated

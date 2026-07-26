@@ -7,18 +7,21 @@ Full architecture: docs/expense-app-sync-design.md. Read it before touching sync
 
 ## Repo layout
 
-- ios/          SwiftUI app. Project generated with XcodeGen (project.yml). Never edit .xcodeproj directly; edit project.yml and regenerate.
-- ios/Core/     Pure Swift package: events, projections, money, debt simplification. No UIKit/SwiftUI imports allowed here.
+- ios/          SwiftUI app (App/). Project generated with XcodeGen (project.yml), gitignored. Never edit .xcodeproj directly; edit project.yml and regenerate.
+- ios/Core/     Pure Swift package: events, projections, money, debt simplification. No UIKit/SwiftUI imports allowed here. Zero dependencies — keep it that way.
+- ios/Storage/  GRDB event log, outbox, sync cursors, LedgerStore. The only place GRDB appears.
 - backend/      .NET 10 minimal API + Postgres. EF Core migrations in backend/Migrations.
 - docs/         Design docs.
 
 ## Commands
 
 - iOS generate project: xcodegen generate (run from ios/)
-- iOS tests: xcodebuild test -scheme App -destination "platform=iOS Simulator,name=iPhone 16"
-  (TODO: pin this to the exact simulator on this machine after first build; a wrong destination string gives opaque errors)
+- iOS build: xcodebuild build -scheme App -destination "platform=iOS Simulator,name=iPhone 17 Pro"
+  (iPhone 17 Pro is on the iOS 26.5 runtime. Older sim names on this machine are iOS 18.2 and cannot install an iOS 26 app — the error you get is opaque.)
 - Xcode tooling via MCP: prefer Apple's official bridge (xcrun mcpbridge, Xcode 26.3+); XcodeBuildMCP as fallback for simulator automation it does not cover
-- Core package tests only: swift test (from ios/Core/)
+- Core package tests: swift test (from ios/Core/)
+- Storage package tests: swift test (from ios/Storage/)
+- Performance tests: swift test -c release. Debug builds are ~5x slower and say nothing about a shipped app.
 - Backend run: dotnet run --project backend/Api
 - Backend tests: dotnet test
 - Backend local deps: docker compose up -d (Postgres)
@@ -39,6 +42,11 @@ Events:
 Sync:
 - The app must be fully functional with the backend unreachable. Any feature that requires a live server connection to add or view data is a design bug.
 - Push is retry-safe because it is idempotent. Never drop outbox events silently; surface sync failures to the user.
+
+Storage:
+- Projections are held in memory and rebuilt from the log at launch, not cached in the database. A heavy group replays in ~20ms (ReplayPerformanceTests), so a second copy of the truth would buy nothing and could drift from the first.
+- Write events only through LedgerStore.record. It appends to the log and folds into the projection in one call; there is deliberately no API to do either alone.
+- rebuild() is what launch calls, so the recovery hatch is exercised every time the app opens instead of never.
 
 SwiftUI:
 - Never use AnyView to silence type-erasure errors. Use a @ViewBuilder generic or a switch over an enum returning concrete views. AnyView breaks SwiftUI diffing.
