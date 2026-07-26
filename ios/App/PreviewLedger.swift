@@ -105,6 +105,23 @@ enum PreviewLedger {
     }
 }
 
+#Preview("Balansgranskning") {
+    let ledger = PreviewLedger.populated()
+    let group = ledger.state.groupsByLastActivity.first { $0.activeMembers.count == 4 }!
+    BalanceAuditSheet(
+        ledger: ledger,
+        userId: PreviewLedger.userId,
+        groupId: group.id,
+        memberId: group.me(for: PreviewLedger.userId)!.id
+    )
+}
+
+#Preview("Aktivitet") {
+    NavigationStack {
+        ActivityView(ledger: PreviewLedger.populated(), userId: PreviewLedger.userId)
+    }
+}
+
 #Preview("Dela upp") {
     let ledger = PreviewLedger.populated()
     let groupId = ledger.state.groupsByLastActivity.first!.id

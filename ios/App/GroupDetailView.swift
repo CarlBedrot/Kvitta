@@ -14,6 +14,7 @@ struct GroupDetailView: View {
     let groupId: GroupID
 
     @State private var settlingTransfer: TransferPresentation?
+    @State private var auditingMember: MemberID?
 
     /// The live group out of the projection. `nil` only if the group vanished mid-navigation,
     /// which a rebuild from a bad log could theoretically produce — show nothing rather than crash.
@@ -32,10 +33,21 @@ struct GroupDetailView: View {
         let meId = group.me(for: userId)?.id
         return ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                GroupBalanceCard(group: group, userId: userId)
-                TransfersCard(group: group, meId: meId) { transfer in
-                    settlingTransfer = TransferPresentation(transfer: transfer)
+                // The trust rule (product principles): every balance on screen opens the exact
+                // lines behind it. The card audits you; a transfer row audits the counterparty.
+                Button {
+                    if let meId { auditingMember = meId }
+                } label: {
+                    GroupBalanceCard(group: group, userId: userId)
                 }
+                .buttonStyle(.plain)
+
+                TransfersCard(
+                    group: group,
+                    meId: meId,
+                    onSettle: { settlingTransfer = TransferPresentation(transfer: $0) },
+                    onAudit: { auditingMember = $0 }
+                )
                 ExpenseList(group: group, meId: meId)
                 Color.clear.frame(height: 120)
             }
@@ -48,6 +60,10 @@ struct GroupDetailView: View {
         .sheet(item: $settlingTransfer) { presentation in
             SettleUpSheet(ledger: ledger, userId: userId, groupId: groupId, transfer: presentation.transfer)
                 .presentationDetents([.medium])
+        }
+        .sheet(item: $auditingMember) { memberId in
+            BalanceAuditSheet(ledger: ledger, userId: userId, groupId: groupId, memberId: memberId)
+                .presentationDragIndicator(.visible)
         }
     }
 }
@@ -98,6 +114,7 @@ private struct TransfersCard: View {
     let group: GroupState
     let meId: MemberID?
     let onSettle: (SuggestedTransfer) -> Void
+    let onAudit: (MemberID) -> Void
 
     var body: some View {
         let transfers = group.suggestedTransfers()
@@ -115,13 +132,23 @@ private struct TransfersCard: View {
                     if index > 0 {
                         Rectangle().fill(Theme.hairline).frame(height: 1)
                     }
-                    TransferRow(group: group, meId: meId, transfer: transfer) {
-                        onSettle(transfer)
-                    }
+                    TransferRow(
+                        group: group,
+                        meId: meId,
+                        transfer: transfer,
+                        onSettle: { onSettle(transfer) },
+                        onAudit: { onAudit(counterparty(of: transfer)) }
+                    )
                 }
             }
             .cardSurface(padding: 6)
         }
+    }
+
+    /// Who a tapped transfer should explain: the person on the other side of it from you —
+    /// or the debtor when the transfer is between two others.
+    private func counterparty(of transfer: SuggestedTransfer) -> MemberID {
+        transfer.from == meId ? transfer.to : transfer.from
     }
 }
 
@@ -130,20 +157,30 @@ private struct TransferRow: View {
     let meId: MemberID?
     let transfer: SuggestedTransfer
     let onSettle: () -> Void
+    let onAudit: () -> Void
 
     var body: some View {
         HStack {
-            (Text(name(transfer.from)) + Text(verbatim: " → ") + Text(name(transfer.to)))
-                .font(.subheadline)
-                .foregroundStyle(Theme.ink)
-            SignedAmountText(
-                amountMinor: transfer.amountMinor,
-                currency: group.currency,
-                size: 15,
-                sign: .none,
-                accessibilityPhrase: spokenPhrase
-            )
-            Spacer()
+            // The row body opens the audit; the trailing button settles. Two separate targets,
+            // matching "tap any balance/transfer" from the design doc's trust rule.
+            Button(action: onAudit) {
+                HStack {
+                    (Text(name(transfer.from)) + Text(verbatim: " → ") + Text(name(transfer.to)))
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.ink)
+                    SignedAmountText(
+                        amountMinor: transfer.amountMinor,
+                        currency: group.currency,
+                        size: 15,
+                        sign: .none,
+                        accessibilityPhrase: spokenPhrase
+                    )
+                    Spacer(minLength: 8)
+                }
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+
             Button("Gör upp", action: onSettle)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Theme.espresso)
@@ -238,14 +275,11 @@ private struct ExpenseRow: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 1) {
-                SignedAmountText(
+                NeutralAmountText(
                     amountMinor: expense.amountMinor,
                     currency: expense.currency,
-                    size: 16,
-                    sign: .none,
-                    accessibilityPhrase: "\(expense.title), \(MoneyFormat.string(expense.amountMinor, expense.currency))"
+                    size: 16
                 )
-                .foregroundStyle(Theme.ink)
                 if let meId {
                     Text("din del \(MoneyFormat.string(expense.payload.share(of: meId), expense.currency))")
                         .font(.caption)

@@ -67,6 +67,22 @@ struct SignedAmountText: View {
     }
 }
 
+/// An amount with no direction — an expense total, a payment size. Same type treatment as
+/// `SignedAmountText` but in ink: sign colour is reserved for balances, where a direction word
+/// accompanies it.
+struct NeutralAmountText: View {
+    let amountMinor: Int64
+    let currency: CurrencyCode
+    var size: CGFloat = 17
+
+    var body: some View {
+        Text(MoneyFormat.string(amountMinor, currency))
+            .font(.system(size: size, weight: .semibold, design: .rounded))
+            .monospacedDigit()
+            .foregroundStyle(Theme.ink)
+    }
+}
+
 /// Which way a balance leans, with the Swedish word the UI must show next to the number so colour
 /// is never the only signal. Keys are the reference (Swedish) copy; the String Catalog holds `en`.
 enum BalanceDirection {

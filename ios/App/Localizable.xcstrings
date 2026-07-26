@@ -1,12 +1,45 @@
 {
   "sourceLanguage" : "sv",
   "strings" : {
+    "%@ är kvitt" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is settled"
+          }
+        }
+      }
+    },
+    "%@ är skyldig" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ owes"
+          }
+        }
+      }
+    },
     "%@ betalade" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ paid"
+          }
+        }
+      }
+    },
+    "%@ betalade %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ paid %@"
           }
         }
       }
@@ -28,6 +61,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ and others paid"
+          }
+        }
+      }
+    },
+    "%@ ska få" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is owed"
           }
         }
       }
@@ -313,6 +357,17 @@
         }
       }
     },
+    "Du är skyldig" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You owe"
+          }
+        }
+      }
+    },
     "Du betalade" : {
       "localizations" : {
         "en" : {
@@ -330,6 +385,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "you're owed"
+          }
+        }
+      }
+    },
+    "Du ska få" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're owed"
           }
         }
       }
@@ -420,6 +486,27 @@
         }
       }
     },
+    "Inga utgifter eller betalningar än." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No expenses or payments yet."
+          }
+        }
+      }
+    },
+    "Ingen aktivitet än" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No activity yet"
+          }
+        }
+      }
+    },
     "Jag" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -454,6 +541,7 @@
       }
     },
     "Kommer snart." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -571,6 +659,16 @@
         }
       }
     },
+    "löpande: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "running: %@"
+          }
+        }
+      }
+    },
     "Markera som betald" : {
       "localizations" : {
         "en" : {
@@ -621,6 +719,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Name (e.g. 🏔️ Mountain trip)"
+          }
+        }
+      }
+    },
+    "Ni är kvitt" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're settled"
           }
         }
       }
@@ -713,6 +822,16 @@
         }
       }
     },
+    "redigerad" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "edited"
+          }
+        }
+      }
+    },
     "Resa" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -798,6 +917,16 @@
         }
       }
     },
+    "Utgifter och betalningar dyker upp här." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expenses and payments show up here."
+          }
+        }
+      }
+    },
     "Utvecklarverktyg" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -827,6 +956,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Awaiting push"
+          }
+        }
+      }
+    },
+    "Varje siffra kan spåras till sina utgifter." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every number can be traced to its expenses."
           }
         }
       }

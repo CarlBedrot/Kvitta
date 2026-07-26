@@ -37,6 +37,12 @@ extension GroupState {
     }
 }
 
+/// Lets a member drive `.sheet(item:)` presentations (Balansgranskning). App-side only; Core
+/// stays free of UI-serving conformances.
+extension MemberID: @retroactive Identifiable {
+    public var id: UUID { rawValue }
+}
+
 extension LedgerState {
     /// Groups newest-activity first, as the home screen shows them. Empty groups (no activity)
     /// sort last, tie-broken by name so two devices with the same log render the same order.

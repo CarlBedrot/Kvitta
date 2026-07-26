@@ -20,7 +20,9 @@ struct RootView: View {
                 grupperTab
             }
             Tab("Aktivitet", systemImage: "arrow.triangle.2.circlepath") {
-                ComingSoonView(title: "Aktivitet", systemImage: "arrow.triangle.2.circlepath")
+                NavigationStack {
+                    ActivityView(ledger: ledger, userId: userId)
+                }
             }
             Tab("Jag", systemImage: "person.crop.circle") {
                 JagView(ledger: ledger)
@@ -56,21 +58,6 @@ struct RootView: View {
         } else {
             showingNewGroup = true
         }
-    }
-}
-
-/// Placeholder for a tab whose screen arrives in a later round.
-private struct ComingSoonView: View {
-    let title: LocalizedStringKey
-    let systemImage: String
-
-    var body: some View {
-        ContentUnavailableView {
-            Label(title, systemImage: systemImage)
-        } description: {
-            Text("Kommer snart.")
-        }
-        .background(AmbientBackground())
     }
 }
 
