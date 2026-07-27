@@ -17,6 +17,12 @@ public static class RejectionCode
     public const string CurrencyMismatch = "currency_mismatch";
     public const string MalformedPayload = "malformed_payload";
     public const string PayloadTooLarge = "payload_too_large";
+
+    /// <summary>The envelope claims an author who is not the caller.</summary>
+    public const string AuthorMismatch = "author_mismatch";
+
+    /// <summary>A MemberAdded tried to attach the group member to somebody other than the caller.</summary>
+    public const string UnauthorizedLink = "unauthorized_link";
 }
 
 /// <summary>The outcome of validating one event. A rejection carries a code the client can act on.</summary>

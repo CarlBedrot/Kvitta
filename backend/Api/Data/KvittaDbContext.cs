@@ -8,6 +8,7 @@ public sealed class KvittaDbContext(DbContextOptions<KvittaDbContext> options) :
     public DbSet<GroupRecord> Groups => Set<GroupRecord>();
     public DbSet<MemberRecord> Members => Set<MemberRecord>();
     public DbSet<InviteRecord> Invites => Set<InviteRecord>();
+    public DbSet<RefreshTokenRecord> RefreshTokens => Set<RefreshTokenRecord>();
     public DbSet<EventRecord> Events => Set<EventRecord>();
 
     protected override void OnModelCreating(ModelBuilder model)
@@ -47,6 +48,23 @@ public sealed class KvittaDbContext(DbContextOptions<KvittaDbContext> options) :
             entity.HasOne<GroupRecord>()
                 .WithMany()
                 .HasForeignKey(invite => invite.GroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        model.Entity<RefreshTokenRecord>(entity =>
+        {
+            entity.ToTable("refresh_tokens");
+            entity.HasKey(token => token.Id);
+
+            // Unique because the hash is how a presented token is found. Two rows sharing one would
+            // make "which chain is this" ambiguous at exactly the moment it matters.
+            entity.HasIndex(token => token.TokenHash).IsUnique();
+            entity.HasIndex(token => token.UserId);
+            entity.HasIndex(token => token.FamilyId);
+
+            entity.HasOne<UserRecord>()
+                .WithMany()
+                .HasForeignKey(token => token.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

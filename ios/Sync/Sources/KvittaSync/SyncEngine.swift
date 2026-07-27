@@ -196,15 +196,27 @@ public final class SyncEngine {
     // MARK: - Failure handling
 
     private func recordFailure(for events: [EventEnvelope], error: SyncError) {
-        guard error.isRetryable else { return }
-        // Keep the events queued and remember why. CLAUDE.md: never drop outbox events silently.
-        try? ledger.recordPushFailure(events.map(\.eventId), error: String(describing: error))
+        if error.isRetryable {
+            // Keep the events queued and remember why. CLAUDE.md: never drop outbox events silently.
+            try? ledger.recordPushFailure(events.map(\.eventId), error: String(describing: error))
+            return
+        }
+
+        if case .notAMember = error {
+            // Losing membership is permanent, so these events will never be accepted. Leaving them
+            // in the outbox meant re-pushing the same doomed batch on every foreground, forever,
+            // with nothing shown to the user. Design doc §7 asks for the opposite: surface them.
+            // They stay in the log and keep counting toward local balances either way.
+            try? ledger.markRejected(events.map { (eventId: $0.eventId, code: "not_a_member") })
+        }
     }
 
     private func status(for error: SyncError) -> SyncStatus {
         switch error {
         case .unreachable(let detail), .server(_, let detail):
             return .offline(detail)
+        case .unauthorized:
+            return .blocked("Du är utloggad. Logga in igen för att säkerhetskopiera.")
         case .notAMember:
             return .blocked("You are no longer a member of this group.")
         case .upgradeRequired:

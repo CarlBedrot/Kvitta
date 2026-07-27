@@ -10,16 +10,41 @@ import KvittaSync
 enum PreviewLedger {
     static let userId = UserID()
 
+    private static let configuration = SyncConfiguration(baseURL: URL(string: "http://localhost")!)
+
     /// A permanently disabled sync engine. Previews must never reach a network, and `.disabled`
     /// makes every entry point on the engine an immediate no-op.
     static func sync(_ ledger: LedgerStore) -> SyncEngine {
         SyncEngine(
             ledger: ledger,
-            transport: HTTPSyncTransport(
-                configuration: SyncConfiguration(baseURL: URL(string: "http://localhost")!)
-            ),
+            transport: HTTPSyncTransport(configuration: configuration, tokens: tokens()),
             userId: userId,
             settings: .disabled
+        )
+    }
+
+    /// In-memory, never the Keychain: a Preview must not read or write the real session.
+    static func tokens() -> AuthTokenProvider {
+        AuthTokenProvider(
+            store: InMemoryTokenStore(),
+            refresher: HTTPAuthClient(configuration: configuration)
+        )
+    }
+
+    static func session(_ ledger: LedgerStore) -> SessionModel {
+        let provider = AuthTokenProvider(
+            store: InMemoryTokenStore(),
+            refresher: HTTPAuthClient(configuration: configuration)
+        )
+
+        return SessionModel(
+            tokens: provider,
+            provider: DeveloperSignInProvider(
+                client: HTTPAuthClient(configuration: configuration),
+                userId: userId
+            ),
+            ledger: ledger,
+            sync: sync(ledger)
         )
     }
 
@@ -97,13 +122,13 @@ enum PreviewLedger {
 #Preview("Hem") {
     let ledger = PreviewLedger.populated()
     RootView(ledger: ledger, userId: PreviewLedger.userId, sync: PreviewLedger.sync(ledger),
-             profile: UserProfile(defaults: .previewProfile))
+             profile: UserProfile(defaults: .previewProfile), session: PreviewLedger.session(ledger))
 }
 
 #Preview("Hem – tom") {
     let ledger = PreviewLedger.empty()
     RootView(ledger: ledger, userId: PreviewLedger.userId, sync: PreviewLedger.sync(ledger),
-             profile: UserProfile(defaults: .previewProfile))
+             profile: UserProfile(defaults: .previewProfile), session: PreviewLedger.session(ledger))
 }
 
 #Preview("Ny utgift") {

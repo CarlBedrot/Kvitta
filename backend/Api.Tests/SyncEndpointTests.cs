@@ -11,7 +11,7 @@ public sealed class SyncEndpointTests(KvittaApiFixture fixture)
     [Fact]
     public async Task Push_assigns_a_gap_free_sequence_starting_at_one()
     {
-        var scenario = new GroupScenario();
+        var scenario = await fixture.ScenarioAsync();
 
         var response = await fixture.Client.PushAsync(scenario, scenario.OpeningBatch());
 
@@ -24,7 +24,7 @@ public sealed class SyncEndpointTests(KvittaApiFixture fixture)
     [Fact]
     public async Task Pushing_the_same_batch_twice_changes_nothing()
     {
-        var scenario = new GroupScenario();
+        var scenario = await fixture.ScenarioAsync();
         var batch = scenario.OpeningBatch();
 
         var first = await (await fixture.Client.PushAsync(scenario, batch)).ReadJsonAsync();
@@ -41,7 +41,7 @@ public sealed class SyncEndpointTests(KvittaApiFixture fixture)
     [Fact]
     public async Task Pull_returns_strictly_ordered_gap_free_pages()
     {
-        var scenario = new GroupScenario();
+        var scenario = await fixture.ScenarioAsync();
         await fixture.Client.PushAsync(scenario, scenario.OpeningBatch());
 
         var expenses = new JsonArray();
@@ -77,7 +77,7 @@ public sealed class SyncEndpointTests(KvittaApiFixture fixture)
     [Fact]
     public async Task An_expense_that_breaks_the_money_invariant_is_rejected_and_the_rest_still_lands()
     {
-        var scenario = new GroupScenario();
+        var scenario = await fixture.ScenarioAsync();
         await fixture.Client.PushAsync(scenario, scenario.OpeningBatch());
 
         var good = scenario.ExpenseCreated();
@@ -100,7 +100,7 @@ public sealed class SyncEndpointTests(KvittaApiFixture fixture)
     [Fact]
     public async Task An_expense_naming_a_stranger_is_rejected()
     {
-        var scenario = new GroupScenario();
+        var scenario = await fixture.ScenarioAsync();
         await fixture.Client.PushAsync(scenario, scenario.OpeningBatch());
 
         var stranger = Guid.NewGuid();
@@ -129,7 +129,7 @@ public sealed class SyncEndpointTests(KvittaApiFixture fixture)
     [Fact]
     public async Task An_expense_in_the_wrong_currency_is_rejected()
     {
-        var scenario = new GroupScenario();
+        var scenario = await fixture.ScenarioAsync();
         await fixture.Client.PushAsync(scenario, scenario.OpeningBatch());
 
         var body = await (await fixture.Client.PushAsync(
@@ -142,7 +142,7 @@ public sealed class SyncEndpointTests(KvittaApiFixture fixture)
     [Fact]
     public async Task A_batch_for_an_unknown_group_that_does_not_open_with_GroupCreated_is_refused()
     {
-        var scenario = new GroupScenario();
+        var scenario = await fixture.ScenarioAsync();
 
         var response = await fixture.Client.PushAsync(scenario, [scenario.MemberAdded(0)]);
 
@@ -152,7 +152,7 @@ public sealed class SyncEndpointTests(KvittaApiFixture fixture)
     [Fact]
     public async Task A_stranger_cannot_push_to_someone_elses_group()
     {
-        var owner = new GroupScenario();
+        var owner = await fixture.ScenarioAsync();
         await fixture.Client.PushAsync(owner, owner.OpeningBatch());
 
         // Same group, different user, and that user is linked to no member in it.
@@ -162,7 +162,7 @@ public sealed class SyncEndpointTests(KvittaApiFixture fixture)
         {
             Content = JsonContent.Create(new JsonArray { owner.ExpenseCreated() })
         };
-        request.Headers.Add("X-Kvitta-User-Id", Guid.NewGuid().ToString());
+        request.Headers.Authorization = new("Bearer", TestTokens.AccessTokenFor(Guid.NewGuid()));
 
         var response = await fixture.Client.SendAsync(request);
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -171,7 +171,7 @@ public sealed class SyncEndpointTests(KvittaApiFixture fixture)
     [Fact]
     public async Task An_event_type_the_server_has_never_heard_of_survives_a_round_trip()
     {
-        var scenario = new GroupScenario();
+        var scenario = await fixture.ScenarioAsync();
         await fixture.Client.PushAsync(scenario, scenario.OpeningBatch());
 
         var unknown = scenario.UnknownType();
@@ -195,7 +195,7 @@ public sealed class SyncEndpointTests(KvittaApiFixture fixture)
     [Fact]
     public async Task Pull_refuses_a_non_member_and_404s_an_unknown_group()
     {
-        var scenario = new GroupScenario();
+        var scenario = await fixture.ScenarioAsync();
 
         var missing = await fixture.Client.PullAsync(scenario);
         Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
@@ -214,7 +214,7 @@ public sealed class SyncEndpointTests(KvittaApiFixture fixture)
             ["Sync:MinimumClientBuild"] = "42"
         });
 
-        var scenario = new GroupScenario();
+        var scenario = await fixture.ScenarioAsync();
 
         var tooOld = await client.PushAsync(scenario, scenario.OpeningBatch(), build: 41);
         Assert.Equal(HttpStatusCode.UpgradeRequired, tooOld.StatusCode);

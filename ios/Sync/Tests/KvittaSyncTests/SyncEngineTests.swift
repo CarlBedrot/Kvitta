@@ -187,8 +187,20 @@ struct SyncEngineTests {
         if case .blocked = engine.status {} else {
             Issue.record("Expected a blocked status, got \(engine.status)")
         }
+
         // Design doc §7: the events are not dropped, they are surfaced.
-        #expect(try ledger.pendingPushCount() == 5)
+        //
+        // This used to assert they stayed in the retry queue, which was wrong in a quiet way.
+        // Losing membership is permanent, so those five events could never be accepted — and every
+        // foreground would push the same doomed batch again, forever, while the user saw nothing.
+        // They leave the queue and land in the list the Jag screen shows instead.
+        #expect(try ledger.pendingPushCount() == 0)
+        #expect(ledger.rejectedPushes.count == 5)
+        #expect(ledger.rejectedPushes.allSatisfy { $0.code == "not_a_member" })
+
+        // Still in the log, still counted locally. The expense really happened; it is just not
+        // agreed with anyone else.
+        #expect(ledger.state.groups[Fixtures.groupId] != nil)
     }
 
     @Test("An old build is told to upgrade, not left retrying")
