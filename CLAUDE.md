@@ -72,6 +72,15 @@ Invites (M4b):
 - `POST /api/v1/invites/{token}/accept` writes its event server-side. That is a deliberate exception to "clients author events" and the only way out of a chicken-and-egg: membership is derived from the log, so the event that makes you a member cannot be written by a member. `PushAuthorisation.AcceptedInvite` is the only way to skip the membership guard and the accept endpoint is its only caller.
 - Invite links are `kvitta://invite/<token>`, a custom scheme rather than a universal link, because an https link needs an apple-app-site-association file on a host that does not exist until M6. Universal links are additive: the token format and the accept endpoint do not change.
 
+Payments and reminders (M5):
+- The app never moves money. Swish/MobilePay get a prefilled deep link; PaymentRecorded says the money moved elsewhere.
+- PaymentRecorded is pre-staged and only written when the user confirms on return. Opening Swish is not evidence a payment happened, and a phantom payment is worse than a missing one — the missing one is obvious.
+- Amounts in a payment URL are built from integer minor units by hand. Never format money through a Double: 437.00 is not representable in binary floating point.
+- A payee's Swish number lives in UserDefaults on the device, never as an event. Events are immutable, so a phone number in the log would reach every member forever with no way to take it back.
+- Reminders are local notifications computed from the ledger on device, so they need no network and no account. Only debts you owe — never money owed to you, which would be nagging someone else through your phone.
+- Blocked on a paid Apple Developer team: Sign in with Apple (com.apple.developer.applesignin) and APNs silent push (aps-environment). Both are written or seamed but cannot be enabled or verified.
+- Unverified: the Swish payload format. The simulator has no Swish app so canOpenURL is always false there; it needs one check on a real phone before shipping.
+
 Storage:
 - Projections are held in memory and rebuilt from the log at launch, not cached in the database. A heavy group replays in ~20ms (ReplayPerformanceTests), so a second copy of the truth would buy nothing and could drift from the first.
 - Write events only through LedgerStore.record. It appends to the log and folds into the projection in one call; there is deliberately no API to do either alone.

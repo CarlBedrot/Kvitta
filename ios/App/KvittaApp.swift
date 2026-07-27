@@ -7,6 +7,7 @@ import KvittaSync
 struct KvittaApp: App {
     @State private var profile: UserProfile
     @State private var startup: Startup
+    @State private var reminders = ReminderScheduler()
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -29,9 +30,15 @@ struct KvittaApp: App {
                     sync: sync,
                     profile: profile,
                     session: session,
-                    invites: invites
+                    invites: invites,
+                    reminders: reminders
                 )
-                .task { await session.restore() }
+                .task {
+                    await session.restore()
+                    // Recomputed at launch, so a debt settled on another device does not
+                    // leave a stale reminder queued here.
+                    await reminders.reschedule(ledger: ledger, userId: session.userId ?? DeviceIdentity.userId)
+                }
                 .onOpenURL { url in
                     // kvitta://invite/<token>. A custom scheme rather than a universal link,
                     // because an https link needs an apple-app-site-association file on a host

@@ -17,6 +17,8 @@ struct JagView: View {
     @Bindable var profile: UserProfile
     let session: SessionModel
     let invites: InviteModel
+    let reminders: ReminderScheduler
+    let userId: UserID
 
     @State private var photoItem: PhotosPickerItem?
     @State private var failure: String?
@@ -28,6 +30,7 @@ struct JagView: View {
                 profileSection
                 accountSection
                 joinSection
+                remindersSection
                 backupSection
                 #if DEBUG
                 developerSection
@@ -166,6 +169,31 @@ struct JagView: View {
             }
         } header: {
             Text("Inbjudan")
+        }
+    }
+
+    // MARK: - Reminders
+
+    /// A weekly nudge about money you owe.
+    ///
+    /// Computed on the phone from the ledger it already has, so it works with no network and no
+    /// account — unlike the APNs push in the same milestone, which needs a paid Apple Developer
+    /// team and could not be built at all.
+    @ViewBuilder
+    private var remindersSection: some View {
+        Section {
+            Toggle("Påminn mig om skulder", isOn: Binding(
+                get: { reminders.isEnabled },
+                set: { on in Task { await reminders.setEnabled(on, ledger: ledger, userId: userId) } }
+            ))
+
+            if reminders.wasDenied {
+                Text("Notiser är avstängda för Kvitta i Inställningar.")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.clay)
+            }
+        } footer: {
+            Text("En påminnelse i veckan, bara när du är skyldig någon pengar. Aldrig om någon är skyldig dig.")
         }
     }
 
