@@ -4,18 +4,33 @@ import KvittaStorage
 
 /// Gör upp: confirm one suggested transfer and record that the money moved.
 ///
-/// The app never moves money (design doc §4) — this writes a `PaymentRecorded` event saying it
-/// moved elsewhere. The Swish prefill deep link is Milestone 5; until then "Markera som betald"
-/// is the whole flow, which is also exactly what the cash case needs forever.
+/// The app never moves money (design doc §11) — it hands the amount to Swish or MobilePay and then
+/// writes a `PaymentRecorded` event saying the money moved. "Markera som betald" stays the whole
+/// flow for cash, and is the fallback whenever the payment app is not installed.
 struct SettleUpSheet: View {
     let ledger: LedgerStore
     let userId: UserID
     let groupId: GroupID
     let transfer: SuggestedTransfer
+    let payees: PayeeDirectory
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
+
     @State private var failure: String?
     @State private var settleTick = 0
+
+    /// Set when we hand off to a payment app, so coming back can ask whether it worked.
+    ///
+    /// Pre-staged rather than written on the way out: nothing about opening Swish means the money
+    /// moved. People change their mind at the confirm screen, and a payment recorded for a
+    /// transfer that never happened is worse than one that is missing — the missing one is
+    /// obvious, and the phantom one quietly makes the books wrong for everybody.
+    @State private var awaitingReturn: PaymentMethod?
+    @State private var askingToConfirm = false
+    @State private var swishNumber = ""
+    @State private var askingForNumber = false
 
     private var group: GroupState? { ledger.state[groupId] }
 
@@ -38,7 +53,36 @@ struct SettleUpSheet: View {
                 Text(failure).font(.footnote).foregroundStyle(Theme.clay).padding(.bottom, 8)
             }
 
-            Button(action: settle) {
+            if let link = paymentLink {
+                Button { handOff(to: link) } label: {
+                    Text(link.method == .swish ? "Öppna Swish" : "Öppna MobilePay")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                }
+                // Swish pink, deliberately off-palette: recognition beats palette purity for a
+                // button whose whole job is to look like the app it opens (ui-design.md).
+                .glassEffect(
+                    .regular.tint(link.method == .swish ? Color(hex: 0xEE4A9B) : Color(hex: 0x5A78FF)).interactive(),
+                    in: .rect(cornerRadius: 24)
+                )
+                .padding(.horizontal, 20)
+                .padding(.bottom, 10)
+            } else if needsNumber {
+                Button { askingForNumber = true } label: {
+                    Text("Öppna Swish")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                }
+                .glassEffect(.regular.tint(Color(hex: 0xEE4A9B)).interactive(), in: .rect(cornerRadius: 24))
+                .padding(.horizontal, 20)
+                .padding(.bottom, 10)
+            }
+
+            Button(action: { settle(method: .cash) }) {
                 Text("Markera som betald")
                     .font(.headline)
                     .foregroundStyle(Color(hex: 0xF6F1E7))
@@ -56,6 +100,32 @@ struct SettleUpSheet: View {
         .frame(maxWidth: .infinity)
         .background(AmbientBackground())
         .sensoryFeedback(.success, trigger: settleTick)
+        .onChange(of: scenePhase) { _, phase in
+            // Back from the payment app. Asking is the point — see `awaitingReturn`.
+            guard phase == .active, awaitingReturn != nil else { return }
+            askingToConfirm = true
+        }
+        .alert("Swish-nummer", isPresented: $askingForNumber) {
+            TextField("07XX XXX XX XX", text: $swishNumber)
+                .keyboardType(.phonePad)
+            Button("Öppna Swish") {
+                payees.remember(swishNumber, for: transfer.to)
+                if let link = link(payee: swishNumber) { handOff(to: link) }
+            }
+            Button("Avbryt", role: .cancel) {}
+        } message: {
+            // Said plainly, because a phone number is the kind of thing people reasonably want to
+            // know the fate of before typing it in.
+            Text("Sparas bara på den här telefonen, inte i gruppen.")
+        }
+        .confirmationDialog(
+            "Gick betalningen igenom?",
+            isPresented: $askingToConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Ja, betalt") { settle(method: awaitingReturn ?? .cash) }
+            Button("Nej, inte än", role: .cancel) { awaitingReturn = nil }
+        }
     }
 
     private var amountSection: some View {
@@ -81,7 +151,44 @@ struct SettleUpSheet: View {
         return group?.members[memberId]?.displayName ?? "?"
     }
 
-    private func settle() {
+    /// The payment-app link for this transfer, if the currency has one and we know a number.
+    ///
+    /// The payee's phone number is not in the data model yet, so this is nil for now and the
+    /// Swish button does not appear — the cash flow is unchanged. Wiring a number onto a member
+    /// is a one-field change to MemberUpdated, which M4b just made possible.
+    private var paymentLink: PaymentLink? {
+        link(payee: payees.number(for: transfer.to))
+    }
+
+    private func link(payee: String?) -> PaymentLink? {
+        guard let group else { return nil }
+        return PaymentLinkBuilder.preferred(
+            for: Money(amountMinor: transfer.amountMinor, currency: group.currency),
+            payee: payee,
+            message: group.name,
+            callback: URL(string: "kvitta://payment-return")
+        )
+    }
+
+    /// SEK with nobody's number yet: offer to ask for it rather than hiding the button.
+    private var needsNumber: Bool {
+        group?.currency == .sek && payees.number(for: transfer.to) == nil
+    }
+
+    private func handOff(to link: PaymentLink) {
+        awaitingReturn = link.method
+        openURL(link.url) { opened in
+            guard !opened else { return }
+            // The app is not installed. Say so rather than leaving a button that does nothing.
+            awaitingReturn = nil
+            failure = link.method == .swish
+                ? String(localized: "Swish verkar inte finnas på den här telefonen.")
+                : String(localized: "MobilePay verkar inte finnas på den här telefonen.")
+        }
+    }
+
+    private func settle(method: PaymentMethod) {
+        awaitingReturn = nil
         guard let group else { return }
         do {
             try ledger.record(
@@ -91,7 +198,7 @@ struct SettleUpSheet: View {
                     currency: group.currency,
                     amountMinor: transfer.amountMinor,
                     date: CalendarDate(Date()),
-                    method: .cash
+                    method: method
                 )),
                 entityId: PaymentID().rawValue,
                 in: groupId
