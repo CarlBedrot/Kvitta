@@ -1,6 +1,7 @@
 import SwiftUI
 import KvittaCore
 import KvittaStorage
+import KvittaSync
 
 /// The app shell: a floating glass capsule tab bar (the iOS 26 default) over opaque content.
 /// Grupper is the built screen this round; Aktivitet and Jag are placeholders for later rounds.
@@ -10,6 +11,7 @@ import KvittaStorage
 struct RootView: View {
     let ledger: LedgerStore
     let userId: UserID
+    let sync: SyncEngine
 
     @State private var showingNewGroup = false
     @State private var expenseModel: NewExpenseModel?
@@ -25,7 +27,7 @@ struct RootView: View {
                 }
             }
             Tab("Jag", systemImage: "person.crop.circle") {
-                JagView(ledger: ledger)
+                JagView(ledger: ledger, sync: sync)
             }
         }
         .sheet(isPresented: $showingNewGroup) {
@@ -66,11 +68,33 @@ struct RootView: View {
 /// seed data — plus the sync counters.
 private struct JagView: View {
     let ledger: LedgerStore
+    let sync: SyncEngine
     @State private var failure: String?
+    @State private var syncEnabled = UserDefaults.standard.bool(forKey: SyncSettings.defaultsKey)
 
     var body: some View {
         NavigationStack {
             Form {
+                Section("Synk") {
+                    Toggle("Synka med servern", isOn: $syncEnabled)
+                        .onChange(of: syncEnabled) { _, enabled in
+                            SyncSettings.setEnabled(enabled)
+                            guard enabled else { return }
+                            Task { await sync.syncAll() }
+                        }
+                    LabeledContent("Status", value: statusText)
+                    if !ledger.rejectedPushes.isEmpty {
+                        // Design doc §7: rejected events are surfaced, never dropped. The
+                        // per-row dashed-cloud badge is the in-Xcode agent's job; this is the
+                        // state it reads.
+                        LabeledContent("Kunde inte synkas", value: "\(ledger.rejectedPushes.count)")
+                            .foregroundStyle(Theme.clay)
+                    }
+                    Button("Synka nu", systemImage: "arrow.triangle.2.circlepath") {
+                        Task { await sync.syncAll() }
+                    }
+                    .disabled(!syncEnabled)
+                }
                 Section("Diagnostik") {
                     LabeledContent("Väntar på push", value: "\((try? ledger.pendingPushCount()) ?? -1)")
                     LabeledContent("Överhoppade händelser", value: "\(ledger.state.skipped.count)")
@@ -93,6 +117,16 @@ private struct JagView: View {
             .scrollContentBackground(.hidden)
             .background(AmbientBackground())
             .navigationTitle("Jag")
+        }
+    }
+
+    private var statusText: String {
+        switch sync.status {
+        case .disabled: return "Av"
+        case .idle: return "Klar"
+        case .syncing: return "Synkar…"
+        case .offline: return "Offline"          // normal, and not worth alarming anyone about
+        case .blocked(let message): return message
         }
     }
 

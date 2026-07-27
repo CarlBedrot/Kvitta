@@ -10,7 +10,9 @@ Full architecture: docs/expense-app-sync-design.md. Read it before touching sync
 - ios/          SwiftUI app (App/). Project generated with XcodeGen (project.yml), gitignored. Never edit .xcodeproj directly; edit project.yml and regenerate.
 - ios/Core/     Pure Swift package: events, projections, money, debt simplification. No UIKit/SwiftUI imports allowed here. Zero dependencies — keep it that way.
 - ios/Storage/  GRDB event log, outbox, sync cursors, LedgerStore. The only place GRDB appears.
-- backend/      .NET 10 minimal API + Postgres. EF Core migrations in backend/Migrations.
+- ios/Sync/     The outbox/pull loop against the backend, behind a feature flag. The only package that knows a network exists.
+- backend/      .NET 10 minimal API + Postgres 17, docker-compose for local deps.
+- backend/Api/  The API project. EF Core migrations in backend/Api/Migrations.
 - docs/         Design docs.
 
 ## Commands
@@ -21,10 +23,11 @@ Full architecture: docs/expense-app-sync-design.md. Read it before touching sync
 - Xcode tooling via MCP: prefer Apple's official bridge (xcrun mcpbridge, Xcode 26.3+); XcodeBuildMCP as fallback for simulator automation it does not cover
 - Core package tests: swift test (from ios/Core/)
 - Storage package tests: swift test (from ios/Storage/)
+- Sync package tests: swift test (from ios/Sync/)
 - Performance tests: swift test -c release. Debug builds are ~5x slower and say nothing about a shipped app.
-- Backend run: dotnet run --project backend/Api
-- Backend tests: dotnet test
-- Backend local deps: docker compose up -d (Postgres)
+- Backend run: dotnet run --project backend/Api (serves http://localhost:5142; the port is pinned in launchSettings.json because it overrides ASPNETCORE_URLS)
+- Backend tests: dotnet test (from backend/; Testcontainers spins up postgres:17, so a container runtime must be running. KVITTA_TEST_POSTGRES overrides with a connection string if not.)
+- Backend local deps: colima start, then docker compose up -d (from backend/)
 
 ## Non-negotiable rules
 
@@ -40,6 +43,10 @@ Events:
 - Unknown event types and unknown payload fields must be skipped/tolerated, never crash.
 
 Sync:
+- Push responses are per-event: {accepted, rejected}. An all-or-nothing batch would let one bad event sit at the head of the outbox blocking every good event behind it forever.
+- The server accepts event types it does not know, with envelope validation only, and stores them verbatim. It is a fan-out layer; rejecting would make every new event type a server deploy that must precede any client emitting one, and an unknown type moves no money because clients skip it when projecting.
+- serverSeq is assigned under SELECT ... FOR UPDATE on the group row. A gap here is worse than a crash: the client cursor steps over it and an expense never arrives.
+- A server rejection is not a transient failure. Rejected events leave the retry queue, stay in the log, and surface with their reason.
 - The app must be fully functional with the backend unreachable. Any feature that requires a live server connection to add or view data is a design bug.
 - Push is retry-safe because it is idempotent. Never drop outbox events silently; surface sync failures to the user.
 
@@ -55,7 +62,7 @@ SwiftUI:
 
 Backend (.NET):
 - Config via IOptions<T> or IConfiguration through DI. Never Environment.GetEnvironmentVariable().
-- Server validates everything it stores (schema + money invariant + membership). Trust nothing from clients.
+- Server validates everything it stores (envelope + money invariant + membership). Trust nothing from clients. The one deliberate exception is payloads of event types the server does not know: those get envelope validation only, for the reason under Sync above.
 
 ## Testing policy
 

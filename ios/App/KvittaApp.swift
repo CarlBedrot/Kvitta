@@ -1,18 +1,26 @@
 import SwiftUI
 import KvittaCore
 import KvittaStorage
+import KvittaSync
 
 @main
 struct KvittaApp: App {
     @State private var startup = Bootstrap.run()
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
             // A switch over an enum returning concrete views, not AnyView (CLAUDE.md) — the
             // WindowGroup body is already a @ViewBuilder, so this costs nothing.
             switch startup {
-            case .ready(let ledger):
-                RootView(ledger: ledger, userId: DeviceIdentity.userId)
+            case .ready(let ledger, let sync):
+                RootView(ledger: ledger, userId: DeviceIdentity.userId, sync: sync)
+                    .onChange(of: scenePhase) { _, phase in
+                        // Foreground pull is the guarantee (design doc §6). Everything else —
+                        // debounced post-save pushes, and APNs in M5 — only makes it sooner.
+                        guard phase == .active else { return }
+                        Task { await sync.syncAll() }
+                    }
             case .failed(let message):
                 StartupFailureView(message: message)
             }
@@ -21,7 +29,7 @@ struct KvittaApp: App {
 }
 
 enum Startup {
-    case ready(LedgerStore)
+    case ready(LedgerStore, SyncEngine)
     case failed(String)
 }
 
@@ -39,7 +47,17 @@ enum Bootstrap {
                 authorId: DeviceIdentity.userId
             )
             try ledger.rebuild()
-            return .ready(ledger)
+
+            // Constructed unconditionally, but inert until the flag is on. Note that nothing
+            // about opening the database or replaying the log depends on it — if the sync engine
+            // were deleted entirely the app above this line would behave identically.
+            let sync = SyncEngine(
+                ledger: ledger,
+                transport: HTTPSyncTransport(configuration: syncConfiguration),
+                userId: DeviceIdentity.userId
+            )
+
+            return .ready(ledger, sync)
         } catch {
             // Deliberately not a silent fallback to an in-memory store: that would look like a
             // working app that quietly forgets everything, which is worse than saying so.
@@ -49,6 +67,14 @@ enum Bootstrap {
 
     static var databaseURL: URL {
         URL.applicationSupportDirectory.appending(path: "Kvitta/kvitta.sqlite")
+    }
+
+    /// Points at the local server by default. A real host lands with the deploy in M6.
+    static var syncConfiguration: SyncConfiguration {
+        let stored = UserDefaults.standard.string(forKey: "se.kvitta.syncBaseURL")
+        let url = stored.flatMap(URL.init(string:)) ?? URL(string: "http://localhost:5142")!
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+        return SyncConfiguration(baseURL: url, buildNumber: Int(build ?? "1") ?? 1)
     }
 }
 

@@ -10,6 +10,20 @@ public enum EventOrigin: Sendable {
     case remote
 }
 
+/// An event the server refused on its merits, kept so it can be shown rather than dropped (§7).
+public struct RejectedPush: Hashable, Sendable {
+    public let event: EventEnvelope
+    /// The server's stable rejection code, e.g. `money_invariant_violated`.
+    public let code: String
+    public let rejectedAt: Timestamp
+
+    public init(event: EventEnvelope, code: String, rejectedAt: Timestamp) {
+        self.event = event
+        self.code = code
+        self.rejectedAt = rejectedAt
+    }
+}
+
 /// Events loaded from disk, plus anything that could not be read.
 public struct LoadResult: Sendable {
     public let events: [EventEnvelope]
@@ -134,6 +148,29 @@ public struct EventStore: Sendable {
         }
     }
 
+    /// Marks events the server refused on their merits.
+    ///
+    /// They leave the retry queue but stay in the database and stay visible, because the log is
+    /// still the only record that the user ever entered them. The event row itself is untouched —
+    /// it remains in the local log and keeps contributing to local balances, which is correct:
+    /// the expense really did happen, it just is not agreed with anyone else yet.
+    public func markRejected(_ rejections: [(eventId: EventID, code: String)]) throws {
+        guard !rejections.isEmpty else { return }
+        let rejectedAt = now().epochMilliseconds
+
+        try writer.write { db in
+            for rejection in rejections {
+                try db.execute(
+                    sql: """
+                        UPDATE outbox SET rejectedAt = ?, rejectionCode = ?
+                        WHERE eventId = ?
+                        """,
+                    arguments: [rejectedAt, rejection.code, rejection.eventId.rawValue.uuidString]
+                )
+            }
+        }
+    }
+
     // MARK: - Reading
 
     public func allEvents() throws -> LoadResult {
@@ -147,12 +184,16 @@ public struct EventStore: Sendable {
         )
     }
 
-    /// The oldest unacknowledged local events, in the order they were created.
+    /// The oldest events still waiting to be pushed, in the order they were created.
+    ///
+    /// Rejected events are excluded: retrying something the server has already refused on its
+    /// merits would spin forever and, worse, would keep the good events behind it from draining.
     public func outboxBatch(limit: Int = 500) throws -> LoadResult {
         try load(
             sql: """
                 SELECT event.payload, event.serverSeq FROM event
                 JOIN outbox ON outbox.eventId = event.eventId
+                WHERE outbox.rejectedAt IS NULL
                 ORDER BY outbox.queuedAt, event.rowid
                 LIMIT ?
                 """,
@@ -160,9 +201,44 @@ public struct EventStore: Sendable {
         )
     }
 
+    /// How many events are still retryable. Rejected ones are counted by `rejectedPushes`.
     public func outboxCount() throws -> Int {
         try writer.read { db in
-            try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM outbox") ?? 0
+            try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM outbox WHERE rejectedAt IS NULL") ?? 0
+        }
+    }
+
+    /// Events the server refused, newest first — what the sync-status screen shows.
+    public func rejectedPushes() throws -> [RejectedPush] {
+        let rows = try writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT event.payload, event.serverSeq, outbox.rejectionCode, outbox.rejectedAt
+                    FROM event
+                    JOIN outbox ON outbox.eventId = event.eventId
+                    WHERE outbox.rejectedAt IS NOT NULL
+                    ORDER BY outbox.rejectedAt DESC, event.rowid DESC
+                    """
+            ).map { row in
+                (
+                    payload: row["payload"] as Data,
+                    serverSeq: row["serverSeq"] as Int64?,
+                    code: (row["rejectionCode"] as String?) ?? "",
+                    rejectedAt: (row["rejectedAt"] as Int64?) ?? 0
+                )
+            }
+        }
+
+        return rows.compactMap { row in
+            guard let event = try? EventCoding.decode(row.payload).withServerSeq(row.serverSeq) else {
+                return nil
+            }
+            return RejectedPush(
+                event: event,
+                code: row.code,
+                rejectedAt: Timestamp(epochMilliseconds: row.rejectedAt)
+            )
         }
     }
 

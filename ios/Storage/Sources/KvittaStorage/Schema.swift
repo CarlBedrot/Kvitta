@@ -55,6 +55,18 @@ enum Schema {
             }
         }
 
+        migrator.registerMigration("v2-rejected-events") { db in
+            // `attemptCount`/`lastError` model a *transient* failure: try again later. A server
+            // that refuses an event on its merits is a different thing — retrying forever would
+            // spin, and dropping it is forbidden (CLAUDE.md; design doc §7 says the client
+            // surfaces "these expenses could not sync" rather than silently dropping them).
+            // These two columns are how an event leaves the retry queue without leaving the app.
+            try db.alter(table: "outbox") { table in
+                table.add(column: "rejectedAt", .integer)
+                table.add(column: "rejectionCode", .text)
+            }
+        }
+
         return migrator
     }
 }
