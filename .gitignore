@@ -12,3 +12,6 @@ DerivedData/
 # .NET
 bin/
 obj/
+
+# Database dumps. Real user data — never in the repository.
+backend/backups/

@@ -26,6 +26,10 @@ targets:
     platform: iOS
     sources:
       - path: App
+      # Apple requires this at the bundle root. Listed explicitly so it is copied as a resource
+      # rather than swept up by the source glob.
+      - path: App/PrivacyInfo.xcprivacy
+        buildPhase: resources
     dependencies:
       - package: KvittaCore
         product: KvittaCore

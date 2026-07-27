@@ -34,6 +34,8 @@ Full architecture: docs/expense-app-sync-design.md. Read it before touching sync
   There is no signing key in any committed file and the host refuses to start without one. That is deliberate — a checked-in key is a backdoor — so a fresh clone must do this once.
 - Backend tests: dotnet test (from backend/; Testcontainers spins up postgres:17, so a container runtime must be running. KVITTA_TEST_POSTGRES overrides with a connection string if not.)
 - Backend local deps: colima start, then docker compose up -d (from backend/)
+- Database backup: backend/ops/backup.sh (writes backend/backups/, gitignored — real user data)
+- Verify a backup: backend/ops/verify-restore.sh. Restores into a scratch database and checks row counts plus gap-free serverSeq. Run it on a schedule: a backup nobody has restored is a hypothesis, and the failure mode is silent.
 
 ## Non-negotiable rules
 
@@ -80,6 +82,12 @@ Payments and reminders (M5):
 - Reminders are local notifications computed from the ledger on device, so they need no network and no account. Only debts you owe — never money owed to you, which would be nagging someone else through your phone.
 - Blocked on a paid Apple Developer team: Sign in with Apple (com.apple.developer.applesignin) and APNs silent push (aps-environment). Both are written or seamed but cannot be enabled or verified.
 - Unverified: the Swish payload format. The simulator has no Swish app so canOpenURL is always false there; it needs one check on a real phone before shipping.
+
+Shipping (M6):
+- Blocked on a paid Apple Developer account: TestFlight, App Store Connect, Sign in with Apple, APNs. Sorting the account out unblocks all four at once.
+- Blocked on decisions that are Carl's to make, not a script's: choosing a host and deploying, creating a Sentry account, wiring an uptime monitor. The Dockerfile builds the artefact; nothing deploys it.
+- backend/backups/ is gitignored. Never commit a dump — it is the friend group's real money history.
+- PrivacyInfo.xcprivacy is required for App Store submission and declares no tracking, because there is none: no analytics SDK, no ad identifier, no third party.
 
 Storage:
 - Projections are held in memory and rebuilt from the log at launch, not cached in the database. A heavy group replays in ~20ms (ReplayPerformanceTests), so a second copy of the truth would buy nothing and could drift from the first.
