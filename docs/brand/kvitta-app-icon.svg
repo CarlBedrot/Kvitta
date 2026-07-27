@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!--
+    Kvitta app icon: a fox peeking over the zero line.
+
+    The zero line is the app's one visualization (App/ZeroLine.swift) — a balance on a horizontal
+    axis where settled means nothing sticks out. Putting the mascot behind it, standing at dead
+    centre, makes the icon say what the app is rather than just carrying an animal.
+
+    Palette is Theme.swift verbatim: cream F3EFE6 / card FFFDF7 / clay C25E3C / espresso 2E2A22.
+    Clay was already the app's accent and it is also fox colour, so mascot and brand are one
+    decision rather than two that have to be reconciled.
+
+    Everything is authored at 1024 and rasterized by tools/rasterize-icon.swift. Edit this file,
+    never the PNG.
+  -->
+  <defs>
+    <!-- The warm wash from AmbientBackground, flattened to a single gradient. -->
+    <radialGradient id="field" cx="50%" cy="36%" r="80%">
+      <stop offset="0" stop-color="#FFFDF7"/>
+      <stop offset="1" stop-color="#EDE4D3"/>
+    </radialGradient>
+
+    <!--
+      One upright ear, apex at the local origin, that gets rotated into place on each side.
+
+      Drawing each ear in place directly is what produced the first two attempts, where the dark
+      tip was cut on a slant and the whole thing read as a sharpened pencil. Building it upright
+      and rotating guarantees the tip, the inner ear and the outer edge all stay parallel.
+    -->
+    <path id="ear"
+          d="M 13.8 31.1 L 100.1 224.8 Q 118 265 74 265 L -74 265
+             Q -118 265 -100.1 224.8 L -13.8 31.1 Q 0 0 13.8 31.1 Z"/>
+    <clipPath id="clip-ear"><use href="#ear"/></clipPath>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#field)"/>
+
+  <!-- Scaled up about the centre so the fox fills the frame the way a home-screen icon needs to.
+       Authoring at 1:1 and scaling here keeps every coordinate above readable. -->
+  <g transform="translate(512 512) scale(1.1) translate(-512 -512)">
+
+    <!-- Ears, drawn before the head so the head covers their bases. -->
+    <g transform="translate(309.4 251) rotate(-20)">
+      <g clip-path="url(#clip-ear)">
+        <use href="#ear" fill="#C25E3C"/>
+        <polygon points="0,105 62,205 -62,205"
+                 fill="#EFDCCA" stroke="#EFDCCA" stroke-width="16" stroke-linejoin="round"/>
+        <!-- Dark tip. A fox reads as a fox from the tips alone once the face is too small to resolve. -->
+        <rect x="-170" y="-170" width="340" height="265" fill="#2E2A22"/>
+      </g>
+    </g>
+    <g transform="translate(714.6 251) rotate(20)">
+      <g clip-path="url(#clip-ear)">
+        <use href="#ear" fill="#C25E3C"/>
+        <polygon points="0,105 62,205 -62,205"
+                 fill="#EFDCCA" stroke="#EFDCCA" stroke-width="16" stroke-linejoin="round"/>
+        <rect x="-170" y="-170" width="340" height="265" fill="#2E2A22"/>
+      </g>
+    </g>
+
+    <!-- Head. Its lower third is deliberately below the line and gets covered by it. -->
+    <ellipse cx="512" cy="580" rx="228" ry="194" fill="#C25E3C"/>
+
+    <!-- Cream blaze up the forehead, then the muzzle. Together they are most of what says "fox". -->
+    <rect x="487" y="498" width="50" height="210" rx="25" fill="#F3EFE6"/>
+    <ellipse cx="512" cy="700" rx="98" ry="100" fill="#F3EFE6"/>
+
+    <ellipse cx="410" cy="540" rx="31" ry="36" fill="#2E2A22"/>
+    <ellipse cx="614" cy="540" rx="31" ry="36" fill="#2E2A22"/>
+    <circle cx="419" cy="528" r="11" fill="#FFFDF7"/>
+    <circle cx="623" cy="528" r="11" fill="#FFFDF7"/>
+
+    <path d="M 478 620 L 546 620 Q 556 620 549 631 L 521 663 Q 512 673 503 663 L 475 631 Q 468 620 478 620 Z"
+          fill="#2E2A22"/>
+    <path d="M 512 669 L 512 699 M 512 699 Q 492 719 471 707 M 512 699 Q 532 719 553 707"
+          fill="none" stroke="#2E2A22" stroke-width="11" stroke-linecap="round"/>
+
+    <!-- The zero line. Drawn after the head, which is what makes the fox peek over it. -->
+    <rect x="170" y="745" width="684" height="30" rx="15" fill="#2E2A22"/>
+
+    <!-- Paws over the line: the only thing in front of it, so the fox is holding on, not floating.
+         Three merged circles per paw give the toes as a silhouette, which survives being shrunk
+         better than drawn-on toe lines do. -->
+    <g fill="#C25E3C">
+      <rect x="242" y="734" width="104" height="42" rx="20"/>
+      <circle cx="260" cy="734" r="18"/>
+      <circle cx="294" cy="734" r="18"/>
+      <circle cx="328" cy="734" r="18"/>
+      <rect x="678" y="734" width="104" height="42" rx="20"/>
+      <circle cx="696" cy="734" r="18"/>
+      <circle cx="730" cy="734" r="18"/>
+      <circle cx="764" cy="734" r="18"/>
+    </g>
+  </g>
+</svg>

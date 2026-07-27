@@ -21,6 +21,10 @@ Full architecture: docs/expense-app-sync-design.md. Read it before touching sync
 - iOS build: xcodebuild build -scheme App -destination "platform=iOS Simulator,name=iPhone 17 Pro"
   (iPhone 17 Pro is on the iOS 26.5 runtime. Older sim names on this machine are iOS 18.2 and cannot install an iOS 26 app — the error you get is opaque.)
 - Xcode tooling via MCP: prefer Apple's official bridge (xcrun mcpbridge, Xcode 26.3+); XcodeBuildMCP as fallback for simulator automation it does not cover
+- App icon: the source of truth is docs/brand/kvitta-app-icon.svg. Never edit AppIcon.png; edit the SVG and regenerate:
+  swiftc -O tools/rasterize-icon.swift -o /tmp/rasterize-icon &&
+  /tmp/rasterize-icon docs/brand/kvitta-app-icon.svg ios/App/Assets.xcassets/AppIcon.appiconset/AppIcon.png 1024
+  (compile it — `swift tools/rasterize-icon.swift` runs the interpreter, which takes minutes to load AppKit and looks like a hang)
 - Core package tests: swift test (from ios/Core/)
 - Storage package tests: swift test (from ios/Storage/)
 - Sync package tests: swift test (from ios/Sync/)
