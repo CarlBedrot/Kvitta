@@ -12,6 +12,7 @@ struct GroupDetailView: View {
     let ledger: LedgerStore
     let userId: UserID
     let groupId: GroupID
+    var payees = PayeeDirectory()
 
     @State private var settlingTransfer: TransferPresentation?
     @State private var auditingMember: MemberID?
@@ -67,7 +68,8 @@ struct GroupDetailView: View {
         .navigationTitle(group.name)
         .navigationBarTitleDisplayMode(.large)
         .sheet(item: $settlingTransfer) { presentation in
-            SettleUpSheet(ledger: ledger, userId: userId, groupId: groupId, transfer: presentation.transfer)
+            SettleUpSheet(ledger: ledger, userId: userId, groupId: groupId,
+                          transfer: presentation.transfer, payees: payees)
                 .presentationDetents([.medium])
         }
         .sheet(item: $auditingMember) { memberId in
