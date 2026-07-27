@@ -7,6 +7,7 @@ import KvittaStorage
 struct HomeView: View {
     let ledger: LedgerStore
     let userId: UserID
+    let invites: InviteModel
     var onNewGroup: () -> Void
 
     private var groups: [GroupState] { ledger.state.groupsByLastActivity }
@@ -36,7 +37,7 @@ struct HomeView: View {
             .padding(.top, 8)
         }
         .navigationDestination(for: GroupID.self) { groupId in
-            GroupDetailView(ledger: ledger, userId: userId, groupId: groupId)
+            GroupDetailView(ledger: ledger, userId: userId, groupId: groupId, invites: invites)
         }
     }
 }

@@ -49,7 +49,7 @@ struct RootView: View {
 
     private var grupperTab: some View {
         NavigationStack {
-            HomeView(ledger: ledger, userId: userId, onNewGroup: { showingNewGroup = true })
+            HomeView(ledger: ledger, userId: userId, invites: invites, onNewGroup: { showingNewGroup = true })
                 .overlay(alignment: .bottomTrailing) {
                     if !ledger.state.groups.isEmpty {
                         FAB(action: startAddExpense)
