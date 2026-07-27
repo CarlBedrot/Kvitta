@@ -15,6 +15,7 @@ struct JagView: View {
     let ledger: LedgerStore
     let sync: SyncEngine
     @Bindable var profile: UserProfile
+    let session: SessionModel
 
     @State private var photoItem: PhotosPickerItem?
     @State private var failure: String?
@@ -23,6 +24,7 @@ struct JagView: View {
         NavigationStack {
             Form {
                 profileSection
+                accountSection
                 backupSection
                 #if DEBUG
                 developerSection
@@ -75,6 +77,51 @@ struct JagView: View {
                     photoItem = nil
                 }
             }
+        }
+    }
+
+    // MARK: - Account
+
+    /// Signing in is optional and the copy says so.
+    ///
+    /// The app works completely without an account — that is the premise, not a limitation — so
+    /// this section offers one benefit and never nags. It is also the only place the difference
+    /// between "on this phone" and "safe if you lose this phone" is stated plainly.
+    @ViewBuilder
+    private var accountSection: some View {
+        Section {
+            if session.isSignedIn {
+                HStack {
+                    Text("Inloggad")
+                    Spacer()
+                    Image(systemName: "checkmark.seal.fill").foregroundStyle(Theme.sage)
+                }
+
+                Button("Logga ut", role: .destructive) {
+                    Task { await session.signOut() }
+                }
+            } else {
+                Button {
+                    Task { await session.signIn(displayName: profile.displayName) }
+                } label: {
+                    HStack {
+                        Text("Logga in")
+                        Spacer()
+                        if session.isWorking { ProgressView() }
+                    }
+                }
+                .disabled(session.isWorking)
+            }
+
+            if let failure = session.failure {
+                Text(failure).font(.footnote).foregroundStyle(Theme.clay)
+            }
+        } header: {
+            Text("Konto")
+        } footer: {
+            Text(session.isSignedIn
+                 ? "Nya utgifter sparas hos servern så att de överlever om du byter telefon."
+                 : "Du behöver inget konto för att använda Kvitta. Ett konto gör bara att dina utgifter finns kvar om telefonen försvinner.")
         }
     }
 

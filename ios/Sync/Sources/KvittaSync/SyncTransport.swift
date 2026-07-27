@@ -52,6 +52,16 @@ public struct PullResult: Hashable, Sendable {
 public enum SyncError: Error, Hashable, Sendable {
     /// No network, DNS failure, timeout, connection refused — the normal offline case.
     case unreachable(String)
+    /// Not signed in, or the session has ended and could not be renewed.
+    ///
+    /// This only escapes the transport after a refresh has already been tried and failed. An
+    /// access token merely expiring is invisible from here: it is swallowed by a refresh and a
+    /// retry. So reaching this means a human has to sign in again.
+    ///
+    /// Before M4 there was no case for 401 at all, so it fell into `.server` — which is
+    /// retryable — and an ended session would have been retried forever while the UI claimed to be
+    /// waiting for a connection.
+    case unauthorized
     /// The caller is not a member of this group any more (design doc §7).
     case notAMember
     /// The server requires a newer build (design doc §9).
@@ -65,7 +75,7 @@ public enum SyncError: Error, Hashable, Sendable {
         switch self {
         case .unreachable, .server:
             return true
-        case .notAMember, .upgradeRequired, .malformedResponse:
+        case .unauthorized, .notAMember, .upgradeRequired, .malformedResponse:
             return false
         }
     }

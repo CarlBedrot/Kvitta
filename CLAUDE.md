@@ -30,6 +30,8 @@ Full architecture: docs/expense-app-sync-design.md. Read it before touching sync
 - Sync package tests: swift test (from ios/Sync/)
 - Performance tests: swift test -c release. Debug builds are ~5x slower and say nothing about a shipped app.
 - Backend run: dotnet run --project backend/Api (serves http://localhost:5142; the port is pinned in launchSettings.json because it overrides ASPNETCORE_URLS)
+- Backend first run on a machine: dotnet user-secrets set "Auth:SigningKey" "$(openssl rand -base64 48)" --project backend/Api
+  There is no signing key in any committed file and the host refuses to start without one. That is deliberate — a checked-in key is a backdoor — so a fresh clone must do this once.
 - Backend tests: dotnet test (from backend/; Testcontainers spins up postgres:17, so a container runtime must be running. KVITTA_TEST_POSTGRES overrides with a connection string if not.)
 - Backend local deps: colima start, then docker compose up -d (from backend/)
 
@@ -53,6 +55,16 @@ Sync:
 - A server rejection is not a transient failure. Rejected events leave the retry queue, stay in the log, and surface with their reason.
 - The app must be fully functional with the backend unreachable. Any feature that requires a live server connection to add or view data is a design bug.
 - Push is retry-safe because it is idempotent. Never drop outbox events silently; surface sync failures to the user.
+
+Auth (M4a):
+- Identity comes from the `sub` claim of a token this server signed. There is no trusted header; `X-Kvitta-User-Id` is gone.
+- A `users` row is only ever created by POST /api/v1/auth/apple. Nothing else may mint one, which is why `MemberAdded.linkedUserId` must be null or the caller — linking somebody else is what invites are for, decided server-side.
+- An event's `authorId` must equal the caller, rejected per-event as `author_mismatch`. Never a 403 for the whole batch: a batch is an outbox drain.
+- Membership is decided in exactly one place, `Data/Membership.cs`, and includes `IsActive`. It was written out three times before and all three copies forgot it, so a removed member kept full access.
+- Use `AddAuthentication` + `UseAuthentication` only. Never `RequireAuthorization` on an event route: the authorization middleware challenges before the handler, and an old client with no token must get 426 Upgrade Required rather than 401.
+- `MapInboundClaims = false`, or JwtBearer silently renames `sub` and every subject lookup comes back empty.
+- Refresh tokens rotate through one conditional UPDATE, never read-then-write. Reusing a spent token revokes the whole family — which is why the client's `AuthTokenProvider` must single-flight its refreshes, or a burst of 401s makes the app log itself out.
+- Signing in is optional. The app without an account is the offline app, and that must stay fully functional.
 
 Storage:
 - Projections are held in memory and rebuilt from the log at launch, not cached in the database. A heavy group replays in ~20ms (ReplayPerformanceTests), so a second copy of the truth would buy nothing and could drift from the first.

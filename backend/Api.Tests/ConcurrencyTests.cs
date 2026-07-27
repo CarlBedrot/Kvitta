@@ -15,7 +15,7 @@ public sealed class ConcurrencyTests(KvittaApiFixture fixture)
     [Fact]
     public async Task Parallel_pushes_to_one_group_produce_a_strictly_increasing_gap_free_sequence()
     {
-        var scenario = new GroupScenario();
+        var scenario = await fixture.ScenarioAsync();
         await fixture.Client.PushAsync(scenario, scenario.OpeningBatch());
 
         const int writers = 8;
@@ -59,7 +59,7 @@ public sealed class ConcurrencyTests(KvittaApiFixture fixture)
     [Fact]
     public async Task Pushing_the_same_batch_from_two_callers_at_once_stores_it_once()
     {
-        var scenario = new GroupScenario();
+        var scenario = await fixture.ScenarioAsync();
         await fixture.Client.PushAsync(scenario, scenario.OpeningBatch());
 
         // The same events, twice, concurrently — what a retry racing its own original looks like.

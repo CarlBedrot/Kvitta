@@ -24,6 +24,7 @@ public static class EnvelopeValidator
     public static ValidationResult Validate(
         EventEnvelope envelope,
         Guid pathGroupId,
+        Guid callerId,
         string rawPayload,
         int maxPayloadBytes)
     {
@@ -42,6 +43,18 @@ public static class EnvelopeValidator
         if (envelope.AuthorId == Guid.Empty)
         {
             return ValidationResult.Reject(RejectionCode.MalformedEnvelope, "authorId is missing.");
+        }
+
+        // You may only write events as yourself. Until M4 this was not checked at all, so any
+        // member of a group could author events in anyone else's name — and since authorId is what
+        // the activity feed attributes an expense to, that is enough to blame a friend for a bill
+        // they never entered. Clients only ever push their own outbox, so this rejects nothing
+        // legitimate.
+        if (envelope.AuthorId != callerId)
+        {
+            return ValidationResult.Reject(
+                RejectionCode.AuthorMismatch,
+                $"Event is authored by {envelope.AuthorId} but was pushed by {callerId}.");
         }
 
         if (string.IsNullOrWhiteSpace(envelope.Type))

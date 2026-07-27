@@ -54,9 +54,10 @@ public sealed class EventWriter(KvittaDbContext db, IOptions<SyncOptions> syncOp
 
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
 
-        await EnsureUserExistsAsync(userId, cancellationToken);
-
-        var bootstrapping = await LockOrBootstrapGroupAsync(groupId, events[0], cancellationToken);
+        // No user upsert here any more. The caller's row is created by POST /api/v1/auth/apple and
+        // by nothing else, so a user row now means "someone who has actually signed in" rather
+        // than "a GUID somebody once mentioned".
+        var bootstrapping = await LockOrBootstrapGroupAsync(groupId, events, userId, cancellationToken);
         var group = await db.Groups.SingleAsync(candidate => candidate.Id == groupId, cancellationToken);
 
         var members = await db.Members
@@ -66,7 +67,10 @@ public sealed class EventWriter(KvittaDbContext db, IOptions<SyncOptions> syncOp
         // Authorization. M4 replaces the trusted header with a verified JWT subject; the rule
         // itself does not change. The bootstrap case exists because the very first push to a new
         // group necessarily arrives before its author is a member of anything.
-        var isMember = members.Any(member => member.LinkedUserId == userId);
+        //
+        // Checked before the loop, so a batch that removes the caller still lands: they were a
+        // member when it was written, and events are immutable.
+        var isMember = Membership.IsAuthorised(members, userId);
         if (!bootstrapping && !isMember)
         {
             throw new NotAMemberException($"User {userId} is not a member of group {groupId}.");
@@ -78,20 +82,22 @@ public sealed class EventWriter(KvittaDbContext db, IOptions<SyncOptions> syncOp
         var accepted = new List<AcceptedEvent>(events.Count);
         var rejected = new List<RejectedEvent>();
 
-        // Users a MemberAdded links to. Collected rather than inserted inline: the pushing user is
-        // usually one of them, and EF would happily issue a second INSERT for a row the upsert
-        // above already created.
-        var linkedUsers = new HashSet<Guid>();
-
         for (var index = 0; index < events.Count; index++)
         {
             var envelope = events[index];
             var raw = rawPayloads[index];
 
-            var envelopeCheck = EnvelopeValidator.Validate(envelope, groupId, raw, _sync.MaxPayloadBytes);
+            var envelopeCheck = EnvelopeValidator.Validate(envelope, groupId, userId, raw, _sync.MaxPayloadBytes);
             if (!envelopeCheck.IsValid)
             {
                 rejected.Add(new RejectedEvent(envelope.EventId, envelopeCheck.Code!, envelopeCheck.Reason!));
+                continue;
+            }
+
+            var linkCheck = MemberLinkValidator.Validate(envelope, userId);
+            if (!linkCheck.IsValid)
+            {
+                rejected.Add(new RejectedEvent(envelope.EventId, linkCheck.Code!, linkCheck.Reason!));
                 continue;
             }
 
@@ -134,16 +140,10 @@ public sealed class EventWriter(KvittaDbContext db, IOptions<SyncOptions> syncOp
                 ReceivedAt = DateTimeOffset.UtcNow
             });
 
-            ApplyDerivedState(envelope, group, members, knownMembers, linkedUsers);
+            ApplyDerivedState(envelope, group, members, knownMembers);
 
             accepted.Add(new AcceptedEvent(envelope.EventId, nextSeq));
             nextSeq++;
-        }
-
-        // Before SaveChanges, because the members rows about to be inserted have an FK to these.
-        foreach (var linkedUserId in linkedUsers)
-        {
-            await EnsureUserExistsAsync(linkedUserId, cancellationToken);
         }
 
         await db.SaveChangesAsync(cancellationToken);
@@ -160,8 +160,7 @@ public sealed class EventWriter(KvittaDbContext db, IOptions<SyncOptions> syncOp
         EventEnvelope envelope,
         GroupRecord group,
         List<MemberRecord> members,
-        HashSet<Guid> knownMembers,
-        HashSet<Guid> linkedUsers)
+        HashSet<Guid> knownMembers)
     {
         switch (envelope.Type)
         {
@@ -178,14 +177,10 @@ public sealed class EventWriter(KvittaDbContext db, IOptions<SyncOptions> syncOp
             case EventTypes.MemberAdded:
                 if (knownMembers.Add(envelope.EntityId))
                 {
-                    Guid? linkedUserId = null;
-                    if (envelope.Payload.ValueKind == JsonValueKind.Object &&
-                        envelope.Payload.TryGetProperty("linkedUserId", out var linked) &&
-                        linked.ValueKind == JsonValueKind.String &&
-                        Guid.TryParse(linked.GetString(), out var parsed))
-                    {
-                        linkedUserId = parsed;
-                    }
+                    // Already validated to be either absent or the caller, whose users row exists.
+                    Guid? linkedUserId = MemberLinkValidator.TryReadLinkedUserId(envelope.Payload, out var parsed)
+                        ? parsed
+                        : null;
 
                     var displayName = "";
                     if (envelope.Payload.ValueKind == JsonValueKind.Object &&
@@ -204,14 +199,6 @@ public sealed class EventWriter(KvittaDbContext db, IOptions<SyncOptions> syncOp
                     };
                     members.Add(record);
                     db.Members.Add(record);
-
-                    if (linkedUserId is { } userId)
-                    {
-                        // A member can name a user this server has never seen — that user's own
-                        // device has not pushed yet. The row gets upserted before SaveChanges so
-                        // the FK holds; M4 fills in the Apple identity when they actually sign in.
-                        linkedUsers.Add(userId);
-                    }
                 }
 
                 break;
@@ -233,7 +220,8 @@ public sealed class EventWriter(KvittaDbContext db, IOptions<SyncOptions> syncOp
     /// </summary>
     private async Task<bool> LockOrBootstrapGroupAsync(
         Guid groupId,
-        EventEnvelope first,
+        IReadOnlyList<EventEnvelope> events,
+        Guid userId,
         CancellationToken cancellationToken)
     {
         var exists = await LockGroupRowAsync(groupId, cancellationToken);
@@ -242,10 +230,25 @@ public sealed class EventWriter(KvittaDbContext db, IOptions<SyncOptions> syncOp
             return false;
         }
 
-        if (first.Type != EventTypes.GroupCreated)
+        if (events[0].Type != EventTypes.GroupCreated)
         {
             throw new NotAMemberException(
                 $"Group {groupId} does not exist and this batch does not open with {EventTypes.GroupCreated}.");
+        }
+
+        // The batch that creates a group must also put its creator in it. Membership is derived
+        // from the log, so a bootstrap without this leaves the group with no members the caller is
+        // linked to — the push succeeds and then every subsequent one from the same person is 403,
+        // which looks exactly like a server bug from the outside.
+        var linksCaller = events.Any(envelope =>
+            envelope.Type == EventTypes.MemberAdded
+            && MemberLinkValidator.TryReadLinkedUserId(envelope.Payload, out var linked)
+            && linked == userId);
+
+        if (!linksCaller)
+        {
+            throw new NotAMemberException(
+                $"A batch creating group {groupId} must add a member linked to {userId}.");
         }
 
         // ON CONFLICT keeps two simultaneous bootstraps from both inserting; whichever loses
@@ -281,10 +284,4 @@ public sealed class EventWriter(KvittaDbContext db, IOptions<SyncOptions> syncOp
         return (highest ?? 0) + 1;
     }
 
-    private async Task EnsureUserExistsAsync(Guid userId, CancellationToken cancellationToken)
-    {
-        await db.Database.ExecuteSqlInterpolatedAsync(
-            $"INSERT INTO users (\"Id\", \"CreatedAt\") VALUES ({userId}, {DateTimeOffset.UtcNow}) ON CONFLICT (\"Id\") DO NOTHING",
-            cancellationToken);
-    }
 }

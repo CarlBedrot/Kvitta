@@ -14,14 +14,21 @@ struct KvittaApp: App {
             // A switch over an enum returning concrete views, not AnyView (CLAUDE.md) — the
             // WindowGroup body is already a @ViewBuilder, so this costs nothing.
             switch startup {
-            case .ready(let ledger, let sync):
-                RootView(ledger: ledger, userId: DeviceIdentity.userId, sync: sync, profile: profile)
-                    .onChange(of: scenePhase) { _, phase in
-                        // Foreground pull is the guarantee (design doc §6). Everything else —
-                        // debounced post-save pushes, and APNs in M5 — only makes it sooner.
-                        guard phase == .active else { return }
-                        Task { await sync.syncAll() }
-                    }
+            case .ready(let ledger, let sync, let session):
+                RootView(
+                    ledger: ledger,
+                    userId: session.userId ?? DeviceIdentity.userId,
+                    sync: sync,
+                    profile: profile,
+                    session: session
+                )
+                .task { await session.restore() }
+                .onChange(of: scenePhase) { _, phase in
+                    // Foreground pull is the guarantee (design doc §6). Everything else —
+                    // debounced post-save pushes, and APNs in M5 — only makes it sooner.
+                    guard phase == .active else { return }
+                    Task { await sync.syncAll() }
+                }
             case .failed(let message):
                 StartupFailureView(message: message)
             }
@@ -30,7 +37,7 @@ struct KvittaApp: App {
 }
 
 enum Startup {
-    case ready(LedgerStore, SyncEngine)
+    case ready(LedgerStore, SyncEngine, SessionModel)
     case failed(String)
 }
 
@@ -50,15 +57,29 @@ enum Bootstrap {
             try ledger.rebuild()
 
             // Constructed unconditionally, but inert until the flag is on. Note that nothing
-            // about opening the database or replaying the log depends on it — if the sync engine
-            // were deleted entirely the app above this line would behave identically.
+            // about opening the database or replaying the log depends on any of it — if every
+            // line below were deleted the app above this one would behave identically.
+            let configuration = syncConfiguration
+            let authClient = HTTPAuthClient(configuration: configuration)
+            let tokens = AuthTokenProvider(store: KeychainTokenStore(), refresher: authClient)
+
             let sync = SyncEngine(
                 ledger: ledger,
-                transport: HTTPSyncTransport(configuration: syncConfiguration),
+                transport: HTTPSyncTransport(configuration: configuration, tokens: tokens),
                 userId: DeviceIdentity.userId
             )
 
-            return .ready(ledger, sync)
+            let session = SessionModel(
+                tokens: tokens,
+                // The real Sign in with Apple provider is written and compiles, but cannot run
+                // without the com.apple.developer.applesignin entitlement — which needs a paid
+                // Apple Developer team. Swap this line and add the entitlement to switch over.
+                provider: DeveloperSignInProvider(client: authClient, userId: DeviceIdentity.userId),
+                ledger: ledger,
+                sync: sync
+            )
+
+            return .ready(ledger, sync, session)
         } catch {
             // Deliberately not a silent fallback to an in-memory store: that would look like a
             // working app that quietly forgets everything, which is worse than saying so.

@@ -8,10 +8,18 @@ namespace Kvitta.Api.Tests;
 /// Builds envelopes in exactly the shape KvittaCore encodes on the wire. Hand-written rather than
 /// generated, so that if the Swift encoding ever drifts these tests notice.
 /// </summary>
-public sealed class GroupScenario
+public sealed class GroupScenario(Guid? userId = null)
 {
     public Guid GroupId { get; } = Guid.NewGuid();
-    public Guid UserId { get; } = Guid.NewGuid();
+
+    /// <summary>
+    /// The signed-in user pushing this group. Defaults to a random id for tests that never get as
+    /// far as writing a member row — anything that does must use
+    /// <see cref="KvittaApiFixture.ScenarioAsync"/>, because <c>members.LinkedUserId</c> has a
+    /// foreign key to <c>users</c> and only signing in creates that row.
+    /// </summary>
+    public Guid UserId { get; } = userId ?? Guid.NewGuid();
+
     public List<Guid> Members { get; } = [Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()];
 
     public JsonObject GroupCreated(string currency = "SEK") => Envelope(
@@ -71,6 +79,9 @@ public sealed class GroupScenario
             });
     }
 
+    /// <summary>Deactivates a member. The payload is empty — the entityId carries the whole meaning.</summary>
+    public JsonObject MemberRemoved(int index) => Envelope(Members[index], "MemberRemoved", new JsonObject());
+
     public JsonObject UnknownType(string type = "CommentAdded") => Envelope(
         Guid.NewGuid(),
         type,
@@ -118,7 +129,7 @@ public static class ApiClientExtensions
             Content = JsonContent.Create(batch)
         };
 
-        request.Headers.Add("X-Kvitta-User-Id", scenario.UserId.ToString());
+        request.Headers.Authorization = new("Bearer", TestTokens.AccessTokenFor(scenario.UserId));
         if (build is { } value)
         {
             request.Headers.Add("X-Kvitta-Build", value.ToString());
@@ -138,9 +149,21 @@ public static class ApiClientExtensions
             + (limit is { } value ? $"&limit={value}" : "");
 
         var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.Add("X-Kvitta-User-Id", (asUser ?? scenario.UserId).ToString());
+        request.Headers.Authorization = new("Bearer", TestTokens.AccessTokenFor(asUser ?? scenario.UserId));
         return client.SendAsync(request);
     }
+
+    public static Task<HttpResponseMessage> ListGroupsAsync(this HttpClient client, Guid asUser)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/groups");
+        request.Headers.Authorization = new("Bearer", TestTokens.AccessTokenFor(asUser));
+        return client.SendAsync(request);
+    }
+
+    public static Guid[] GroupIds(this JsonElement body) =>
+        body.GetProperty("groupIds").EnumerateArray()
+            .Select(item => item.GetGuid())
+            .ToArray();
 
     public static async Task<JsonElement> ReadJsonAsync(this HttpResponseMessage response) =>
         JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;

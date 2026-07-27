@@ -18,9 +18,6 @@ public sealed record GroupListResponse(IReadOnlyList<Guid> GroupIds);
 
 public static class EventsEndpoints
 {
-    /// <summary>The seam where M4's verified JWT subject replaces a trusted header.</summary>
-    public const string UserHeader = "X-Kvitta-User-Id";
-
     public const string BuildHeader = "X-Kvitta-Build";
 
     public static void MapEventEndpoints(this IEndpointRouteBuilder routes)
@@ -56,13 +53,13 @@ public static class EventsEndpoints
         if (!TryReadUserId(http, out var userId))
         {
             return Results.Problem(
-                title: "Missing user",
-                detail: $"{UserHeader} is required.",
+                title: "Not signed in",
+                detail: "A valid access token is required.",
                 statusCode: StatusCodes.Status401Unauthorized);
         }
 
         var groupIds = await db.Members
-            .Where(member => member.LinkedUserId == userId)
+            .Where(Membership.Authorising(userId))
             .Select(member => member.GroupId)
             .Distinct()
             .ToListAsync(cancellationToken);
@@ -94,8 +91,8 @@ public static class EventsEndpoints
         if (!TryReadUserId(http, out var userId))
         {
             return Results.Problem(
-                title: "Missing user",
-                detail: $"{UserHeader} is required.",
+                title: "Not signed in",
+                detail: "A valid access token is required.",
                 statusCode: StatusCodes.Status401Unauthorized);
         }
 
@@ -186,8 +183,8 @@ public static class EventsEndpoints
         if (!TryReadUserId(http, out var userId))
         {
             return Results.Problem(
-                title: "Missing user",
-                detail: $"{UserHeader} is required.",
+                title: "Not signed in",
+                detail: "A valid access token is required.",
                 statusCode: StatusCodes.Status401Unauthorized);
         }
 
@@ -200,9 +197,9 @@ public static class EventsEndpoints
                 statusCode: StatusCodes.Status404NotFound);
         }
 
-        var isMember = await db.Members.AnyAsync(
-            member => member.GroupId == groupId && member.LinkedUserId == userId,
-            cancellationToken);
+        var isMember = await db.Members
+            .Where(member => member.GroupId == groupId)
+            .AnyAsync(Membership.Authorising(userId), cancellationToken);
 
         if (!isMember)
         {
@@ -244,11 +241,23 @@ public static class EventsEndpoints
         ["payload"] = JsonNode.Parse(record.Payload)
     };
 
+    /// <summary>
+    /// The authenticated caller, from the access token this server signed.
+    /// </summary>
+    /// <remarks>
+    /// This used to read <c>X-Kvitta-User-Id</c> and believe it, which meant anyone who could set
+    /// a header was anyone they liked. The subject now comes from a token validated by the JWT
+    /// bearer handler.
+    ///
+    /// Reading <c>sub</c> literally only works because <c>MapInboundClaims</c> is off in
+    /// <c>Program.cs</c>; with the default on, the handler renames it to
+    /// <c>ClaimTypes.NameIdentifier</c> and this returns false for every authenticated request.
+    /// </remarks>
     private static bool TryReadUserId(HttpContext http, out Guid userId)
     {
         userId = Guid.Empty;
-        return http.Request.Headers.TryGetValue(UserHeader, out var raw)
-            && Guid.TryParse(raw.ToString(), out userId);
+        var subject = http.User.FindFirst("sub")?.Value;
+        return subject is not null && Guid.TryParse(subject, out userId);
     }
 
     /// <summary>Design doc §9's forced-update escape hatch.</summary>

@@ -25,7 +25,7 @@ public final class LedgerStore {
     public private(set) var rejectedPushes: [RejectedPush] = []
 
     private let store: EventStore
-    private let authorId: UserID
+    private var authorId: UserID
     private let now: @Sendable () -> Timestamp
 
     public init(
@@ -37,6 +37,24 @@ public final class LedgerStore {
         self.authorId = authorId
         self.now = now
     }
+
+    /// Who new events are authored by, from here on.
+    ///
+    /// A `var` rather than a `let` for a specific reason: signing in changes the user's identity,
+    /// and the alternative — rebuilding the whole `LedgerStore` — would open a second GRDB
+    /// `DatabaseQueue` on the same file while the old store is still retained by SwiftUI state.
+    /// GRDB serialises writes within a queue, not across two of them, so that is a route straight
+    /// to `SQLITE_BUSY`.
+    ///
+    /// Nothing already written is touched. Events are immutable, so historical `authorId` values
+    /// keep pointing at whoever wrote them — which is correct, and is also why a group created
+    /// before signing in cannot simply be adopted afterwards.
+    public func setAuthor(_ userId: UserID) {
+        authorId = userId
+    }
+
+    /// The identity new events will carry.
+    public var currentAuthorId: UserID { authorId }
 
     /// Folds the whole log into a fresh projection.
     ///
