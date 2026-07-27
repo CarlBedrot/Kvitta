@@ -155,7 +155,8 @@ enum PreviewLedger {
     // The Malmö group: four members, one 437 kr expense split among three.
     let group = ledger.state.groupsByLastActivity.first { $0.activeMembers.count == 4 }!
     NavigationStack {
-        GroupDetailView(ledger: ledger, userId: PreviewLedger.userId, groupId: group.id)
+        GroupDetailView(ledger: ledger, userId: PreviewLedger.userId, groupId: group.id,
+                        invites: PreviewLedger.invites(ledger))
     }
 }
 

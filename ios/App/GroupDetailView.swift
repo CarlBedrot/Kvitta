@@ -13,12 +13,14 @@ struct GroupDetailView: View {
     let userId: UserID
     let groupId: GroupID
     var payees = PayeeDirectory()
+    let invites: InviteModel
 
     @State private var settlingTransfer: TransferPresentation?
     @State private var auditingMember: MemberID?
     @State private var viewingExpense: ExpenseID?
     @State private var showingDeleted = false
     @State private var restoreFailure: String?
+    @State private var showingMembers = false
 
     /// The live group out of the projection. `nil` only if the group vanished mid-navigation,
     /// which a rebuild from a bad log could theoretically produce — show nothing rather than crash.
@@ -66,6 +68,18 @@ struct GroupDetailView: View {
         }
         .background(AmbientBackground())
         .navigationTitle(group.name)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showingMembers = true
+                } label: {
+                    Label("Medlemmar", systemImage: "person.2")
+                }
+            }
+        }
+        .sheet(isPresented: $showingMembers) {
+            MembersSheet(ledger: ledger, userId: userId, groupId: groupId, invites: invites)
+        }
         .navigationBarTitleDisplayMode(.large)
         .sheet(item: $settlingTransfer) { presentation in
             SettleUpSheet(ledger: ledger, userId: userId, groupId: groupId,

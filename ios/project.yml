@@ -47,18 +47,29 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # iPhone only. The zero line and the amount-first keypad are designed for one hand.
         TARGETED_DEVICE_FAMILY: 1
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_CFBundleDisplayName: Kvitta
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
     # Invite links arrive as kvitta://invite/<token>. A custom scheme rather than a universal
     # link because an https link needs an apple-app-site-association file served from a host that
     # does not exist until the M6 deploy. Universal links are additive later — the token format
     # and the accept endpoint do not change.
+    #
+    # Keep this block *after* `settings`. It was once inserted above the last two settings, which
+    # silently swallowed them into the plist: the app then built as Swift 5 with strict
+    # concurrency off for four merged PRs, while `swift test` stayed green because the packages
+    # carry their own manifests. Nothing failed — that is exactly what made it hard to notice.
     info:
       path: App/Info.plist
       properties:
         CFBundleURLTypes:
           - CFBundleURLName: se.kvitta.app.invite
             CFBundleURLSchemes: [kvitta]
-        SWIFT_VERSION: "6.0"
-        SWIFT_STRICT_CONCURRENCY: complete
+        # Written straight into the plist rather than via INFOPLIST_KEY_UILaunchScreen_*. Those
+        # settings synthesise a dictionary, and synthesising one into a plist that already exists
+        # produced a nested, empty UILaunchScreen — no error, no launch screen. LaunchBackground
+        # is Theme.cream, so launch and the first real frame share a background instead of the
+        # app flashing white on every open.
+        UILaunchScreen:
+          UIColorName: LaunchBackground
