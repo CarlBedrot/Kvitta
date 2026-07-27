@@ -93,7 +93,7 @@ private struct AuditRow: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: "\(emoji) \(entry.title)")
+                Text(verbatim: "\(emoji) \(label)")
                     .font(.subheadline)
                     .foregroundStyle(Theme.ink)
                 Text("löpande: \(MoneyFormat.string(entry.runningTotalMinor, group.currency, sign: .always))")
@@ -106,7 +106,7 @@ private struct AuditRow: View {
                 amountMinor: entry.deltaMinor,
                 currency: group.currency,
                 size: 15,
-                accessibilityPhrase: "\(entry.title), \(MoneyFormat.string(entry.deltaMinor, group.currency, sign: .always))"
+                accessibilityPhrase: "\(label), \(MoneyFormat.string(entry.deltaMinor, group.currency, sign: .always))"
             )
         }
         .padding(.vertical, 9)
@@ -120,6 +120,20 @@ private struct AuditRow: View {
             return Categories.emoji(for: group.expenses[id]?.categoryId ?? "")
         case .payment:
             return "🤝"
+        }
+    }
+
+    /// A payment with no note has no title of its own — Core deliberately does not invent one,
+    /// because the only thing it could reach for is the raw wire value of `method`. The label
+    /// belongs here, where it can be localised.
+    private var label: String {
+        if !entry.title.isEmpty { return entry.title }
+
+        switch entry.source {
+        case .payment:
+            return String(localized: "Betalning", comment: "Audit row label for a settle-up with no note")
+        case .expense:
+            return String(localized: "Utgift", comment: "Audit row label for an expense with no description")
         }
     }
 }

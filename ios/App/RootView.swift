@@ -30,6 +30,9 @@ struct RootView: View {
                 JagView(ledger: ledger, sync: sync)
             }
         }
+        // One accent for the whole app. Without this the selected tab, and every control that
+        // falls back to the system accent, comes out iOS blue in a cream-and-clay palette.
+        .tint(Theme.clayBright)
         .sheet(isPresented: $showingNewGroup) {
             NewGroupSheet(ledger: ledger, userId: userId)
         }

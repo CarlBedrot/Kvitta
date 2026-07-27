@@ -159,6 +159,9 @@ private struct EmptyGroupsView: View {
         } actions: {
             Button("Ny grupp", action: onNewGroup)
                 .buttonStyle(.glassProminent)
+                // `.glassProminent` picks up the system accent, which is blue. Clay is the
+                // app's one pop of colour and already means "the primary action here".
+                .tint(Theme.clayBright)
         }
     }
 }
