@@ -19,6 +19,11 @@ public final class LedgerStore {
     /// Rows that would not decode on the last load. Not fatal, but not hidden either.
     public private(set) var rejected: [RejectedEvent] = []
 
+    /// Events the server refused. They stay in the local log and still count toward local
+    /// balances — the expense really happened, it just is not agreed with anyone else yet — but
+    /// they no longer retry, and the UI can show which ones and why.
+    public private(set) var rejectedPushes: [RejectedPush] = []
+
     private let store: EventStore
     private let authorId: UserID
     private let now: @Sendable () -> Timestamp
@@ -41,6 +46,7 @@ public final class LedgerStore {
         let loaded = try store.allEvents()
         state = Projector.replay(loaded.events)
         rejected = loaded.rejected
+        rejectedPushes = (try? store.rejectedPushes()) ?? []
     }
 
     /// Writes a new local event and applies it, in that order.
@@ -91,5 +97,24 @@ public final class LedgerStore {
     public func acknowledge(_ acknowledgements: [(eventId: EventID, serverSeq: Int64)]) throws {
         try store.acknowledge(acknowledgements)
         try rebuild()
+    }
+
+    /// Records that the server refused these events, so they stop retrying and start showing.
+    public func markRejected(_ rejections: [(eventId: EventID, code: String)]) throws {
+        try store.markRejected(rejections)
+        rejectedPushes = try store.rejectedPushes()
+    }
+
+    /// Notes a transient push failure — offline, timeout, 500. The events stay queued.
+    public func recordPushFailure(_ eventIds: [EventID], error: String) throws {
+        try store.recordPushFailure(eventIds, error: error)
+    }
+
+    public func cursor(forGroup groupId: GroupID) throws -> Int64 {
+        try store.cursor(forGroup: groupId)
+    }
+
+    public func setCursor(_ serverSeq: Int64, forGroup groupId: GroupID) throws {
+        try store.setCursor(serverSeq, forGroup: groupId)
     }
 }

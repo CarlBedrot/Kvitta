@@ -1,0 +1,27 @@
+# Local Postgres for development. The integration tests do NOT use this — they spin up their own
+# throwaway container via Testcontainers so a test run can never scribble on your dev data.
+services:
+  postgres:
+    image: postgres:17
+    container_name: kvitta-postgres
+    environment:
+      POSTGRES_USER: kvitta
+      POSTGRES_DB: kvitta
+      # No password at all, rather than a throwaway one committed to the repo. This container is
+      # published on localhost for local development only and never holds anything real. A
+      # committed password — even a worthless one — trains secret scanners and reviewers to skim
+      # past exactly the line that will one day matter.
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - kvitta-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # `dotnet run` immediately after `up -d` otherwise races the first connection.
+      test: ["CMD-SHELL", "pg_isready -U kvitta -d kvitta"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  kvitta-pgdata:

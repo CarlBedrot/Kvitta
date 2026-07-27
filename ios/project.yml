@@ -17,6 +17,8 @@ packages:
     path: Core
   KvittaStorage:
     path: Storage
+  KvittaSync:
+    path: Sync
 
 targets:
   App:
@@ -29,6 +31,8 @@ targets:
         product: KvittaCore
       - package: KvittaStorage
         product: KvittaStorage
+      - package: KvittaSync
+        product: KvittaSync
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: se.kvitta.app

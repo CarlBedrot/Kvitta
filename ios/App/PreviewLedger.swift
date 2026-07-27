@@ -1,6 +1,7 @@
 import SwiftUI
 import KvittaCore
 import KvittaStorage
+import KvittaSync
 
 /// A throwaway in-memory ledger for Previews, populated through the real write path so what a
 /// Preview renders is exactly what the app computes — including the 145,67 / 145,67 / 145,66
@@ -8,6 +9,19 @@ import KvittaStorage
 @MainActor
 enum PreviewLedger {
     static let userId = UserID()
+
+    /// A permanently disabled sync engine. Previews must never reach a network, and `.disabled`
+    /// makes every entry point on the engine an immediate no-op.
+    static func sync(_ ledger: LedgerStore) -> SyncEngine {
+        SyncEngine(
+            ledger: ledger,
+            transport: HTTPSyncTransport(
+                configuration: SyncConfiguration(baseURL: URL(string: "http://localhost")!)
+            ),
+            userId: userId,
+            settings: .disabled
+        )
+    }
 
     static func populated() -> LedgerStore {
         let ledger = empty()
@@ -81,11 +95,13 @@ enum PreviewLedger {
 }
 
 #Preview("Hem") {
-    RootView(ledger: PreviewLedger.populated(), userId: PreviewLedger.userId)
+    let ledger = PreviewLedger.populated()
+    RootView(ledger: ledger, userId: PreviewLedger.userId, sync: PreviewLedger.sync(ledger))
 }
 
 #Preview("Hem – tom") {
-    RootView(ledger: PreviewLedger.empty(), userId: PreviewLedger.userId)
+    let ledger = PreviewLedger.empty()
+    RootView(ledger: ledger, userId: PreviewLedger.userId, sync: PreviewLedger.sync(ledger))
 }
 
 #Preview("Ny utgift") {
