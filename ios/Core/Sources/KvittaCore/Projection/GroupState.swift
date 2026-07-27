@@ -141,7 +141,11 @@ public struct GroupState: Hashable, Sendable, Identifiable {
                 Contribution(
                     source: .payment(payment.id),
                     date: payment.date,
-                    title: payment.payload.note ?? payment.method.rawValue,
+                    // The user's own note, or nothing. Deliberately not the payment method:
+                    // `method` is a raw wire string ("swish", and whatever a newer client
+                    // invents), so falling back to it puts an unlocalised enum value on screen.
+                    // A payment with no note gets its label from the UI, via `source`.
+                    title: payment.payload.note ?? "",
                     delta: delta
                 )
             )

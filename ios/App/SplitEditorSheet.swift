@@ -80,6 +80,9 @@ private struct EqualRows: View {
                                shareMinor: shareMap[member.id],
                                currency: model.currency)
             }
+            // Stock iOS green is the one loud note in an otherwise warm palette. Sage is the
+            // colour this app already uses to mean "counted in your favour".
+            .tint(Theme.sage)
         }
     }
 

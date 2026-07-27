@@ -18,7 +18,20 @@ struct ReplayPerformanceTests {
 
     /// Deliberately loose. The measured figure is a small fraction of this; the bound exists to
     /// catch a collapse — an accidental quadratic — not to police variance on a busy machine.
+    ///
+    /// Only enforced in release. An unoptimised build runs this same log about twenty times
+    /// slower, which lands close enough to the bound to fail whenever the machine is busy — and a
+    /// test that fails for reasons unrelated to the code is worse than no test at all. Debug runs
+    /// still print the numbers, so `swift test` remains useful for spotting a change in shape.
     private let budgetSeconds = 1.0
+
+    private var enforcesBudget: Bool {
+        #if DEBUG
+        return false
+        #else
+        return true
+        #endif
+    }
 
     @Test("A heavy group replays fast enough that launch needs no loading state")
     func heavyGroupReplaysQuickly() throws {
@@ -44,7 +57,9 @@ struct ReplayPerformanceTests {
         #expect(group.expenses.count > 1_000)
         #expect(group.balances().totalMinor == 0)
 
-        #expect(elapsed < budgetSeconds, "replay of \(events.count) events took \(elapsed)s")
+        if enforcesBudget {
+            #expect(elapsed < budgetSeconds, "replay of \(events.count) events took \(elapsed)s")
+        }
     }
 }
 
