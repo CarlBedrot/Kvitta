@@ -14,12 +14,6 @@
     never the PNG.
   -->
   <defs>
-    <!-- The warm wash from AmbientBackground, flattened to a single gradient. -->
-    <radialGradient id="field" cx="50%" cy="36%" r="80%">
-      <stop offset="0" stop-color="#FFFDF7"/>
-      <stop offset="1" stop-color="#EDE4D3"/>
-    </radialGradient>
-
     <!--
       One upright ear, apex at the local origin, that gets rotated into place on each side.
 
@@ -33,7 +27,13 @@
     <clipPath id="clip-ear"><use href="#ear"/></clipPath>
   </defs>
 
-  <rect width="1024" height="1024" fill="url(#field)"/>
+  <!--
+    Flat, not the radial wash AmbientBackground uses on screen. AppKit dithers a gradient with
+    per-pixel noise, which PNG cannot compress: the same artwork was 600 kB with the wash and
+    57 kB without, for a depth effect invisible at every size an icon is actually seen at. A
+    lossless optimiser does not help — the noise is real data.
+  -->
+  <rect width="1024" height="1024" fill="#F5F0E4"/>
 
   <!-- Scaled up about the centre so the fox fills the frame the way a home-screen icon needs to.
        Authoring at 1:1 and scaling here keeps every coordinate above readable. -->
