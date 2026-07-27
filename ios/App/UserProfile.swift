@@ -1,0 +1,103 @@
+import SwiftUI
+import KvittaCore
+
+/// Who you are on this device: a name, and a picture.
+///
+/// Deliberately local. A member's name inside a group is an event in that group's log — this is
+/// only the default that gets offered when you create one, plus what the Jag tab shows back to
+/// you. Making it an event would mean an identity that exists outside any group, which the data
+/// model does not have until users are real (M4).
+@Observable
+final class UserProfile {
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        self.displayName = defaults.string(forKey: Keys.displayName) ?? ""
+        self.avatarData = defaults.data(forKey: Keys.avatar)
+    }
+
+    /// Empty until you set one. Falls back to "Du" wherever a name is required.
+    var displayName: String {
+        didSet { defaults.set(displayName, forKey: Keys.displayName) }
+    }
+
+    /// JPEG bytes, on this device only. See `ProfilePhotoNote` for why it does not sync yet.
+    var avatarData: Data? {
+        didSet {
+            if let avatarData {
+                defaults.set(avatarData, forKey: Keys.avatar)
+            } else {
+                defaults.removeObject(forKey: Keys.avatar)
+            }
+        }
+    }
+
+    var nameOrDefault: String {
+        displayName.trimmingCharacters(in: .whitespaces).isEmpty ? "Du" : displayName
+    }
+
+    private enum Keys {
+        static let displayName = "se.kvitta.profile.displayName"
+        static let avatar = "se.kvitta.profile.avatar"
+    }
+}
+
+/// A round avatar: the photo if there is one, otherwise initials on a colour derived from the
+/// name, so everyone in a group is reliably a different colour without anyone choosing one.
+struct Avatar: View {
+    let name: String
+    var photo: Data?
+    var size: CGFloat = 44
+
+    var body: some View {
+        Group {
+            if let photo, let image = UIImage(data: photo) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Text(initials)
+                    .font(.system(size: size * 0.38, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Avatar.colour(for: name))
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(.circle)
+        .overlay(Circle().strokeBorder(Theme.hairline, lineWidth: 0.5))
+        .accessibilityHidden(true)
+    }
+
+    private var initials: String {
+        let words = name.split(separator: " ").prefix(2)
+        let letters = words.compactMap { $0.first }.map(String.init)
+        return letters.isEmpty ? "?" : letters.joined().uppercased()
+    }
+
+    /// Warm hues only, so an avatar never fights the cream-and-clay palette.
+    static func colour(for name: String) -> Color {
+        let palette: [Color] = [
+            Theme.clay,
+            Theme.sage,
+            Color(hex: 0x9A6A4B),
+            Color(hex: 0x6E7F5C),
+            Color(hex: 0xB08238),
+            Color(hex: 0x7C6A86)
+        ]
+        // Hashed by content rather than by `hashValue`, which is seeded per launch and would
+        // give the same person a different colour every time the app starts.
+        let seed = name.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0xFFFFFF }
+        return palette[seed % palette.count]
+    }
+}
+
+extension UserDefaults {
+    /// A throwaway suite so Previews never read or write the real profile.
+    /// Computed rather than stored: `UserDefaults` is not `Sendable`, so a static `let` is not
+    /// safe to share under Swift 6 concurrency.
+    static var previewProfile: UserDefaults {
+        UserDefaults(suiteName: "se.kvitta.preview") ?? .standard
+    }
+}

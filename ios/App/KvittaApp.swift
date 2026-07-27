@@ -6,6 +6,7 @@ import KvittaSync
 @main
 struct KvittaApp: App {
     @State private var startup = Bootstrap.run()
+    @State private var profile = UserProfile()
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
@@ -14,7 +15,7 @@ struct KvittaApp: App {
             // WindowGroup body is already a @ViewBuilder, so this costs nothing.
             switch startup {
             case .ready(let ledger, let sync):
-                RootView(ledger: ledger, userId: DeviceIdentity.userId, sync: sync)
+                RootView(ledger: ledger, userId: DeviceIdentity.userId, sync: sync, profile: profile)
                     .onChange(of: scenePhase) { _, phase in
                         // Foreground pull is the guarantee (design doc §6). Everything else —
                         // debounced post-save pushes, and APNs in M5 — only makes it sooner.
