@@ -23,6 +23,22 @@ public sealed record PushOutcome(
 /// <summary>Raised when the caller is not entitled to write to this group at all.</summary>
 public sealed class NotAMemberException(string reason) : Exception(reason);
 
+/// <summary>What entitles this write.</summary>
+/// <remarks>
+/// An enum rather than a boolean flag, because the second case switches off the membership check
+/// and that should be impossible to pass by accident — and easy to grep for.
+///
+/// <see cref="AcceptedInvite"/> exists because of a genuine chicken-and-egg: membership is derived
+/// from the log, so the event that makes you a member cannot itself be written by a member. The
+/// only caller is the invite-acceptance endpoint, and only after it has validated a token the
+/// user actually holds.
+/// </remarks>
+public enum PushAuthorisation
+{
+    Membership,
+    AcceptedInvite
+}
+
 /// <summary>
 /// Ingests a batch of events into one group's log.
 /// </summary>
@@ -45,8 +61,14 @@ public sealed class EventWriter(KvittaDbContext db, IOptions<SyncOptions> syncOp
         Guid userId,
         IReadOnlyList<EventEnvelope> events,
         IReadOnlyList<string> rawPayloads,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        PushAuthorisation authorisation = PushAuthorisation.Membership)
     {
+        // Returns before authorization, deliberately. An empty batch cannot write anything, so
+        // there is nothing to authorise and no transaction worth opening — and because the answer
+        // is the same for members and strangers alike, it is not a membership oracle either.
+        // `A_stranger_pushing_nothing_writes_nothing` pins that, so this stays a considered
+        // shortcut rather than something a later reader mistakes for a gap.
         if (events.Count == 0)
         {
             return PushOutcome.Empty;
@@ -70,7 +92,9 @@ public sealed class EventWriter(KvittaDbContext db, IOptions<SyncOptions> syncOp
         //
         // Checked before the loop, so a batch that removes the caller still lands: they were a
         // member when it was written, and events are immutable.
-        var isMember = Membership.IsAuthorised(members, userId);
+        var isMember = Membership.IsAuthorised(members, userId)
+            || authorisation == PushAuthorisation.AcceptedInvite;
+
         if (!bootstrapping && !isMember)
         {
             throw new NotAMemberException($"User {userId} is not a member of group {groupId}.");
@@ -203,6 +227,28 @@ public sealed class EventWriter(KvittaDbContext db, IOptions<SyncOptions> syncOp
 
                 break;
 
+            case EventTypes.MemberUpdated:
+                var updated = members.FirstOrDefault(member => member.Id == envelope.EntityId);
+                if (updated is not null)
+                {
+                    // Absent means unchanged, matching the client's projector. Nothing here can
+                    // move money: a member's identity and their balance are independent, which is
+                    // what lets someone join months late and inherit a history that already adds up.
+                    if (MemberLinkValidator.TryReadLinkedUserId(envelope.Payload, out var linked))
+                    {
+                        updated.LinkedUserId = linked;
+                    }
+
+                    if (envelope.Payload.ValueKind == JsonValueKind.Object &&
+                        envelope.Payload.TryGetProperty("displayName", out var newName) &&
+                        newName.ValueKind == JsonValueKind.String)
+                    {
+                        updated.DisplayName = newName.GetString() ?? updated.DisplayName;
+                    }
+                }
+
+                break;
+
             case EventTypes.MemberRemoved:
                 var removed = members.FirstOrDefault(member => member.Id == envelope.EntityId);
                 if (removed is not null)
@@ -241,7 +287,7 @@ public sealed class EventWriter(KvittaDbContext db, IOptions<SyncOptions> syncOp
         // linked to — the push succeeds and then every subsequent one from the same person is 403,
         // which looks exactly like a server bug from the outside.
         var linksCaller = events.Any(envelope =>
-            envelope.Type == EventTypes.MemberAdded
+            envelope.Type is EventTypes.MemberAdded or EventTypes.MemberUpdated
             && MemberLinkValidator.TryReadLinkedUserId(envelope.Payload, out var linked)
             && linked == userId);
 

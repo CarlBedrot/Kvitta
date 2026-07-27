@@ -16,15 +16,18 @@ struct JagView: View {
     let sync: SyncEngine
     @Bindable var profile: UserProfile
     let session: SessionModel
+    let invites: InviteModel
 
     @State private var photoItem: PhotosPickerItem?
     @State private var failure: String?
+    @State private var inviteCode = ""
 
     var body: some View {
         NavigationStack {
             Form {
                 profileSection
                 accountSection
+                joinSection
                 backupSection
                 #if DEBUG
                 developerSection
@@ -122,6 +125,47 @@ struct JagView: View {
             Text(session.isSignedIn
                  ? "Nya utgifter sparas hos servern så att de överlever om du byter telefon."
                  : "Du behöver inget konto för att använda Kvitta. Ett konto gör bara att dina utgifter finns kvar om telefonen försvinner.")
+        }
+    }
+
+    // MARK: - Joining
+
+    /// Accepting an invite by pasting the code.
+    ///
+    /// Tapping the link is the normal path and needs no UI at all. This exists because links get
+    /// mangled — forwarded through chat apps, screenshotted, read out loud — and a group you
+    /// cannot join because a URL lost its scheme is a bad afternoon. It takes the bare token too.
+    @ViewBuilder
+    private var joinSection: some View {
+        Section {
+            TextField("Klistra in inbjudningskod", text: $inviteCode)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+
+            Button {
+                Task {
+                    await invites.accept(rawCode: inviteCode)
+                    if case .joined = invites.outcome { inviteCode = "" }
+                }
+            } label: {
+                HStack {
+                    Text("Gå med i grupp")
+                    Spacer()
+                    if invites.isWorking { ProgressView() }
+                }
+            }
+            .disabled(inviteCode.isEmpty || invites.isWorking)
+
+            switch invites.outcome {
+            case .joined:
+                Text("Du är med i gruppen.").font(.footnote).foregroundStyle(Theme.sage)
+            case .failed(let reason):
+                Text(reason).font(.footnote).foregroundStyle(Theme.clay)
+            case nil:
+                EmptyView()
+            }
+        } header: {
+            Text("Inbjudan")
         }
     }
 

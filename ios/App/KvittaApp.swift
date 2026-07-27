@@ -5,24 +5,41 @@ import KvittaSync
 
 @main
 struct KvittaApp: App {
-    @State private var startup = Bootstrap.run()
-    @State private var profile = UserProfile()
+    @State private var profile: UserProfile
+    @State private var startup: Startup
     @Environment(\.scenePhase) private var scenePhase
+
+    init() {
+        // Built here rather than as inline defaults because the object graph has an order:
+        // the invite flow needs the profile to know what name to join a group under.
+        let profile = UserProfile()
+        _profile = State(initialValue: profile)
+        _startup = State(initialValue: Bootstrap.run(profile: profile))
+    }
 
     var body: some Scene {
         WindowGroup {
             // A switch over an enum returning concrete views, not AnyView (CLAUDE.md) — the
             // WindowGroup body is already a @ViewBuilder, so this costs nothing.
             switch startup {
-            case .ready(let ledger, let sync, let session):
+            case .ready(let ledger, let sync, let session, let invites):
                 RootView(
                     ledger: ledger,
                     userId: session.userId ?? DeviceIdentity.userId,
                     sync: sync,
                     profile: profile,
-                    session: session
+                    session: session,
+                    invites: invites
                 )
                 .task { await session.restore() }
+                .onOpenURL { url in
+                    // kvitta://invite/<token>. A custom scheme rather than a universal link,
+                    // because an https link needs an apple-app-site-association file on a host
+                    // that does not exist until the deploy. Adding universal links later is
+                    // additive — the token and the endpoint do not change.
+                    guard let token = InviteModel.token(in: url.absoluteString) else { return }
+                    Task { await invites.accept(token: token) }
+                }
                 .onChange(of: scenePhase) { _, phase in
                     // Foreground pull is the guarantee (design doc §6). Everything else —
                     // debounced post-save pushes, and APNs in M5 — only makes it sooner.
@@ -37,7 +54,7 @@ struct KvittaApp: App {
 }
 
 enum Startup {
-    case ready(LedgerStore, SyncEngine, SessionModel)
+    case ready(LedgerStore, SyncEngine, SessionModel, InviteModel)
     case failed(String)
 }
 
@@ -48,7 +65,7 @@ enum Bootstrap {
     /// This is the same `rebuild()` the debug menu calls. Making launch and recovery one code
     /// path means the recovery path is exercised on every single launch rather than never.
     /// A heavy group costs about 20 ms here, which is why there is no loading state anywhere.
-    static func run() -> Startup {
+    static func run(profile: UserProfile) -> Startup {
         do {
             let ledger = LedgerStore(
                 store: try EventStore.onDisk(at: databaseURL),
@@ -79,7 +96,15 @@ enum Bootstrap {
                 sync: sync
             )
 
-            return .ready(ledger, sync, session)
+            let transport = HTTPSyncTransport(configuration: configuration, tokens: tokens)
+            let invites = InviteModel(
+                transport: transport,
+                sync: sync,
+                session: session,
+                profile: profile
+            )
+
+            return .ready(ledger, sync, session, invites)
         } catch {
             // Deliberately not a silent fallback to an in-memory store: that would look like a
             // working app that quietly forgets everything, which is worse than saying so.

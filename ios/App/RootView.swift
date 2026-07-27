@@ -14,6 +14,7 @@ struct RootView: View {
     let sync: SyncEngine
     let profile: UserProfile
     let session: SessionModel
+    let invites: InviteModel
 
     @State private var showingNewGroup = false
     @State private var expenseModel: NewExpenseModel?
@@ -29,7 +30,7 @@ struct RootView: View {
                 }
             }
             Tab("Jag", systemImage: "person.crop.circle") {
-                JagView(ledger: ledger, sync: sync, profile: profile, session: session)
+                JagView(ledger: ledger, sync: sync, profile: profile, session: session, invites: invites)
             }
         }
         // One accent for the whole app. Without this the selected tab, and every control that

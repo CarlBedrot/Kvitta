@@ -11,6 +11,7 @@ public enum EventPayload: Hashable, Sendable {
     case groupCreated(GroupCreatedPayload)
     case groupUpdated(GroupUpdatedPayload)
     case memberAdded(MemberAddedPayload)
+    case memberUpdated(MemberUpdatedPayload)
     case memberRemoved(EmptyPayload)
     case expenseCreated(ExpensePayload)
     case expenseUpdated(ExpensePayload)
@@ -26,6 +27,7 @@ public enum EventPayload: Hashable, Sendable {
         case .groupCreated: return EventType.groupCreated
         case .groupUpdated: return EventType.groupUpdated
         case .memberAdded: return EventType.memberAdded
+        case .memberUpdated: return EventType.memberUpdated
         case .memberRemoved: return EventType.memberRemoved
         case .expenseCreated: return EventType.expenseCreated
         case .expenseUpdated: return EventType.expenseUpdated
@@ -55,6 +57,7 @@ public enum EventType {
     public static let groupCreated = "GroupCreated"
     public static let groupUpdated = "GroupUpdated"
     public static let memberAdded = "MemberAdded"
+    public static let memberUpdated = "MemberUpdated"
     public static let memberRemoved = "MemberRemoved"
     public static let expenseCreated = "ExpenseCreated"
     public static let expenseUpdated = "ExpenseUpdated"
@@ -64,7 +67,7 @@ public enum EventType {
 
     public static let allKnown: Set<String> = [
         groupCreated, groupUpdated,
-        memberAdded, memberRemoved,
+        memberAdded, memberUpdated, memberRemoved,
         expenseCreated, expenseUpdated, expenseDeleted, expenseRestored,
         paymentRecorded
     ]

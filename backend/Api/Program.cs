@@ -138,6 +138,7 @@ using (var scope = app.Services.CreateScope())
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
 app.MapAuthEndpoints(app.Environment);
+app.MapInviteEndpoints();
 app.MapEventEndpoints();
 
 app.Run();

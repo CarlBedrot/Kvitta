@@ -50,6 +50,7 @@ public static class EventTypes
     public const string GroupCreated = "GroupCreated";
     public const string GroupUpdated = "GroupUpdated";
     public const string MemberAdded = "MemberAdded";
+    public const string MemberUpdated = "MemberUpdated";
     public const string MemberRemoved = "MemberRemoved";
     public const string ExpenseCreated = "ExpenseCreated";
     public const string ExpenseUpdated = "ExpenseUpdated";
