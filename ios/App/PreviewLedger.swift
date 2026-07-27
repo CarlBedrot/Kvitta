@@ -96,12 +96,14 @@ enum PreviewLedger {
 
 #Preview("Hem") {
     let ledger = PreviewLedger.populated()
-    RootView(ledger: ledger, userId: PreviewLedger.userId, sync: PreviewLedger.sync(ledger))
+    RootView(ledger: ledger, userId: PreviewLedger.userId, sync: PreviewLedger.sync(ledger),
+             profile: UserProfile(defaults: .previewProfile))
 }
 
 #Preview("Hem – tom") {
     let ledger = PreviewLedger.empty()
-    RootView(ledger: ledger, userId: PreviewLedger.userId, sync: PreviewLedger.sync(ledger))
+    RootView(ledger: ledger, userId: PreviewLedger.userId, sync: PreviewLedger.sync(ledger),
+             profile: UserProfile(defaults: .previewProfile))
 }
 
 #Preview("Ny utgift") {
