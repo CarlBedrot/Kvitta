@@ -33,6 +33,10 @@ struct KvittaApp: App {
                     invites: invites,
                     reminders: reminders
                 )
+                // The palette is light-only by design (`Theme`), and the plist says so too. This
+                // is the SwiftUI half of the same statement, so Previews and any future scene
+                // agree with the shipped app instead of quietly rendering white on cream.
+                .preferredColorScheme(.light)
                 .task {
                     await session.restore()
                     // Recomputed at launch, so a debt settled on another device does not
@@ -54,7 +58,7 @@ struct KvittaApp: App {
                     Task { await sync.syncAll() }
                 }
             case .failed(let message):
-                StartupFailureView(message: message)
+                StartupFailureView(message: message).preferredColorScheme(.light)
             }
         }
     }

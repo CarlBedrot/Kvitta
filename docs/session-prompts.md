@@ -75,6 +75,36 @@ App icon, launch screen, privacy manifest, App Store Connect setup, TestFlight b
 
 ---
 
+## Session 7 (Milestone 7: settle-ups the other person has to agree to)
+
+From the first real-hardware test: *"if something is marked as approved, it can not be approved
+totally until the other user gets a notification about it and he/she presses approved."*
+
+Today `PaymentRecorded` is one-sided. Whoever taps "Markera som betald" moves the balance for
+everybody, and the person who was supposed to receive the money finds out by noticing. For cash
+between friends that is usually fine; for anything larger it is the one place the ledger can be
+wrong and look right.
+
+Shape, so the thinking is not lost:
+
+- A new `PaymentConfirmed` event keyed to the same `PaymentID`. `PaymentRecorded` alone becomes
+  *pending* and does not move the balance; the pair does.
+- The payee sees pending payments on their next foreground pull and confirms or disputes. No APNs —
+  still blocked on the paid Apple team — so `ReminderPlanner` carries the nudge, which it can
+  already do with no network and no account.
+- Projections stay pure `(state, event) -> state`. A pending payment is state, not a side channel.
+
+**The decision that makes this a milestone and not a task: what happens when the other person never
+confirms.** A debt stuck forever because someone stopped opening the app is worse than one settled
+optimistically, and every answer (auto-confirm after N days, confirm-on-behalf, dispute-only) trades
+a different thing away. Pick one before writing any of it.
+
+`PropertyTests.swift` has to be extended first — a pending payment must not break the zero-sum
+property, and "applying the suggested transfers as payments zeroes all balances" needs restating in
+terms of confirmed payments.
+
+---
+
 ## Product principles (paste into CLAUDE.md if not already there)
 
 - Free forever for this friend group. No gating logic, no limits, no ads, no code paths for any of those.

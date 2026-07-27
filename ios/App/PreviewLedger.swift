@@ -156,7 +156,8 @@ enum PreviewLedger {
     let group = ledger.state.groupsByLastActivity.first { $0.activeMembers.count == 4 }!
     NavigationStack {
         GroupDetailView(ledger: ledger, userId: PreviewLedger.userId, groupId: group.id,
-                        invites: PreviewLedger.invites(ledger))
+                        invites: PreviewLedger.invites(ledger),
+                        profile: UserProfile(defaults: .previewProfile))
     }
 }
 

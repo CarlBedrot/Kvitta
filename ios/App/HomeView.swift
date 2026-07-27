@@ -8,6 +8,9 @@ struct HomeView: View {
     let ledger: LedgerStore
     let userId: UserID
     let invites: InviteModel
+    /// Carried through only to reach `SettleUpSheet`, which needs your own Swish number to build
+    /// the link you send someone who owes you.
+    let profile: UserProfile
     var onNewGroup: () -> Void
 
     private var groups: [GroupState] { ledger.state.groupsByLastActivity }
@@ -37,7 +40,8 @@ struct HomeView: View {
             .padding(.top, 8)
         }
         .navigationDestination(for: GroupID.self) { groupId in
-            GroupDetailView(ledger: ledger, userId: userId, groupId: groupId, invites: invites)
+            GroupDetailView(ledger: ledger, userId: userId, groupId: groupId,
+                            invites: invites, profile: profile)
         }
     }
 }

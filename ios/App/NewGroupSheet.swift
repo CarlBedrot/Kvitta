@@ -2,32 +2,32 @@ import SwiftUI
 import KvittaCore
 import KvittaStorage
 
-/// Creating a group. Every field goes to the log through `LedgerStore.record` — one
-/// `GroupCreated`, then a `MemberAdded` for "Du" linked to this device, then one per other
-/// person. No money yet, so there is nothing to validate beyond having a name and someone to
-/// split with.
+/// Creating a group: a name, a currency, and you.
+///
+/// It used to ask you to type everybody's names up front, which is the wrong shape twice over —
+/// it is work before you have got anything, and the names you invent are then the names your
+/// friends are stuck with when they join. Now the group starts with you and fills up from the
+/// invite link, and creating it hands you straight into the group so the link is the next thing
+/// you see.
+///
+/// Adding someone by name did not go away, it moved: `MembersSheet` still does it, for the person
+/// who will never install the app. That is design doc §5's "single most important UX decision" and
+/// it is not up for removal — it is just no longer the price of making a group.
 struct NewGroupSheet: View {
     let ledger: LedgerStore
     let userId: UserID
+    let profile: UserProfile
     var onCreated: (GroupID) -> Void = { _ in }
 
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var currency: CurrencyCode = .sek
-    @State private var youName = "Du"
-    @State private var others: [String] = ["", ""]
     @State private var failure: String?
 
     private static let currencies: [CurrencyCode] = [.sek, .dkk, .nok, .eur]
 
-    private var trimmedOthers: [String] {
-        others.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-    }
-
     private var canCreate: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty
-            && !youName.trimmingCharacters(in: .whitespaces).isEmpty
-            && !trimmedOthers.isEmpty
     }
 
     var body: some View {
@@ -43,7 +43,17 @@ struct NewGroupSheet: View {
                     }
                 }
 
-                MemberFieldsSection(youName: $youName, others: $others)
+                Section {
+                    HStack(spacing: 12) {
+                        Avatar(name: profile.nameOrDefault, photo: profile.avatarData, size: 34)
+                        Text(profile.nameOrDefault).foregroundStyle(Theme.ink)
+                        Spacer()
+                    }
+                } header: {
+                    Text("Medlemmar")
+                } footer: {
+                    Text("Du är ensam i gruppen till att börja med. Dela inbjudningslänken så går de andra med själva — då väljer de sina egna namn.")
+                }
 
                 if let failure {
                     Section {
@@ -73,49 +83,21 @@ struct NewGroupSheet: View {
                 .groupCreated(GroupCreatedPayload(name: name.trimmingCharacters(in: .whitespaces), currency: currency)),
                 entityId: groupId.rawValue, in: groupId
             )
-            let meId = MemberID()
+            // The Jag tab promises your name "visas som du i nya grupper". This is where that
+            // promise is kept; before, the sheet had its own field defaulting to "Du" and the
+            // profile name was never read.
             try ledger.record(
                 .memberAdded(MemberAddedPayload(
-                    displayName: youName.trimmingCharacters(in: .whitespaces),
+                    displayName: profile.nameOrDefault,
                     linkedUserId: userId
                 )),
-                entityId: meId.rawValue, in: groupId
+                entityId: MemberID().rawValue, in: groupId
             )
-            for other in trimmedOthers {
-                let memberId = MemberID()
-                try ledger.record(
-                    .memberAdded(MemberAddedPayload(displayName: other)),
-                    entityId: memberId.rawValue, in: groupId
-                )
-            }
             onCreated(groupId)
             dismiss()
         } catch {
             // A local write failing must surface, never vanish (CLAUDE.md).
             failure = String(describing: error)
-        }
-    }
-}
-
-/// The member name fields: you (linked) plus a growable list of the others.
-private struct MemberFieldsSection: View {
-    @Binding var youName: String
-    @Binding var others: [String]
-
-    var body: some View {
-        Section("Medlemmar") {
-            HStack {
-                Text("Du").foregroundStyle(Theme.secondary).frame(width: 44, alignment: .leading)
-                TextField("Ditt namn", text: $youName)
-            }
-            ForEach(others.indices, id: \.self) { index in
-                TextField("Namn", text: $others[index])
-            }
-            .onDelete { others.remove(atOffsets: $0) }
-
-            Button("Lägg till person", systemImage: "plus") {
-                others.append("")
-            }
         }
     }
 }

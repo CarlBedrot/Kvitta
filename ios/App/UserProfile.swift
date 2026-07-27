@@ -1,12 +1,17 @@
 import SwiftUI
 import KvittaCore
 
-/// Who you are on this device: a name, and a picture.
+/// Who you are on this device: a name, a picture, and the number people Swish you on.
 ///
 /// Deliberately local. A member's name inside a group is an event in that group's log — this is
 /// only the default that gets offered when you create one, plus what the Jag tab shows back to
 /// you. Making it an event would mean an identity that exists outside any group, which the data
 /// model does not have until users are real (M4).
+///
+/// The Swish number is local for a stronger reason than convention: events are immutable, so a
+/// phone number written into a group log would land on every member's device forever with no way
+/// to take it back (CLAUDE.md). It travels as a link you choose to send instead — see
+/// `SettleUpSheet`.
 @Observable
 final class UserProfile {
     private let defaults: UserDefaults
@@ -15,6 +20,7 @@ final class UserProfile {
         self.defaults = defaults
         self.displayName = defaults.string(forKey: Keys.displayName) ?? ""
         self.avatarData = defaults.data(forKey: Keys.avatar)
+        self.swishNumber = defaults.string(forKey: Keys.swishNumber) ?? ""
     }
 
     /// Empty until you set one. Falls back to "Du" wherever a name is required.
@@ -33,6 +39,19 @@ final class UserProfile {
         }
     }
 
+    /// Your own Swish number, exactly as you typed it — the field keeps your spacing so it still
+    /// looks like a phone number when you come back to check it.
+    var swishNumber: String {
+        didSet { defaults.set(swishNumber, forKey: Keys.swishNumber) }
+    }
+
+    /// The same number in the form Swish wants, or `nil` if there is not a plausible one yet.
+    /// Normalised on read rather than on write so a half-typed number is never silently rewritten
+    /// underneath the cursor.
+    var swishNumberForPayment: String? {
+        SwishNumber.normalised(swishNumber)
+    }
+
     var nameOrDefault: String {
         displayName.trimmingCharacters(in: .whitespaces).isEmpty ? "Du" : displayName
     }
@@ -40,6 +59,7 @@ final class UserProfile {
     private enum Keys {
         static let displayName = "se.kvitta.profile.displayName"
         static let avatar = "se.kvitta.profile.avatar"
+        static let swishNumber = "se.kvitta.profile.swishNumber"
     }
 }
 

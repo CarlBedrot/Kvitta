@@ -78,10 +78,13 @@ Payments and reminders (M5):
 - The app never moves money. Swish/MobilePay get a prefilled deep link; PaymentRecorded says the money moved elsewhere.
 - PaymentRecorded is pre-staged and only written when the user confirms on return. Opening Swish is not evidence a payment happened, and a phantom payment is worse than a missing one — the missing one is obvious.
 - Amounts in a payment URL are built from integer minor units by hand. Never format money through a Double: 437.00 is not representable in binary floating point.
-- A payee's Swish number lives in UserDefaults on the device, never as an event. Events are immutable, so a phone number in the log would reach every member forever with no way to take it back.
+- A payee's Swish number lives in UserDefaults on the device, never as an event. Events are immutable, so a phone number in the log would reach every member forever with no way to take it back. That includes your own: `UserProfile.swishNumber` is local, and reaches the person who owes you as a prefilled link you choose to send from the settle-up screen. Making it sync is a server-side profile field, not an event.
 - Reminders are local notifications computed from the ledger on device, so they need no network and no account. Only debts you owe — never money owed to you, which would be nagging someone else through your phone.
 - Blocked on a paid Apple Developer team: Sign in with Apple (com.apple.developer.applesignin) and APNs silent push (aps-environment). Both are written or seamed but cannot be enabled or verified.
-- Unverified: the Swish payload format. The simulator has no Swish app so canOpenURL is always false there; it needs one check on a real phone before shipping.
+- A Swish payee is `46701234567` — country code, no trunk zero. `SwishNumber.normalised` is the only place that decides this; passing on whatever digits somebody typed is what got the first on-device attempt rejected as *"felaktigt format"*.
+- The link we lead with is `https://app.swish.nu/1/p/sw/?sw=…&amt=…&cur=SEK&msg=…&edit=msg`, the shape Swish's own site serves. `swish://payment?data=<json>` is undocumented, was rejected on a real phone, and is kept only as the fallback candidate.
+- No `callbackurl`. Returning from Swish is read from the scene phase; the callback is what made Swish ask "open Kvitta?" on the way out, which reads like the app wants something.
+- Still unverified, and only a real phone can settle it: which of those URL shapes Swish actually accepts. The simulator has no Swish app, so `canOpenURL` is always false and `openURL` always fails there. `JagView` has a DEBUG-only "Testa Swish-format" that opens every candidate against 1,00 kr, so the answer costs one device session rather than one per guess.
 
 Shipping (M6):
 - Blocked on a paid Apple Developer account: TestFlight, App Store Connect, Sign in with Apple, APNs. Sorting the account out unblocks all four at once.
@@ -95,6 +98,8 @@ Storage:
 - rebuild() is what launch calls, so the recovery hatch is exercised every time the app opens instead of never.
 
 SwiftUI:
+- The app is light-only: INFOPLIST_KEY_UIUserInterfaceStyle in project.yml plus preferredColorScheme(.light) in KvittaApp. Theme is a fixed cream palette with no dark half, and every system-drawn label follows the system appearance — so without this a phone in dark mode gets white text on a cream card. Adding a dark palette is a design exercise; until it happens, do not remove either line.
+- A group is created with only you in it. Names are never typed for other people at creation — they join by link and pick their own. `MembersSheet` still adds someone by name, for the friend who will never install the app (design doc §5), and that must not be removed.
 - Never use AnyView to silence type-erasure errors. Use a @ViewBuilder generic or a switch over an enum returning concrete views. AnyView breaks SwiftUI diffing.
 - Views over ~60 lines get split into subviews.
 - Fast TDD loop: swift test --filter <TestName> from ios/Core/ for sub-second feedback; run the full suite before declaring a feature done.
