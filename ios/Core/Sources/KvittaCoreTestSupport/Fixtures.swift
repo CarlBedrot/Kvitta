@@ -71,10 +71,29 @@ public struct EventFactory {
         )
     }
 
-    public mutating func memberAdded(_ memberId: MemberID, name: String) -> EventEnvelope {
+    public mutating func memberAdded(
+        _ memberId: MemberID,
+        name: String,
+        linkedUserId: UserID? = nil
+    ) -> EventEnvelope {
         make(
             entityId: memberId.rawValue,
-            payload: .memberAdded(MemberAddedPayload(displayName: name))
+            payload: .memberAdded(
+                MemberAddedPayload(displayName: name, linkedUserId: linkedUserId)
+            )
+        )
+    }
+
+    public mutating func memberUpdated(
+        _ memberId: MemberID,
+        name: String? = nil,
+        linkedUserId: UserID? = nil
+    ) -> EventEnvelope {
+        make(
+            entityId: memberId.rawValue,
+            payload: .memberUpdated(
+                MemberUpdatedPayload(displayName: name, linkedUserId: linkedUserId)
+            )
         )
     }
 

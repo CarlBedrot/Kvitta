@@ -31,6 +31,15 @@ enum PreviewLedger {
         )
     }
 
+    static func invites(_ ledger: LedgerStore) -> InviteModel {
+        InviteModel(
+            transport: HTTPSyncTransport(configuration: configuration, tokens: tokens()),
+            sync: sync(ledger),
+            session: session(ledger),
+            profile: UserProfile(defaults: .previewProfile)
+        )
+    }
+
     static func session(_ ledger: LedgerStore) -> SessionModel {
         let provider = AuthTokenProvider(
             store: InMemoryTokenStore(),
@@ -122,13 +131,15 @@ enum PreviewLedger {
 #Preview("Hem") {
     let ledger = PreviewLedger.populated()
     RootView(ledger: ledger, userId: PreviewLedger.userId, sync: PreviewLedger.sync(ledger),
-             profile: UserProfile(defaults: .previewProfile), session: PreviewLedger.session(ledger))
+             profile: UserProfile(defaults: .previewProfile), session: PreviewLedger.session(ledger),
+             invites: PreviewLedger.invites(ledger))
 }
 
 #Preview("Hem – tom") {
     let ledger = PreviewLedger.empty()
     RootView(ledger: ledger, userId: PreviewLedger.userId, sync: PreviewLedger.sync(ledger),
-             profile: UserProfile(defaults: .previewProfile), session: PreviewLedger.session(ledger))
+             profile: UserProfile(defaults: .previewProfile), session: PreviewLedger.session(ledger),
+             invites: PreviewLedger.invites(ledger))
 }
 
 #Preview("Ny utgift") {

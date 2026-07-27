@@ -95,6 +95,10 @@ public sealed class AuthOptions
     [Required(AllowEmptyStrings = false)]
     public string AppleMetadataAddress { get; init; } = "https://appleid.apple.com/.well-known/openid-configuration";
 
+    /// <summary>How long an invite link stays good for. Design doc §7: tokens expire.</summary>
+    [Range(1, 365)]
+    public int InviteLifetimeDays { get; init; } = 14;
+
     /// <summary>Sign-in and refresh attempts allowed per caller per minute.</summary>
     [Range(1, 100_000)]
     public int AuthAttemptsPerMinute { get; init; } = 20;

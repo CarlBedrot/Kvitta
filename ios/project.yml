@@ -46,5 +46,15 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_CFBundleDisplayName: Kvitta
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+    # Invite links arrive as kvitta://invite/<token>. A custom scheme rather than a universal
+    # link because an https link needs an apple-app-site-association file served from a host that
+    # does not exist until the M6 deploy. Universal links are additive later — the token format
+    # and the accept endpoint do not change.
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleURLTypes:
+          - CFBundleURLName: se.kvitta.app.invite
+            CFBundleURLSchemes: [kvitta]
         SWIFT_VERSION: "6.0"
         SWIFT_STRICT_CONCURRENCY: complete

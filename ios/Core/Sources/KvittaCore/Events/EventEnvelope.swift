@@ -96,6 +96,8 @@ extension EventEnvelope: Codable {
             payload = .groupUpdated(try container.decode(GroupUpdatedPayload.self, forKey: .payload))
         case EventType.memberAdded:
             payload = .memberAdded(try container.decode(MemberAddedPayload.self, forKey: .payload))
+        case EventType.memberUpdated:
+            payload = .memberUpdated(try container.decode(MemberUpdatedPayload.self, forKey: .payload))
         case EventType.memberRemoved:
             payload = .memberRemoved(try container.decode(EmptyPayload.self, forKey: .payload))
         case EventType.expenseCreated:
@@ -144,6 +146,7 @@ extension EventEnvelope: Codable {
         case .groupCreated(let value): try container.encode(value, forKey: .payload)
         case .groupUpdated(let value): try container.encode(value, forKey: .payload)
         case .memberAdded(let value): try container.encode(value, forKey: .payload)
+        case .memberUpdated(let value): try container.encode(value, forKey: .payload)
         case .memberRemoved(let value): try container.encode(value, forKey: .payload)
         case .expenseCreated(let value): try container.encode(value, forKey: .payload)
         case .expenseUpdated(let value): try container.encode(value, forKey: .payload)

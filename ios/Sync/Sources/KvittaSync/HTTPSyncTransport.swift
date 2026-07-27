@@ -54,7 +54,7 @@ public struct HTTPSyncTransport: SyncTransport {
     private static let buildHeader = "X-Kvitta-Build"
 
     public func groups(as userId: UserID) async throws -> [GroupID] {
-        let body = try await perform(makeRequest(path: "api/v1/groups"))
+        let body = try await performAuthorised(makeAuthorisableRequest(path: "api/v1/groups"))
 
         do {
             return try JSONDecoder().decode(GroupListBody.self, from: body).groupIds
@@ -68,12 +68,12 @@ public struct HTTPSyncTransport: SyncTransport {
         events: [EventEnvelope],
         as userId: UserID
     ) async throws -> PushResult {
-        var request = makeRequest(path: eventsPath(groupId))
+        var request = makeAuthorisableRequest(path: eventsPath(groupId))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try EventCoding.encode(events)
 
-        let body = try await perform(request)
+        let body = try await performAuthorised(request)
 
         do {
             let decoded = try JSONDecoder().decode(PushResponseBody.self, from: body)
@@ -101,7 +101,7 @@ public struct HTTPSyncTransport: SyncTransport {
             URLQueryItem(name: "limit", value: String(limit))
         ]
 
-        let body = try await perform(makeRequest(path: eventsPath(groupId), query: query))
+        let body = try await performAuthorised(makeAuthorisableRequest(path: eventsPath(groupId), query: query))
 
         do {
             let decoded = try JSONDecoder().decode(PullResponseBody.self, from: body)
@@ -122,7 +122,7 @@ public struct HTTPSyncTransport: SyncTransport {
     /// Authorization is stamped in `perform` instead, which is what lets a 401 be retried with a
     /// fresh token rather than replayed with the stale one. It also means there is exactly one
     /// place the header is set — it used to be two, and two places to remember is one too many.
-    private func makeRequest(path: String, query: [URLQueryItem] = []) -> URLRequest {
+    func makeAuthorisableRequest(path: String, query: [URLQueryItem] = []) -> URLRequest {
         var url = configuration.baseURL.appending(path: path)
         if !query.isEmpty {
             url = url.appending(queryItems: query)
@@ -137,7 +137,7 @@ public struct HTTPSyncTransport: SyncTransport {
     ///
     /// Once, not in a loop: if the second attempt is also refused then the token we just obtained
     /// is being rejected, and trying harder would only spin.
-    private func perform(_ request: URLRequest) async throws -> Data {
+    func performAuthorised(_ request: URLRequest) async throws -> Data {
         guard configuration.isTrustworthy else {
             throw SyncError.malformedResponse(
                 "Refusing to send credentials to \(configuration.baseURL.absoluteString) over plaintext."

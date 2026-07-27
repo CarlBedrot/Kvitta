@@ -13,14 +13,16 @@ namespace Kvitta.Api.Validation;
 /// spot, which meant any caller could invent accounts and claim other people were members of groups
 /// they had never heard of.
 ///
-/// Linking someone *else* is what invites are for (§7), and that is decided server-side in M4b
-/// against a token the invitee actually holds — never by a client asserting it.
+/// The same rule covers <c>MemberUpdated</c>, which is how a placeholder becomes a real account
+/// when someone accepts an invite. Accepting is decided server-side against a token the invitee
+/// actually holds — the event it writes links them to themselves, so it satisfies this rule rather
+/// than needing an exception to it.
 /// </remarks>
 public static class MemberLinkValidator
 {
     public static ValidationResult Validate(EventEnvelope envelope, Guid callerId)
     {
-        if (envelope.Type != EventTypes.MemberAdded)
+        if (envelope.Type is not (EventTypes.MemberAdded or EventTypes.MemberUpdated))
         {
             return ValidationResult.Valid;
         }

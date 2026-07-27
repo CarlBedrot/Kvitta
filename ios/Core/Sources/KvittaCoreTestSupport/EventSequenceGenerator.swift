@@ -122,7 +122,23 @@ public enum EventSequenceGenerator {
                 let memberId = rng.pick(memberIds)
                 append(eventId: eventId, entityId: memberId.rawValue, payload: .memberRemoved(EmptyPayload()))
 
-            case 94...97:
+            case 94...95:
+                // Someone accepts an invite and a placeholder becomes an account (§5). Attaching
+                // an identity to a member must not move a single öre — that indirection is the
+                // whole reason expenses reference members and never users.
+                let memberId = rng.pick(memberIds)
+                append(
+                    eventId: eventId,
+                    entityId: memberId.rawValue,
+                    payload: .memberUpdated(
+                        MemberUpdatedPayload(
+                            displayName: rng.nextInt(in: 1...2) == 1 ? "Renamed" : nil,
+                            linkedUserId: UserID(rawValue: rng.nextUUID())
+                        )
+                    )
+                )
+
+            case 96...97:
                 // An event from a build that does not exist yet. Must be skipped, not fatal.
                 append(
                     eventId: eventId,

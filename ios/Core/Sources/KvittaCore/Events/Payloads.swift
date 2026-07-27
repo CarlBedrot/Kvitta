@@ -48,6 +48,26 @@ public struct GroupUpdatedPayload: Hashable, Sendable, Codable {
 
 /// `linkedUserId` is nil for a placeholder member — someone who is in the group and owes money
 /// but has never installed the app (design doc §5).
+/// Changes something about a member who already exists.
+///
+/// This is what design doc §5 means by "if Jonas later joins via invite link, a MemberUpdated event
+/// sets linkedUserId". Expenses reference members, never users, so attaching an account to a
+/// placeholder makes their whole history theirs without rewriting a single expense — which is the
+/// entire reason the indirection exists.
+///
+/// Both fields mean *unchanged* when absent rather than *cleared*. There is deliberately no way to
+/// express unlinking: a member who leaves is `MemberRemoved`, and detaching an account from a
+/// member with history would strand money against nobody.
+public struct MemberUpdatedPayload: Hashable, Sendable, Codable {
+    public let displayName: String?
+    public let linkedUserId: UserID?
+
+    public init(displayName: String? = nil, linkedUserId: UserID? = nil) {
+        self.displayName = displayName
+        self.linkedUserId = linkedUserId
+    }
+}
+
 public struct MemberAddedPayload: Hashable, Sendable, Codable {
     public let displayName: String
     public let linkedUserId: UserID?

@@ -88,6 +88,22 @@ public enum Projector {
                 linkedUserId: payload.linkedUserId
             )
 
+        case .memberUpdated(let payload):
+            let memberId = event.memberId
+            guard group.members[memberId] != nil else {
+                skipReason = .unknownMember(memberId)
+                break
+            }
+            // Absent means unchanged. Note that nothing about money moves here: a member's
+            // identity and their balance are independent, which is what lets someone join a group
+            // months late and inherit a history that already adds up.
+            if let displayName = payload.displayName {
+                group.members[memberId]?.displayName = displayName
+            }
+            if let linkedUserId = payload.linkedUserId {
+                group.members[memberId]?.linkedUserId = linkedUserId
+            }
+
         case .memberRemoved:
             let memberId = event.memberId
             guard group.members[memberId] != nil else {

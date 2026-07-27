@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Kvitta.Api.Auth;
 using Kvitta.Api.Data;
 using Kvitta.Api.Domain;
 using Kvitta.Api.Options;
@@ -50,7 +51,7 @@ public static class EventsEndpoints
             return upgrade;
         }
 
-        if (!TryReadUserId(http, out var userId))
+        if (!CallerId.TryRead(http, out var userId))
         {
             return Results.Problem(
                 title: "Not signed in",
@@ -88,7 +89,7 @@ public static class EventsEndpoints
             return upgrade;
         }
 
-        if (!TryReadUserId(http, out var userId))
+        if (!CallerId.TryRead(http, out var userId))
         {
             return Results.Problem(
                 title: "Not signed in",
@@ -180,7 +181,7 @@ public static class EventsEndpoints
             return upgrade;
         }
 
-        if (!TryReadUserId(http, out var userId))
+        if (!CallerId.TryRead(http, out var userId))
         {
             return Results.Problem(
                 title: "Not signed in",
@@ -240,25 +241,6 @@ public static class EventsEndpoints
         ["serverSeq"] = record.ServerSeq,
         ["payload"] = JsonNode.Parse(record.Payload)
     };
-
-    /// <summary>
-    /// The authenticated caller, from the access token this server signed.
-    /// </summary>
-    /// <remarks>
-    /// This used to read <c>X-Kvitta-User-Id</c> and believe it, which meant anyone who could set
-    /// a header was anyone they liked. The subject now comes from a token validated by the JWT
-    /// bearer handler.
-    ///
-    /// Reading <c>sub</c> literally only works because <c>MapInboundClaims</c> is off in
-    /// <c>Program.cs</c>; with the default on, the handler renames it to
-    /// <c>ClaimTypes.NameIdentifier</c> and this returns false for every authenticated request.
-    /// </remarks>
-    private static bool TryReadUserId(HttpContext http, out Guid userId)
-    {
-        userId = Guid.Empty;
-        var subject = http.User.FindFirst("sub")?.Value;
-        return subject is not null && Guid.TryParse(subject, out userId);
-    }
 
     /// <summary>Design doc §9's forced-update escape hatch.</summary>
     private static bool RequiresUpgrade(HttpContext http, SyncOptions sync, out IResult result)
