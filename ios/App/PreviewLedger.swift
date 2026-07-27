@@ -132,14 +132,14 @@ enum PreviewLedger {
     let ledger = PreviewLedger.populated()
     RootView(ledger: ledger, userId: PreviewLedger.userId, sync: PreviewLedger.sync(ledger),
              profile: UserProfile(defaults: .previewProfile), session: PreviewLedger.session(ledger),
-             invites: PreviewLedger.invites(ledger))
+             invites: PreviewLedger.invites(ledger), reminders: ReminderScheduler())
 }
 
 #Preview("Hem – tom") {
     let ledger = PreviewLedger.empty()
     RootView(ledger: ledger, userId: PreviewLedger.userId, sync: PreviewLedger.sync(ledger),
              profile: UserProfile(defaults: .previewProfile), session: PreviewLedger.session(ledger),
-             invites: PreviewLedger.invites(ledger))
+             invites: PreviewLedger.invites(ledger), reminders: ReminderScheduler())
 }
 
 #Preview("Ny utgift") {
