@@ -13,6 +13,7 @@ struct SettleUpSheet: View {
     let groupId: GroupID
     let transfer: SuggestedTransfer
     let payees: PayeeDirectory
+    let profile: UserProfile
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
@@ -53,7 +54,14 @@ struct SettleUpSheet: View {
                 Text(failure).font(.footnote).foregroundStyle(Theme.clay).padding(.bottom, 8)
             }
 
-            if let link = paymentLink {
+            if theyOweMe {
+                // Only SEK has a link worth sending. In any other currency the person paying
+                // arranges it themselves and "Markera som betald" below is the whole flow —
+                // offering MobilePay here would invite you to pay a debt owed *to* you.
+                if group?.currency == .sek {
+                    RequestPaymentButton(link: requestLink)
+                }
+            } else if let link = paymentLink {
                 Button { handOff(to: link) } label: {
                     Text(link.method == .swish ? "Öppna Swish" : "Öppna MobilePay")
                         .font(.headline)
@@ -151,11 +159,15 @@ struct SettleUpSheet: View {
         return group?.members[memberId]?.displayName ?? "?"
     }
 
-    /// The payment-app link for this transfer, if the currency has one and we know a number.
+    /// The money is coming to you, so there is nothing here for you to pay.
     ///
-    /// The payee's phone number is not in the data model yet, so this is nil for now and the
-    /// Swish button does not appear — the cash flow is unchanged. Wiring a number onto a member
-    /// is a one-field change to MemberUpdated, which M4b just made possible.
+    /// Opening Swish would be wrong twice: it would have you send money you are owed, and it would
+    /// need the other person's number when the one that matters is yours.
+    private var theyOweMe: Bool {
+        transfer.to == group?.me(for: userId)?.id
+    }
+
+    /// The payment-app link for this transfer, if the currency has one and we know a number.
     private var paymentLink: PaymentLink? {
         link(payee: payees.number(for: transfer.to))
     }
@@ -165,9 +177,23 @@ struct SettleUpSheet: View {
         return PaymentLinkBuilder.preferred(
             for: Money(amountMinor: transfer.amountMinor, currency: group.currency),
             payee: payee,
-            message: group.name,
-            callback: URL(string: "kvitta://payment-return")
+            message: group.name
         )
+    }
+
+    /// The link you send someone who owes you: your number, their amount, already filled in.
+    ///
+    /// This is how your Swish number reaches another person — one message, that you chose to send,
+    /// about one debt. It is deliberately not an event: an event is immutable, so a phone number
+    /// in a group log would sit on every member's device forever with no way to withdraw it
+    /// (CLAUDE.md). `nil` until you have set a number in Jag, and the button says so.
+    private var requestLink: URL? {
+        guard let group, let number = profile.swishNumberForPayment else { return nil }
+        return PaymentLinkBuilder.swish(
+            payee: number,
+            amount: Money(amountMinor: transfer.amountMinor, currency: group.currency),
+            message: group.name
+        )?.url
     }
 
     /// SEK with nobody's number yet: offer to ask for it rather than hiding the button.
@@ -184,6 +210,39 @@ struct SettleUpSheet: View {
             failure = link.method == .swish
                 ? String(localized: "Swish verkar inte finnas på den här telefonen.")
                 : String(localized: "MobilePay verkar inte finnas på den här telefonen.")
+        }
+    }
+
+    /// What you get instead of "Öppna Swish" when the money is owed to you.
+    ///
+    /// A share sheet rather than a button that does something: only the other person can move the
+    /// money, so the most this screen can do is hand you the message to send. "Markera som betald"
+    /// stays underneath, for when they have paid you by some other route entirely.
+    private struct RequestPaymentButton: View {
+        let link: URL?
+
+        var body: some View {
+            if let link {
+                ShareLink(item: link) {
+                    Text("Skicka betallänk")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                }
+                .glassEffect(.regular.tint(Color(hex: 0xEE4A9B)).interactive(), in: .rect(cornerRadius: 24))
+                .padding(.horizontal, 20)
+                .padding(.bottom, 10)
+            } else {
+                // Said rather than hidden: a missing button looks like a missing feature, and the
+                // fix is one field away under Jag.
+                Text("Lägg till ditt Swish-nummer under Jag för att kunna skicka en betallänk.")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+                    .padding(.bottom, 10)
+            }
         }
     }
 

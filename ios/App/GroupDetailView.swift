@@ -14,6 +14,7 @@ struct GroupDetailView: View {
     let groupId: GroupID
     var payees = PayeeDirectory()
     let invites: InviteModel
+    let profile: UserProfile
 
     @State private var settlingTransfer: TransferPresentation?
     @State private var auditingMember: MemberID?
@@ -21,6 +22,10 @@ struct GroupDetailView: View {
     @State private var showingDeleted = false
     @State private var restoreFailure: String?
     @State private var showingMembers = false
+    /// Adding an expense from inside the group it belongs to. `RootView` has to guess a group from
+    /// recent activity; here the group is the screen you are standing on, so there is nothing to
+    /// guess and no reason to make you go out to the list to come straight back.
+    @State private var expenseModel: NewExpenseModel?
 
     /// The live group out of the projection. `nil` only if the group vanished mid-navigation,
     /// which a rebuild from a bad log could theoretically produce — show nothing rather than crash.
@@ -37,6 +42,7 @@ struct GroupDetailView: View {
 
     private func content(for group: GroupState) -> some View {
         let meId = group.me(for: userId)?.id
+        let canSplit = group.activeMembers.count >= 2
         return ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 // The trust rule (product principles): every balance on screen opens the exact
@@ -47,6 +53,10 @@ struct GroupDetailView: View {
                     GroupBalanceCard(group: group, userId: userId)
                 }
                 .buttonStyle(.plain)
+
+                if !canSplit {
+                    SoloGroupCard { showingMembers = true }
+                }
 
                 TransfersCard(
                     group: group,
@@ -67,6 +77,15 @@ struct GroupDetailView: View {
             .padding(.top, 8)
         }
         .background(AmbientBackground())
+        .overlay(alignment: .bottomTrailing) {
+            // Hidden until there is somebody to split with, because an expense in a group of one
+            // is not an expense. The card above says what to do instead.
+            if canSplit {
+                FAB { expenseModel = NewExpenseModel(ledger: ledger, userId: userId, groupId: groupId) }
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 80)
+            }
+        }
         .navigationTitle(group.name)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -83,7 +102,7 @@ struct GroupDetailView: View {
         .navigationBarTitleDisplayMode(.large)
         .sheet(item: $settlingTransfer) { presentation in
             SettleUpSheet(ledger: ledger, userId: userId, groupId: groupId,
-                          transfer: presentation.transfer, payees: payees)
+                          transfer: presentation.transfer, payees: payees, profile: profile)
                 .presentationDetents([.medium])
         }
         .sheet(item: $auditingMember) { memberId in
@@ -92,6 +111,10 @@ struct GroupDetailView: View {
         }
         .sheet(item: $viewingExpense) { expenseId in
             ExpenseDetailSheet(ledger: ledger, userId: userId, groupId: groupId, expenseId: expenseId)
+                .presentationDragIndicator(.visible)
+        }
+        .sheet(item: $expenseModel) { model in
+            NewExpenseSheet(model: model)
                 .presentationDragIndicator(.visible)
         }
     }
@@ -143,6 +166,39 @@ private struct GroupBalanceCard: View {
     /// The largest balance magnitude in the group, so every member's bar reads on one scale.
     private var scale: Int64 {
         group.balances().byMember.values.map { abs($0) }.max() ?? 0
+    }
+}
+
+// MARK: - A group of one
+
+/// What a brand-new group shows instead of an expense button.
+///
+/// A group is created with only you in it now, so this is the state every group passes through.
+/// It points at one place — Medlemmar — because that screen already holds both ways forward: the
+/// invite link, and adding somebody by name for the friend who will never install anything. Only
+/// one of those works without an account and a reachable server, which is exactly why neither is
+/// presented as the way.
+private struct SoloGroupCard: View {
+    let onOpenMembers: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Bara du i gruppen än")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(Theme.ink)
+            Text("Bjud in de andra med en länk, eller lägg till dem som namn om de inte tänker skaffa appen.")
+                .font(.subheadline)
+                .foregroundStyle(Theme.secondary)
+            Button(action: onOpenMembers) {
+                Label("Lägg till eller bjud in", systemImage: "person.badge.plus")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.espresso)
+            }
+            .buttonStyle(.glass)
+            .padding(.top, 2)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardSurface()
     }
 }
 

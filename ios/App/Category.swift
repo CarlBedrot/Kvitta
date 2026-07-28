@@ -19,6 +19,7 @@ enum Categories {
         Category(id: "groceries", emoji: "🛒", name: String(localized: "Mat")),
         Category(id: "alkohol", emoji: "🍷", name: String(localized: "Alkohol")),
         Category(id: "restaurang", emoji: "🍽️", name: String(localized: "Restaurang")),
+        Category(id: "fika", emoji: "☕️", name: String(localized: "Fika")),
         Category(id: "brunch", emoji: "🥞", name: String(localized: "Brunch")),
         Category(id: "taxi", emoji: "🚕", name: String(localized: "Taxi")),
         Category(id: "resa", emoji: "🏖️", name: String(localized: "Resa")),
@@ -39,6 +40,11 @@ enum Categories {
 
 /// A description chip on the add sheet: tapping it fills the description and picks the category.
 /// v1 offers a small fixed set; a later round derives these from the user's own history.
+///
+/// The first set was three shop names — ICA, Systembolaget, Taxi — which only helped on the days
+/// you happened to be in one of those. These are the *kinds* of thing a group splits, so a chip is
+/// usually right and the description can be sharpened afterwards. ICA survives because it really
+/// is the common case for groceries in Sweden.
 struct DescriptionSuggestion: Identifiable {
     var id: String { text }
     let text: String
@@ -47,8 +53,12 @@ struct DescriptionSuggestion: Identifiable {
     var emoji: String { Categories.emoji(for: categoryId) }
 
     static let starters: [DescriptionSuggestion] = [
+        DescriptionSuggestion(text: String(localized: "Middag"), categoryId: "restaurang"),
         DescriptionSuggestion(text: "ICA", categoryId: "groceries"),
-        DescriptionSuggestion(text: "Systembolaget", categoryId: "alkohol"),
-        DescriptionSuggestion(text: "Taxi", categoryId: "taxi"),
+        DescriptionSuggestion(text: String(localized: "Drinkar"), categoryId: "alkohol"),
+        DescriptionSuggestion(text: String(localized: "Fika"), categoryId: "fika"),
+        DescriptionSuggestion(text: String(localized: "Taxi"), categoryId: "taxi"),
+        DescriptionSuggestion(text: String(localized: "Boende"), categoryId: "boende"),
+        DescriptionSuggestion(text: String(localized: "Nöje"), categoryId: "nöje"),
     ]
 }

@@ -22,9 +22,11 @@ final class PayeeDirectory {
         defaults.string(forKey: key(memberId))
     }
 
+    /// Stored as typed, so it still reads like a phone number later — but only once Swish would
+    /// accept it. Remembering "12" would leave the button quietly missing with nothing to explain
+    /// why.
     func remember(_ number: String, for memberId: MemberID) {
-        let digits = number.filter(\.isNumber)
-        guard !digits.isEmpty else { return }
+        guard SwishNumber.normalised(number) != nil else { return }
         defaults.set(number, forKey: key(memberId))
     }
 

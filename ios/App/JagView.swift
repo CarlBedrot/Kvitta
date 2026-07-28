@@ -50,6 +50,7 @@ struct JagView: View {
 
     // MARK: - Profile
 
+    @ViewBuilder
     private var profileSection: some View {
         Section {
             HStack(spacing: 16) {
@@ -83,6 +84,36 @@ struct JagView: View {
                     photoItem = nil
                 }
             }
+        }
+
+        swishNumberSection
+    }
+
+    /// The number people Swish you on.
+    ///
+    /// It stays on this phone and is never written to a group log — an event is immutable, so a
+    /// phone number in one would reach every member forever with no way to withdraw it
+    /// (CLAUDE.md). What crosses to the other person is a link you send them, from the settle-up
+    /// screen, with the amount already in it.
+    @ViewBuilder
+    private var swishNumberSection: some View {
+        Section {
+            HStack {
+                Text("Swish-nummer")
+                Spacer()
+                TextField("07XX XXX XX XX", text: $profile.swishNumber)
+                    .keyboardType(.phonePad)
+                    .multilineTextAlignment(.trailing)
+                    .foregroundStyle(Theme.ink)
+            }
+
+            if !profile.swishNumber.isEmpty && profile.swishNumberForPayment == nil {
+                Text("Det där ser inte ut som ett nummer Swish känner igen.")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.clay)
+            }
+        } footer: {
+            Text("Sparas bara på den här telefonen. Används när du skickar en betalningslänk till någon som är skyldig dig pengar.")
         }
     }
 
@@ -277,6 +308,11 @@ struct JagView: View {
             Button("Lägg till testdata", systemImage: "plus") {
                 perform { try SeedData.insert(into: ledger) }
             }
+            NavigationLink {
+                SwishFormatTester(number: profile.swishNumber)
+            } label: {
+                Label("Testa Swish-format", systemImage: "link")
+            }
         }
     }
     #endif
@@ -303,6 +339,92 @@ struct JagView: View {
         }
     }
 }
+
+#if DEBUG
+/// Every Swish URL shape we know of, against one krona, so the phone can settle which one works.
+///
+/// The `swish://payment?data=` shape is undocumented and a real phone answered *"länken som
+/// användes för att öppna appen har ett felaktigt format"*. The universal link is what Swish's own
+/// site hands out. Neither can be judged from here: the simulator has no Swish app, so
+/// `canOpenURL` is always false and `openURL` always fails there.
+///
+/// So this exists to make the device loop cheap. Without it, every guess costs a build, a deploy
+/// to the phone and a message back. With it, one session tries all of them and the answer is which
+/// row opened Swish with 1,00 kr in it. Debug only — it is a diagnostic, not a feature.
+private struct SwishFormatTester: View {
+    @State var number: String
+    @Environment(\.openURL) private var openURL
+    @State private var lastResult: String?
+
+    /// One krona, so an accidental tap-through in Swish is a rounding error and not a problem.
+    private var amount: Money { Money(amountMinor: 100, currency: .sek) }
+    private let message = "Kvitta test"
+
+    private var candidates: [(name: String, url: URL)] {
+        var found: [(String, URL)] = []
+        if let link = PaymentLinkBuilder.swish(payee: number, amount: amount, message: message) {
+            found.append(("Universell länk (app.swish.nu)", link.url))
+        }
+        if let link = PaymentLinkBuilder.swishAppSwitch(
+            payee: number, amount: amount, message: message,
+            callback: URL(string: "kvitta://payment-return")
+        ) {
+            found.append(("swish://payment?data= med callback", link.url))
+        }
+        if let link = PaymentLinkBuilder.swishAppSwitch(
+            payee: number, amount: amount, message: message, callback: nil
+        ) {
+            found.append(("swish://payment?data= utan callback", link.url))
+        }
+        if let bare = URL(string: "swish://") {
+            found.append(("Bara swish:// (öppnar appen tom)", bare))
+        }
+        return found
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                TextField("07XX XXX XX XX", text: $number)
+                    .keyboardType(.phonePad)
+                LabeledContent("Normaliserat", value: SwishNumber.normalised(number) ?? "—")
+            } header: {
+                Text("Nummer")
+            } footer: {
+                Text("Skickar 1,00 kr. Titta på skärmen i Swish och avbryt — genomför inte betalningen.")
+            }
+
+            ForEach(candidates, id: \.name) { candidate in
+                Section {
+                    Button("Öppna") {
+                        openURL(candidate.url) { opened in
+                            lastResult = opened
+                                ? "Öppnade: \(candidate.name)"
+                                : "Ingen app tog emot: \(candidate.name)"
+                        }
+                    }
+                    Text(candidate.url.absoluteString)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(Theme.secondary)
+                        .textSelection(.enabled)
+                } header: {
+                    Text(candidate.name)
+                }
+            }
+
+            if let lastResult {
+                Section {
+                    Text(lastResult).font(.footnote).foregroundStyle(Theme.secondary)
+                }
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .background(AmbientBackground())
+        .navigationTitle("Testa Swish-format")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+#endif
 
 /// The events the server refused, and why — reachable from the backup section rather than
 /// dumped on the front of the screen.

@@ -152,6 +152,16 @@
         }
       }
     },
+    "Bara du i gruppen än" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only you in this group so far"
+          }
+        }
+      }
+    },
     "Belopp %@ %@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -181,6 +191,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Paid by"
+          }
+        }
+      }
+    },
+    "Bjud in" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invite"
+          }
+        }
+      }
+    },
+    "Bjud in de andra med en länk, eller lägg till dem som namn om de inte tänker skaffa appen." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invite the others with a link, or add them by name if they're never going to get the app."
           }
         }
       }
@@ -315,6 +345,26 @@
         }
       }
     },
+    "Den som öppnar länken kan ta över en av platserna ovan och ser då hela historiken. Länken går ut efter två veckor." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Whoever opens the link can take one of the places above, and then sees the whole history. The link expires after two weeks."
+          }
+        }
+      }
+    },
+    "Det där ser inte ut som ett nummer Swish känner igen." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That doesn't look like a number Swish would recognise."
+          }
+        }
+      }
+    },
     "Diagnostik" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -368,12 +418,42 @@
         }
       }
     },
+    "Drinkar" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drinks"
+          }
+        }
+      }
+    },
     "Du" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "You"
+          }
+        }
+      }
+    },
+    "Du är ensam i gruppen till att börja med. Dela inbjudningslänken så går de andra med själva — då väljer de sina egna namn." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're on your own in the group to begin with. Share the invite link and the others join themselves — then they pick their own names."
+          }
+        }
+      }
+    },
+    "Du är med i gruppen." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're in the group."
           }
         }
       }
@@ -410,6 +490,16 @@
         }
       }
     },
+    "Du kan lägga till någon som inte har appen. Utgifter fungerar likadant." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can add someone who doesn't have the app. Expenses work exactly the same."
+          }
+        }
+      }
+    },
     "du ska få" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -442,6 +532,26 @@
         }
       }
     },
+    "En borttagen medlem behåller sin historik — utgifter de var med på ändras inte." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A removed member keeps their history — expenses they were part of don't change."
+          }
+        }
+      }
+    },
+    "En påminnelse i veckan, bara när du är skyldig någon pengar. Aldrig om någon är skyldig dig." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One reminder a week, only when you owe someone money. Never when someone owes you."
+          }
+        }
+      }
+    },
     "Exakt" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -453,6 +563,16 @@
         }
       }
     },
+    "Fika" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coffee"
+          }
+        }
+      }
+    },
     "Fördelning" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -460,6 +580,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Split"
+          }
+        }
+      }
+    },
+    "Gå med i grupp" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join group"
           }
         }
       }
@@ -507,6 +637,26 @@
         }
       }
     },
+    "Har appen" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Has the app"
+          }
+        }
+      }
+    },
+    "Inbjudan" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invitation"
+          }
+        }
+      }
+    },
     "Inga grupper än" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -535,6 +685,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No activity yet"
+          }
+        }
+      }
+    },
+    "Ingen app än" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No app yet"
+          }
+        }
+      }
+    },
+    "Inloggad" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signed in"
           }
         }
       }
@@ -583,6 +753,16 @@
         }
       }
     },
+    "Konto" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account"
+          }
+        }
+      }
+    },
     "Kunde inte öppna databasen" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -601,6 +781,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't save"
+          }
+        }
+      }
+    },
+    "Kunde inte sparas hos servern" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't be saved to the server"
           }
         }
       }
@@ -643,6 +833,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mode"
+          }
+        }
+      }
+    },
+    "Lägg till ditt Swish-nummer under Jag för att kunna skicka en betallänk." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add your Swish number under Me to be able to send a payment link."
+          }
+        }
+      }
+    },
+    "Lägg till eller bjud in" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add or invite"
           }
         }
       }
@@ -691,6 +901,16 @@
         }
       }
     },
+    "Logga in" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in"
+          }
+        }
+      }
+    },
     "löpande: %@" : {
       "localizations" : {
         "en" : {
@@ -729,6 +949,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Members"
+          }
+        }
+      }
+    },
+    "Middag" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dinner"
           }
         }
       }
@@ -777,6 +1007,16 @@
         }
       }
     },
+    "Notiser är avstängda för Kvitta i Inställningar." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications are turned off for Kvitta in Settings."
+          }
+        }
+      }
+    },
     "Ny grupp" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -806,6 +1046,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unread rows"
+          }
+        }
+      }
+    },
+    "Öppna Swish" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Swish"
           }
         }
       }
@@ -912,6 +1162,16 @@
         }
       }
     },
+    "Säkerhetskopiering" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup"
+          }
+        }
+      }
+    },
     "Skapa" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -949,12 +1209,42 @@
         }
       }
     },
+    "Skicka betallänk" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send payment link"
+          }
+        }
+      }
+    },
     "Spara" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Save"
+          }
+        }
+      }
+    },
+    "Sparas bara på den här telefonen, inte i gruppen." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved on this phone only, not in the group."
+          }
+        }
+      }
+    },
+    "Sparas bara på den här telefonen. Används när du skickar en betalningslänk till någon som är skyldig dig pengar." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved on this phone only. Used when you send a payment link to someone who owes you money."
           }
         }
       }
@@ -966,6 +1256,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sport"
+          }
+        }
+      }
+    },
+    "Status" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status"
+          }
+        }
+      }
+    },
+    "Swish-nummer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swish number"
           }
         }
       }
@@ -1094,6 +1404,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Show deleted (%@)"
+          }
+        }
+      }
+    },
+    "Visas som du i nya grupper." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shown as you in new groups."
           }
         }
       }
