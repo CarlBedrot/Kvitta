@@ -17,6 +17,7 @@ struct GroupDetailView: View {
     let profile: UserProfile
     let images: GroupImageStore
     let rates: RateStore
+    let profiles: ProfileSyncer
     var displayModes = CurrencyDisplayStore()
 
     @State private var settlingTransfer: TransferPresentation?
@@ -36,6 +37,10 @@ struct GroupDetailView: View {
     var body: some View {
         if let group {
             content(for: group)
+                // Co-members' Swish numbers from their own profiles, into the same directory the
+                // settle-up sheet reads — so the number is usually just there, and the ask-for-it
+                // alert is the offline-or-unlinked fallback.
+                .task { await profiles.refreshPayees(in: groupId, into: payees) }
         } else {
             ContentUnavailableView("Gruppen finns inte längre", systemImage: "person.2.slash")
                 .background(AmbientBackground())

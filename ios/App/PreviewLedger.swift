@@ -40,6 +40,15 @@ enum PreviewLedger {
         )
     }
 
+    /// Signed out, so the syncer's guards make every call a no-op — Previews never reach a network.
+    static func profiles(_ ledger: LedgerStore) -> ProfileSyncer {
+        ProfileSyncer(
+            transport: HTTPSyncTransport(configuration: configuration, tokens: tokens()),
+            session: session(ledger),
+            defaults: .previewProfile
+        )
+    }
+
     static func session(_ ledger: LedgerStore) -> SessionModel {
         let provider = AuthTokenProvider(
             store: InMemoryTokenStore(),
@@ -133,7 +142,7 @@ enum PreviewLedger {
     RootView(ledger: ledger, userId: PreviewLedger.userId, sync: PreviewLedger.sync(ledger),
              profile: UserProfile(defaults: .previewProfile), session: PreviewLedger.session(ledger),
              invites: PreviewLedger.invites(ledger), reminders: ReminderScheduler(),
-             rates: RateStore(defaults: .previewProfile))
+             rates: RateStore(defaults: .previewProfile), profiles: PreviewLedger.profiles(ledger))
 }
 
 #Preview("Hem – tom") {
@@ -141,7 +150,7 @@ enum PreviewLedger {
     RootView(ledger: ledger, userId: PreviewLedger.userId, sync: PreviewLedger.sync(ledger),
              profile: UserProfile(defaults: .previewProfile), session: PreviewLedger.session(ledger),
              invites: PreviewLedger.invites(ledger), reminders: ReminderScheduler(),
-             rates: RateStore(defaults: .previewProfile))
+             rates: RateStore(defaults: .previewProfile), profiles: PreviewLedger.profiles(ledger))
 }
 
 #Preview("Ny utgift") {
@@ -161,7 +170,8 @@ enum PreviewLedger {
                         invites: PreviewLedger.invites(ledger),
                         profile: UserProfile(defaults: .previewProfile),
                         images: GroupImageStore(defaults: .previewProfile),
-                        rates: RateStore(defaults: .previewProfile))
+                        rates: RateStore(defaults: .previewProfile),
+                        profiles: PreviewLedger.profiles(ledger))
     }
 }
 

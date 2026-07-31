@@ -14,12 +14,26 @@ import KvittaCore
 final class PayeeDirectory {
     private let defaults: UserDefaults
 
+    /// Bumped when the server fetch lands, so a view already on screen re-reads. UserDefaults is
+    /// not observable by itself — same pattern as `GroupImageStore`.
+    private var generation = 0
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
     }
 
     func number(for memberId: MemberID) -> String? {
-        defaults.string(forKey: key(memberId))
+        _ = generation
+        return defaults.string(forKey: key(memberId))
+    }
+
+    /// Numbers fetched from members' own profiles. They win over anything typed here: the owner
+    /// of a number is a better source for it than someone else's memory of it.
+    func absorb(_ numbers: [MemberID: String]) {
+        for (memberId, number) in numbers {
+            remember(number, for: memberId)
+        }
+        generation += 1
     }
 
     /// Stored as typed, so it still reads like a phone number later — but only once Swish would

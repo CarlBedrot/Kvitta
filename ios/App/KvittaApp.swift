@@ -24,7 +24,7 @@ struct KvittaApp: App {
             // A switch over an enum returning concrete views, not AnyView (CLAUDE.md) — the
             // WindowGroup body is already a @ViewBuilder, so this costs nothing.
             switch startup {
-            case .ready(let ledger, let sync, let session, let invites):
+            case .ready(let ledger, let sync, let session, let invites, let profiles):
                 RootView(
                     ledger: ledger,
                     userId: session.userId ?? DeviceIdentity.userId,
@@ -33,7 +33,8 @@ struct KvittaApp: App {
                     session: session,
                     invites: invites,
                     reminders: reminders,
-                    rates: rates
+                    rates: rates,
+                    profiles: profiles
                 )
                 // The palette is light-only by design (`Theme`), and the plist says so too. This
                 // is the SwiftUI half of the same statement, so Previews and any future scene
@@ -61,6 +62,9 @@ struct KvittaApp: App {
                     // The day's ECB fixing, refreshed at most once per date. Failure is silence:
                     // conversion is a convenience on top of exact numbers, never a dependency.
                     Task { await rates.refresh() }
+                    // Your Swish number up to the server, if it changed. Same silence: the
+                    // type-it-yourself flow is the working fallback.
+                    Task { await profiles.push(profile) }
                 }
             case .failed(let message):
                 StartupFailureView(message: message).preferredColorScheme(.light)
@@ -70,7 +74,7 @@ struct KvittaApp: App {
 }
 
 enum Startup {
-    case ready(LedgerStore, SyncEngine, SessionModel, InviteModel)
+    case ready(LedgerStore, SyncEngine, SessionModel, InviteModel, ProfileSyncer)
     case failed(String)
 }
 
@@ -120,7 +124,9 @@ enum Bootstrap {
                 profile: profile
             )
 
-            return .ready(ledger, sync, session, invites)
+            let profiles = ProfileSyncer(transport: transport, session: session)
+
+            return .ready(ledger, sync, session, invites, profiles)
         } catch {
             // Deliberately not a silent fallback to an in-memory store: that would look like a
             // working app that quietly forgets everything, which is worse than saying so.
