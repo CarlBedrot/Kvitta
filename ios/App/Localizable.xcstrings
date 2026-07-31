@@ -1415,6 +1415,16 @@
         }
       }
     },
+    "Om gruppen" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About the group"
+          }
+        }
+      }
+    },
     "Procent" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1779,6 +1789,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Developer tools"
+          }
+        }
+      }
+    },
+    "Vad är det här för grupp?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What is this group for?"
           }
         }
       }

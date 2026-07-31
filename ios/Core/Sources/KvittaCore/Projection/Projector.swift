@@ -83,6 +83,10 @@ public enum Projector {
                 }
             }
             if let coverPhotoRef = payload.coverPhotoRef { group.coverPhotoRef = coverPhotoRef }
+            if let description = payload.description {
+                // Empty clears; anything else replaces. Stored trimmed-as-sent — the UI trims.
+                group.about = description.isEmpty ? nil : description
+            }
 
         case .memberAdded(let payload):
             let memberId = event.memberId

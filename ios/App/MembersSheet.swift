@@ -16,6 +16,7 @@ struct MembersSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var newName = ""
+    @State private var about = ""
     @State private var renaming: MemberID?
     @State private var renamedTo = ""
     @State private var failure: String?
@@ -25,6 +26,7 @@ struct MembersSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                aboutSection
                 membersSection
                 addSection
                 inviteSection
@@ -41,7 +43,10 @@ struct MembersSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Klar") { dismiss() }
+                    Button("Klar") {
+                        commitAbout()
+                        dismiss()
+                    }
                 }
             }
             .alert("Byt namn", isPresented: Binding(
@@ -52,6 +57,38 @@ struct MembersSheet: View {
                 Button("Spara") { commitRename() }
                 Button("Avbryt", role: .cancel) { renaming = nil }
             }
+        }
+    }
+
+    // MARK: - Om gruppen
+
+    /// The free-text blurb, saved when editing ends. An event like any other rename: absent
+    /// means unchanged, empty clears — the projector already knows the difference.
+    private var aboutSection: some View {
+        Section("Om gruppen") {
+            TextField(
+                "Vad är det här för grupp?",
+                text: $about,
+                axis: .vertical
+            )
+            .lineLimit(1...4)
+            .onSubmit { commitAbout() }
+        }
+        .onAppear { about = group?.about ?? "" }
+    }
+
+    private func commitAbout() {
+        let trimmed = about.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed != (group?.about ?? "") else { return }
+        do {
+            try ledger.record(
+                .groupUpdated(GroupUpdatedPayload(description: trimmed)),
+                entityId: groupId.rawValue,
+                in: groupId
+            )
+            failure = nil
+        } catch {
+            failure = String(describing: error)
         }
     }
 

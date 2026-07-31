@@ -38,11 +38,20 @@ public struct GroupUpdatedPayload: Hashable, Sendable, Codable {
     public let name: String?
     public let currency: CurrencyCode?
     public let coverPhotoRef: String?
+    /// A free-text "om gruppen" blurb. Absent means unchanged; an *empty string* clears it —
+    /// the same absent-vs-empty distinction every optional field in this payload relies on.
+    public let description: String?
 
-    public init(name: String? = nil, currency: CurrencyCode? = nil, coverPhotoRef: String? = nil) {
+    public init(
+        name: String? = nil,
+        currency: CurrencyCode? = nil,
+        coverPhotoRef: String? = nil,
+        description: String? = nil
+    ) {
         self.name = name
         self.currency = currency
         self.coverPhotoRef = coverPhotoRef
+        self.description = description
     }
 }
 

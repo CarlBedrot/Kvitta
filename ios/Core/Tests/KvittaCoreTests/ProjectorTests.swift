@@ -313,3 +313,44 @@ struct ProjectorTests {
         #expect(inOneGo == inChunks)
     }
 }
+
+/// The "om gruppen" blurb (overnight backlog item 3): absent means unchanged, empty clears.
+@Suite("Group description")
+struct GroupDescriptionTests {
+    @Test("Set, leave unchanged, and clear")
+    func lifecycle() throws {
+        var factory = EventFactory()
+        var events = [factory.groupCreated()]
+
+        events.append(factory.groupUpdated(description: "Sommarhuset i Falsterbo"))
+        var group = try #require(Projector.replay(events).groups[Fixtures.groupId])
+        #expect(group.about == "Sommarhuset i Falsterbo")
+
+        // A rename with no description leaves the blurb alone — absent means unchanged.
+        events.append(factory.groupUpdated(name: "Nytt namn"))
+        group = try #require(Projector.replay(events).groups[Fixtures.groupId])
+        #expect(group.about == "Sommarhuset i Falsterbo")
+        #expect(group.name == "Nytt namn")
+
+        // Empty string clears, and cleared renders as nothing rather than as "".
+        events.append(factory.groupUpdated(description: ""))
+        group = try #require(Projector.replay(events).groups[Fixtures.groupId])
+        #expect(group.about == nil)
+    }
+
+    @Test("An old payload without the field decodes and applies")
+    func tolerantDecoding() throws {
+        let json = """
+        {"eventId":"\(UUID().uuidString)","groupId":"\(Fixtures.groupId.rawValue.uuidString)",
+        "entityId":"\(Fixtures.groupId.rawValue.uuidString)","type":"GroupUpdated","schemaVersion":1,
+        "authorId":"\(Fixtures.authorId.rawValue.uuidString)","clientTimestamp":"2026-07-21T18:30:00Z",
+        "serverSeq":2,"payload":{"name":"Bara namn"}}
+        """
+        let decoded = try EventCoding.decode(Data(json.utf8))
+        guard case .groupUpdated(let payload) = decoded.payload else {
+            Issue.record("wrong payload type"); return
+        }
+        #expect(payload.description == nil)
+        #expect(payload.name == "Bara namn")
+    }
+}
