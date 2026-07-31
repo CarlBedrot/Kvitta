@@ -35,6 +35,7 @@ Full architecture: docs/expense-app-sync-design.md. Read it before touching sync
 - Backend tests: dotnet test (from backend/; Testcontainers spins up postgres:17, so a container runtime must be running. KVITTA_TEST_POSTGRES overrides with a connection string if not.)
 - Backend local deps: colima start, then docker compose up -d (from backend/)
 - Database backup: backend/ops/backup.sh (writes backend/backups/, gitignored — real user data)
+- Dev test data: python3 backend/ops/seed-dev.py --user <device-user-uuid> — fake friends with Swish numbers, three groups (one mixed SEK/DKK) via the real API. The uuid is `se.kvitta.localUserId` in the app's defaults (`xcrun simctl spawn booted defaults read se.kvitta.app`).
 - Verify a backup: backend/ops/verify-restore.sh. Restores into a scratch database and checks row counts plus gap-free serverSeq. Run it on a schedule: a backup nobody has restored is a hypothesis, and the failure mode is silent.
 
 ## Non-negotiable rules
