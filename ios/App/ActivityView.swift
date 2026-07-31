@@ -11,10 +11,16 @@ struct ActivityView: View {
     let ledger: LedgerStore
     let userId: UserID
 
+    /// What kind of rows to show. Per-visit state, deliberately not persisted: a filter you set
+    /// last month and forgot about would make the feed quietly lie.
+    @State private var kind: FeedKindFilter = .all
+    /// One group, or all of them. Also per-visit.
+    @State private var groupFilter: GroupID?
+
     var body: some View {
-        let days = DayGroup.build(from: ledger.state, userId: userId)
+        let days = DayGroup.build(from: ledger.state, userId: userId, kind: kind, group: groupFilter)
         Group {
-            if days.isEmpty {
+            if days.isEmpty && kind == .all && groupFilter == nil {
                 ContentUnavailableView {
                     Label("Ingen aktivitet än", systemImage: "arrow.triangle.2.circlepath")
                 } description: {
@@ -23,6 +29,16 @@ struct ActivityView: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
+                        filterChips
+                        if days.isEmpty {
+                            // Filtered to nothing: say so where the rows would be, and keep the
+                            // chips on screen so the way back out is obvious.
+                            Text("Inget matchar filtret.")
+                                .font(.subheadline)
+                                .foregroundStyle(Theme.secondary)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.top, 40)
+                        }
                         ForEach(days) { day in
                             SectionHeader(title: day.title)
                             VStack(spacing: 0) {
@@ -46,6 +62,81 @@ struct ActivityView: View {
         .background(AmbientBackground())
         .navigationTitle("Aktivitet")
     }
+
+    /// The mockup's filter row, now that there is something real to filter.
+    private var filterChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(FeedKindFilter.allCases, id: \.self) { candidate in
+                    FilterChip(title: candidate.title, isOn: kind == candidate) {
+                        kind = candidate
+                    }
+                }
+
+                // One chip that is a menu: groups are an open set, kinds are not.
+                Menu {
+                    Picker("Grupp", selection: $groupFilter) {
+                        Text("Alla grupper").tag(GroupID?.none)
+                        ForEach(ledger.state.groupsByLastActivity) { group in
+                            Text(GroupBadge.title(of: group.name)).tag(GroupID?.some(group.id))
+                        }
+                    }
+                } label: {
+                    FilterChipLabel(
+                        title: groupFilter.flatMap { ledger.state[$0].map { GroupBadge.title(of: $0.name) } }
+                            ?? String(localized: "Alla grupper"),
+                        isOn: groupFilter != nil,
+                        chevron: true
+                    )
+                }
+            }
+        }
+    }
+}
+
+enum FeedKindFilter: CaseIterable, Hashable {
+    case all, expenses, payments
+
+    var title: String {
+        switch self {
+        case .all: return String(localized: "Allt")
+        case .expenses: return String(localized: "Utgifter")
+        case .payments: return String(localized: "Betalningar")
+        }
+    }
+}
+
+private struct FilterChip: View {
+    let title: String
+    let isOn: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            FilterChipLabel(title: title, isOn: isOn, chevron: false)
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+}
+
+private struct FilterChipLabel: View {
+    let title: String
+    let isOn: Bool
+    let chevron: Bool
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(title)
+            if chevron {
+                Image(systemName: "chevron.down").font(.caption2.weight(.semibold))
+            }
+        }
+        .font(.subheadline.weight(.medium))
+        .foregroundStyle(isOn ? Color.white : Theme.ink)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(isOn ? Theme.accent : Theme.card, in: .rect(cornerRadius: 18))
+    }
 }
 
 /// One feed line, precomputed so the row view just renders strings.
@@ -57,6 +148,7 @@ private struct FeedEntry: Identifiable {
     }
 
     let id: UUID
+    let groupId: GroupID
     let timestamp: Timestamp
     let kind: Kind
     let emoji: String?
@@ -87,6 +179,7 @@ private struct FeedEntry: Identifiable {
                 let payerName = expense.payload.payers.first.map { displayName($0.memberId) } ?? "?"
                 entries.append(FeedEntry(
                     id: expense.id.rawValue,
+                    groupId: group.id,
                     timestamp: expense.lastModifiedAt,
                     kind: .expense,
                     emoji: Categories.emoji(for: expense.categoryId),
@@ -110,6 +203,7 @@ private struct FeedEntry: Identifiable {
                 }
                 entries.append(FeedEntry(
                     id: payment.id.rawValue,
+                    groupId: group.id,
                     timestamp: payment.recordedAt,
                     kind: .payment(incoming: incoming),
                     emoji: nil,
@@ -139,8 +233,21 @@ private struct DayGroup: Identifiable {
     let title: String
     let entries: [FeedEntry]
 
-    static func build(from state: LedgerState, userId: UserID) -> [DayGroup] {
-        let entries = FeedEntry.build(from: state, userId: userId)
+    static func build(
+        from state: LedgerState,
+        userId: UserID,
+        kind: FeedKindFilter = .all,
+        group groupFilter: GroupID? = nil
+    ) -> [DayGroup] {
+        let entries = FeedEntry.build(from: state, userId: userId).filter { entry in
+            if let groupFilter, entry.groupId != groupFilter { return false }
+            switch (kind, entry.kind) {
+            case (.all, _): return true
+            case (.expenses, .expense): return true
+            case (.payments, .payment): return true
+            default: return false
+            }
+        }
         var order: [String] = []
         var byDay: [String: [FeedEntry]] = [:]
         let calendar = Calendar.current
