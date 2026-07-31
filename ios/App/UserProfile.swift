@@ -78,7 +78,7 @@ struct Avatar: View {
                     .scaledToFill()
             } else {
                 Text(initials)
-                    .font(.system(size: size * 0.38, weight: .semibold, design: .rounded))
+                    .font(.system(size: size * 0.38, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Avatar.colour(for: name))

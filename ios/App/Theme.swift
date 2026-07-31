@@ -1,72 +1,156 @@
 import SwiftUI
 
-/// The palette and surfaces from `docs/mockup.html` (the `:root` tokens), in one place so no
-/// view hardcodes a hex string. Warm cream, Anthropic-adjacent.
+/// The design system for the 2026 redesign: warm off-white behind pure-white floating cards,
+/// one burnt-orange accent, and colour otherwise reserved for the direction of money. The aim is
+/// a first-party feel — Apple Wallet, Reminders, Invites — so typography and whitespace do the
+/// work borders and decoration used to.
 ///
-/// Content is opaque and calm; glass lives only on the control layer (tab bar, FAB, Spara). These
-/// colours are the content layer — the cards, the ink, the sage/clay of the zero line.
+/// Token names kept from the first design where the *role* survived (`ink`, `secondary`, `card`),
+/// so the diff shows what actually changed: the values, and the retirement of glass.
 enum Theme {
-    static let cream = Color(hex: 0xF3EFE6)
-    static let card = Color(hex: 0xFFFDF7)
-    static let ink = Color(hex: 0x2A2620)
-    static let secondary = Color(hex: 0x8A8377)
-    /// You are owed. Positive.
-    static let sage = Color(hex: 0x4F7D58)
-    /// You owe. Warm, not alarm-red — owing a friend is not an error.
-    static let clay = Color(hex: 0xC25E3C)
-    /// The one pop of colour per screen: the FAB.
-    static let clayBright = Color(hex: 0xD97757)
-    static let espresso = Color(hex: 0x2E2A22)
-    static let hairline = Color(red: 70/255, green: 60/255, blue: 40/255, opacity: 0.12)
+    // MARK: Surfaces
+
+    /// The screen behind everything. Warm off-white — calm, never sterile.
+    static let bg = Color(hex: 0xF8F5EF)
+    /// Cards are pure white and *float*: elevation comes from `cardSurface`'s shadow, never from
+    /// an outline.
+    static let card = Color.white
+
+    // MARK: Text hierarchy
+
+    static let ink = Color(hex: 0x1F1D1A)
+    static let secondary = Color(hex: 0x6E6A63)
+    static let tertiary = Color(hex: 0xA5A099)
+
+    // MARK: The one accent
+
+    /// Burnt orange. The FAB, primary buttons, the selected tab — and nothing else, so the single
+    /// pop of colour keeps meaning "the main thing to do here".
+    static let accent = Color(hex: 0xE0643C)
+
+    // MARK: Money direction
+
+    /// You are owed. Green appears *only* on positive balances.
+    static let positive = Color(hex: 0x3E7D4E)
+    /// You owe. Distinct from the accent so a debt never looks like a button.
+    static let negative = Color(hex: 0xD9503F)
+    /// The soft green wash behind the "Alla är kvitt 🎉" celebration card.
+    static let positiveWash = Color(hex: 0xDDEDDC)
+
+    /// Hairline separator inside cards. Used for row dividers only — never around a card.
+    static let hairline = Color(hex: 0x1F1D1A).opacity(0.07)
 
     /// The colour an amount takes from its sign. Never the only carrier of meaning — every amount
     /// on screen also spells its direction in words.
     static func tint(forSign amountMinor: Int64) -> Color {
-        if amountMinor > 0 { return sage }
-        if amountMinor < 0 { return clay }
+        if amountMinor > 0 { return positive }
+        if amountMinor < 0 { return negative }
         return secondary
     }
+
+    // MARK: Legacy aliases
+
+    // Sheets not yet rebuilt this round still reference the old names. Same roles, new values,
+    // so the whole app shifts palette at once instead of screen by screen.
+    static let cream = bg
+    static let sage = positive
+    static let clay = negative
+    static let clayBright = accent
+    static let espresso = ink
 }
 
-/// The cream background with the three soft ambient washes from the mockup, so any glass placed on
-/// top has warm colour to refract.
+/// The flat warm background. The first design layered radial washes here for glass to refract;
+/// there is no glass any more, and the mockups are calmer for it.
 struct AmbientBackground: View {
     var body: some View {
-        Theme.cream
-            .overlay(alignment: .topLeading) {
-                wash(Color(hex: 0xF8E9DC)).offset(x: -60, y: -120)
-            }
-            .overlay(alignment: .topTrailing) {
-                wash(Color(hex: 0xEDF0E3)).offset(x: 60, y: 40)
-            }
-            .overlay(alignment: .bottom) {
-                wash(Color(hex: 0xF6EBD9)).offset(y: 160)
-            }
-            .ignoresSafeArea()
-    }
-
-    private func wash(_ colour: Color) -> some View {
-        RadialGradient(colors: [colour, colour.opacity(0)], center: .center, startRadius: 0, endRadius: 260)
-            .frame(width: 520, height: 520)
-            .blur(radius: 40)
+        Theme.bg.ignoresSafeArea()
     }
 }
 
-/// The warm-white card surface: radius 26, whisper shadow. The primary content container.
+/// The white floating card: radius 28, Apple-style soft elevation. The only content container.
 private struct CardSurface: ViewModifier {
     var padding: CGFloat
 
     func body(content: Content) -> some View {
         content
             .padding(padding)
-            .background(Theme.card, in: .rect(cornerRadius: 26))
-            .shadow(color: Color(red: 60/255, green: 45/255, blue: 25/255, opacity: 0.06), radius: 2, y: 1)
+            .background(Theme.card, in: .rect(cornerRadius: 28))
+            // Two shadows read as one: a tight contact shadow and a wide ambient one. Both very
+            // soft — harsh shadows are the fastest way to stop feeling first-party.
+            .shadow(color: .black.opacity(0.04), radius: 1, y: 1)
+            .shadow(color: .black.opacity(0.05), radius: 14, y: 6)
     }
 }
 
 extension View {
-    func cardSurface(padding: CGFloat = 18) -> some View {
+    /// Default inner padding 20 (the brief's "inside cards 20–24").
+    func cardSurface(padding: CGFloat = 20) -> some View {
         modifier(CardSurface(padding: padding))
+    }
+}
+
+/// The primary action: accent fill, white text, radius 22, gentle press scale.
+struct PrimaryButtonStyle: ButtonStyle {
+    var fill: Color = Theme.accent
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.body.weight(.semibold))
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(fill, in: .rect(cornerRadius: 22))
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(.spring(duration: 0.25), value: configuration.isPressed)
+    }
+}
+
+/// A card or row that should acknowledge the tap without shouting: slight scale, nothing else.
+struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .animation(.spring(duration: 0.25), value: configuration.isPressed)
+    }
+}
+
+/// The single progress bar under a balance: how much of the group (or of your groups) is settled.
+/// Replaces the old two-sided zero line on summary cards — one bar filling toward done reads
+/// instantly, and "done" is the state the app is always working toward.
+struct SettleProgressBar: View {
+    /// 0...1, already clamped by the caller's arithmetic (integer counts, never money).
+    let fraction: Double
+    var tint: Color = Theme.accent
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Theme.ink.opacity(0.06))
+                Capsule()
+                    .fill(tint)
+                    .frame(width: max(8, geo.size.width * fraction))
+            }
+        }
+        .frame(height: 6)
+        .animation(.spring(duration: 0.35), value: fraction)
+        .accessibilityHidden(true)
+    }
+}
+
+/// An SF Symbol in a tinted rounded square — the Apple Settings row glyph, reused for quick
+/// actions and list icons so the icon language is one system everywhere.
+struct IconBadge: View {
+    let systemImage: String
+    var tint: Color = Theme.accent
+    var size: CGFloat = 32
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(.system(size: size * 0.44, weight: .semibold))
+            .foregroundStyle(tint)
+            .frame(width: size, height: size)
+            .background(tint.opacity(0.12), in: .rect(cornerRadius: size * 0.3))
+            .accessibilityHidden(true)
     }
 }
 

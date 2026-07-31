@@ -76,6 +76,26 @@
         }
       }
     },
+    "%lld av %lld är kvitt" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld of %lld settled"
+          }
+        }
+      }
+    },
+    "%lld av %lld grupper är kvitt" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld of %lld groups settled"
+          }
+        }
+      }
+    },
     "%lld delar" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -83,6 +103,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld shares"
+          }
+        }
+      }
+    },
+    "%lld personer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld people"
           }
         }
       }
@@ -244,6 +274,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rebuild projections from the log"
+          }
+        }
+      }
+    },
+    "Dela en ny kostnad med gruppen" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Split a new cost with the group"
           }
         }
       }
@@ -490,12 +530,32 @@
         }
       }
     },
+    "Du har inga skulder och ingen ligger ute för dig." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You have no debts and nobody is waiting on you."
+          }
+        }
+      }
+    },
     "Du kan lägga till någon som inte har appen. Utgifter fungerar likadant." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "You can add someone who doesn't have the app. Expenses work exactly the same."
+          }
+        }
+      }
+    },
+    "Du ligger ute med" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're owed"
           }
         }
       }
@@ -637,12 +697,42 @@
         }
       }
     },
+    "Grupperna är inte kvitt än" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The groups aren't settled yet"
+          }
+        }
+      }
+    },
     "Har appen" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Has the app"
+          }
+        }
+      }
+    },
+    "Idag" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
+          }
+        }
+      }
+    },
+    "Igår" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yesterday"
           }
         }
       }
@@ -695,6 +785,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No app yet"
+          }
+        }
+      }
+    },
+    "Ingen i gruppen är skyldig någon något." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nobody in the group owes anyone anything."
           }
         }
       }
@@ -826,6 +926,16 @@
         }
       }
     },
+    "Kvitt" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settled"
+          }
+        }
+      }
+    },
     "Läge" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -833,6 +943,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mode"
+          }
+        }
+      }
+    },
+    "Lägg till" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add"
           }
         }
       }
@@ -886,6 +1006,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add test data"
+          }
+        }
+      }
+    },
+    "Lägg till utgift" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add expense"
           }
         }
       }
@@ -953,6 +1083,16 @@
         }
       }
     },
+    "Medlemmar och inbjudan" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Members and invitation"
+          }
+        }
+      }
+    },
     "Middag" : {
       "localizations" : {
         "en" : {
@@ -992,6 +1132,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You're settled"
+          }
+        }
+      }
+    },
+    "Ni är kvitt 🎉" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're all settled 🎉"
           }
         }
       }
@@ -1046,6 +1196,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unread rows"
+          }
+        }
+      }
+    },
+    "Om Kvitta" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About Kvitta"
           }
         }
       }
@@ -1219,6 +1379,16 @@
         }
       }
     },
+    "Snabbfunktioner" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick actions"
+          }
+        }
+      }
+    },
     "Spara" : {
       "localizations" : {
         "en" : {
@@ -1256,6 +1426,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sport"
+          }
+        }
+      }
+    },
+    "Stäng" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
+          }
+        }
+      }
+    },
+    "Starta en grupp och bjud in med en länk" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start a group and invite with a link"
           }
         }
       }
@@ -1393,6 +1583,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Who owes whom"
+          }
+        }
+      }
+    },
+    "Version" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version"
           }
         }
       }

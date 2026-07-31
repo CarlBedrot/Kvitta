@@ -32,6 +32,7 @@ struct JagView: View {
                 joinSection
                 remindersSection
                 backupSection
+                aboutSection
                 #if DEBUG
                 developerSection
                 #endif
@@ -53,15 +54,17 @@ struct JagView: View {
     @ViewBuilder
     private var profileSection: some View {
         Section {
+            // The large profile header, Apple-Settings style: the person first, everything else
+            // in grouped cards below.
             HStack(spacing: 16) {
                 PhotosPicker(selection: $photoItem, matching: .images) {
                     ZStack(alignment: .bottomTrailing) {
-                        Avatar(name: profile.nameOrDefault, photo: profile.avatarData, size: 64)
+                        Avatar(name: profile.nameOrDefault, photo: profile.avatarData, size: 72)
                         Image(systemName: "camera.fill")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(.white)
                             .padding(5)
-                            .background(Theme.clayBright, in: .circle)
+                            .background(Theme.accent, in: .circle)
                             .overlay(Circle().strokeBorder(Theme.card, lineWidth: 2))
                     }
                 }
@@ -69,14 +72,14 @@ struct JagView: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     TextField("Ditt namn", text: $profile.displayName)
-                        .font(.title3.weight(.semibold))
+                        .font(.title2.weight(.semibold))
                         .foregroundStyle(Theme.ink)
                     Text("Visas som du i nya grupper.")
                         .font(.caption)
                         .foregroundStyle(Theme.secondary)
                 }
             }
-            .padding(.vertical, 6)
+            .padding(.vertical, 8)
 
             if profile.avatarData != nil {
                 Button("Ta bort bild", role: .destructive) {
@@ -99,6 +102,7 @@ struct JagView: View {
     private var swishNumberSection: some View {
         Section {
             HStack {
+                SettingsIcon(systemImage: "creditcard.fill", fill: Color(hex: 0xEE4A9B))
                 Text("Swish-nummer")
                 Spacer()
                 TextField("07XX XXX XX XX", text: $profile.swishNumber)
@@ -129,9 +133,10 @@ struct JagView: View {
         Section {
             if session.isSignedIn {
                 HStack {
+                    SettingsIcon(systemImage: "person.crop.circle.fill", fill: Theme.positive)
                     Text("Inloggad")
                     Spacer()
-                    Image(systemName: "checkmark.seal.fill").foregroundStyle(Theme.sage)
+                    Image(systemName: "checkmark.seal.fill").foregroundStyle(Theme.positive)
                 }
 
                 Button("Logga ut", role: .destructive) {
@@ -142,7 +147,8 @@ struct JagView: View {
                     Task { await session.signIn(displayName: profile.displayName) }
                 } label: {
                     HStack {
-                        Text("Logga in")
+                        SettingsIcon(systemImage: "person.crop.circle.fill", fill: Theme.accent)
+                        Text("Logga in").foregroundStyle(Theme.ink)
                         Spacer()
                         if session.isWorking { ProgressView() }
                     }
@@ -172,9 +178,12 @@ struct JagView: View {
     @ViewBuilder
     private var joinSection: some View {
         Section {
-            TextField("Klistra in inbjudningskod", text: $inviteCode)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            HStack {
+                SettingsIcon(systemImage: "envelope.fill", fill: Theme.positive)
+                TextField("Klistra in inbjudningskod", text: $inviteCode)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+            }
 
             Button {
                 Task {
@@ -213,10 +222,13 @@ struct JagView: View {
     @ViewBuilder
     private var remindersSection: some View {
         Section {
-            Toggle("Påminn mig om skulder", isOn: Binding(
-                get: { reminders.isEnabled },
-                set: { on in Task { await reminders.setEnabled(on, ledger: ledger, userId: userId) } }
-            ))
+            HStack {
+                SettingsIcon(systemImage: "bell.badge.fill", fill: Theme.accent)
+                Toggle("Påminn mig om skulder", isOn: Binding(
+                    get: { reminders.isEnabled },
+                    set: { on in Task { await reminders.setEnabled(on, ledger: ledger, userId: userId) } }
+                ))
+            }
 
             if reminders.wasDenied {
                 Text("Notiser är avstängda för Kvitta i Inställningar.")
@@ -237,10 +249,14 @@ struct JagView: View {
     private var backupSection: some View {
         Section {
             HStack {
+                SettingsIcon(
+                    systemImage: "externaldrive.fill",
+                    fill: backupIsHealthy ? Color(hex: 0x8E8A82) : Theme.negative
+                )
                 Text("Status")
                 Spacer()
                 Text(backupStatus)
-                    .foregroundStyle(backupIsHealthy ? Theme.secondary : Theme.clay)
+                    .foregroundStyle(backupIsHealthy ? Theme.secondary : Theme.negative)
             }
 
             if !ledger.rejectedPushes.isEmpty {
@@ -279,6 +295,21 @@ struct JagView: View {
         case .syncing: return "Sparar…"
         case .offline: return "Väntar på anslutning"
         case .blocked(let message): return message
+        }
+    }
+
+    // MARK: - About
+
+    /// Version and build straight from the bundle — no hand-maintained copy to go stale.
+    private var aboutSection: some View {
+        Section("Om Kvitta") {
+            HStack {
+                SettingsIcon(systemImage: "info.circle.fill", fill: Color(hex: 0xA5A099))
+                LabeledContent(
+                    "Version",
+                    value: "\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?") (\(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"))"
+                )
+            }
         }
     }
 
@@ -337,6 +368,22 @@ struct JagView: View {
         } catch {
             failure = String(describing: error)
         }
+    }
+}
+
+/// The Apple-Settings row glyph: a white symbol on a solid rounded square. Every row in Jag leads
+/// with one, which is most of what makes the screen read as Settings rather than as a form.
+private struct SettingsIcon: View {
+    let systemImage: String
+    let fill: Color
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: 28, height: 28)
+            .background(fill, in: .rect(cornerRadius: 7))
+            .accessibilityHidden(true)
     }
 }
 

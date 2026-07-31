@@ -220,7 +220,7 @@ private struct MemberRowLabel: View {
             Text(name)
             if let shareMinor {
                 Text(MoneyFormat.string(shareMinor, currency))
-                    .font(.system(.footnote, design: .rounded))
+                    .font(.footnote)
                     .monospacedDigit()
                     .foregroundStyle(Theme.secondary)
             }
