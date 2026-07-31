@@ -161,14 +161,21 @@ private struct StatusCard: View {
             .contentTransition(.numericText())
 
             // The other currencies, exact, with explicit codes — "kr" alone cannot say which
-            // kronor once SEK and DKK share a screen.
+            // kronor once SEK and DKK share a screen. Each line carries its own direction
+            // word: the sentence above only speaks for the lead line, and a second bucket can
+            // point the other way (how-kvitta-works.md §10.1).
             ForEach(summary.totals.dropFirst(), id: \.currency) { total in
-                SignedAmountText(
-                    amountMinor: total.amountMinor,
-                    currency: total.currency,
-                    size: 22,
-                    explicit: true
-                )
+                HStack(spacing: 6) {
+                    Text(BalanceDirection(total.amountMinor).word)
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.secondary)
+                    SignedAmountText(
+                        amountMinor: total.amountMinor,
+                        currency: total.currency,
+                        size: 22,
+                        explicit: true
+                    )
+                }
             }
 
             SettleProgressBar(
@@ -253,18 +260,31 @@ private struct GroupCard: View {
                         explicit: net.currency != group.currency,
                         accessibilityPhrase: "\(GroupBadge.title(of: group.name)): \(direction.spokenWord) \(MoneyFormat.string(abs(net.amountMinor), net.currency, explicit: true))"
                     )
-                    // A second currency in play: one small exact line, not a hidden truth.
-                    ForEach(nets.dropFirst(), id: \.currency) { extra in
-                        SignedAmountText(
-                            amountMinor: extra.amountMinor,
-                            currency: extra.currency,
-                            size: 12,
-                            explicit: true
-                        )
-                    }
+                    // Money never wraps mid-amount; the group name is what gives way.
+                    .lineLimit(1)
+                    .fixedSize()
                     Text(direction.word)
                         .font(.caption2)
                         .foregroundStyle(Theme.secondary)
+                    // A second currency in play: one small exact line, not a hidden truth —
+                    // and each line carries its *own* direction word, because "+191,33 kr /
+                    // −200 DKK" under a single "du ska få" genuinely got misread as a
+                    // conversion (how-kvitta-works.md §10.1). Buckets can point opposite ways.
+                    ForEach(nets.dropFirst(), id: \.currency) { extra in
+                        HStack(spacing: 4) {
+                            Text(BalanceDirection(extra.amountMinor).word)
+                                .font(.caption2)
+                                .foregroundStyle(Theme.secondary)
+                            SignedAmountText(
+                                amountMinor: extra.amountMinor,
+                                currency: extra.currency,
+                                size: 12,
+                                explicit: true
+                            )
+                        }
+                        .lineLimit(1)
+                        .fixedSize()
+                    }
                 }
             }
 

@@ -276,11 +276,9 @@ backend, several flows also on a physical iPhone):
 Found or re-confirmed while writing this document:
 
 **UI findings**
-1. **The group card's direction word is ambiguous in mixed-currency groups** — the thing you
-   asked about. "+191,33 kr / −200 DKK / *you're owed*" attaches one direction phrase to two
-   opposite-pointing lines. The signs and colours carry the truth, but it should probably read
-   per line ("du får 191,33 kr · du är skyldig 200 DKK") or drop the phrase when buckets
-   disagree. *Small, worth fixing.*
+1. ~~**The group card's direction word is ambiguous in mixed-currency groups**~~ — *fixed*:
+   every non-primary bucket line now carries its own direction word ("du är skyldig −200 DKK"),
+   on the home status card and on group cards, and amounts never wrap mid-number.
 2. The floating + button covers the right edge of a group card mid-scroll. Inherent to a
    mockup-specified floating FAB; cosmetic.
 3. Swedish hyphenation can break seeded names oddly ("Köpenhamn-shelgen"). Cosmetic, locale-driven.
