@@ -1,7 +1,9 @@
 {
   "sourceLanguage" : "sv",
   "strings" : {
-    "%@" : {},
+    "%@" : {
+      "shouldTranslate" : false
+    },
     "%@ av %@ grupper är kvitt" : {
       "localizations" : {
         "sv" : {
@@ -71,6 +73,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ in %2$@ is waiting for you to confirm."
+          }
+        }
+      }
+    },
+    "%@ i %@, och i %d grupper till." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ in %2$@, and in %3$d more groups."
           }
         }
       }
@@ -257,6 +269,16 @@
         }
       }
     },
+    "Allt är sparat" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Everything is saved"
+          }
+        }
+      }
+    },
     "Andelar" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -299,6 +321,16 @@
         }
       }
     },
+    "Bara på den här telefonen" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only on this phone"
+          }
+        }
+      }
+    },
     "Belopp %@ %@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -306,6 +338,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Amount %@ %@"
+          }
+        }
+      }
+    },
+    "Beloppen gick inte ihop." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The amounts did not add up."
           }
         }
       }
@@ -509,12 +551,42 @@
         }
       }
     },
+    "Den här versionen av Kvitta är för gammal." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This version of Kvitta is too old."
+          }
+        }
+      }
+    },
+    "Den platsen är redan någon annans." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That spot is already someone else's."
+          }
+        }
+      }
+    },
     "Den som öppnar länken kan ta över en av platserna ovan och ser då hela historiken. Länken går ut efter två veckor." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Whoever opens the link can take one of the places above, and then sees the whole history. The link expires after two weeks."
+          }
+        }
+      }
+    },
+    "Det där ser inte ut som en inbjudningskod." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That does not look like an invite code."
           }
         }
       }
@@ -547,6 +619,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your balance"
+          }
+        }
+      }
+    },
+    "Dina utgifter finns alltid på telefonen. Kopian hos servern gör att de överlever om du byter telefon." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your expenses always live on this phone. The server copy means they survive a phone switch."
+          }
+        }
+      }
+    },
+    "Dina utgifter finns på den här telefonen. Säkerhetskopiering till servern är inte påslagen än." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your expenses live on this phone. Server backup is not switched on yet."
           }
         }
       }
@@ -656,6 +748,26 @@
         }
       }
     },
+    "Du är inte längre med i gruppen." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are no longer in the group."
+          }
+        }
+      }
+    },
+    "Du är inte med i den gruppen." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are not in that group."
+          }
+        }
+      }
+    },
     "Du är med i gruppen." : {
       "localizations" : {
         "en" : {
@@ -683,6 +795,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You owe money"
+          }
+        }
+      }
+    },
+    "Du är utloggad. Logga in igen." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are signed out. Sign in again."
           }
         }
       }
@@ -766,6 +888,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Export CSV"
+          }
+        }
+      }
+    },
+    "Fel valuta för gruppen." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wrong currency for the group."
           }
         }
       }
@@ -866,6 +998,16 @@
         }
       }
     },
+    "I kö för uppladdning" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Queued for upload"
+          }
+        }
+      }
+    },
     "Idag" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -894,6 +1036,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Invitation"
+          }
+        }
+      }
+    },
+    "Inbjudan finns inte." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The invite does not exist."
+          }
+        }
+      }
+    },
+    "Inbjudan har gått ut. Be om en ny." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The invite has expired. Ask for a new one."
           }
         }
       }
@@ -1043,6 +1205,26 @@
         }
       }
     },
+    "Kunde inte nå servern." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not reach the server."
+          }
+        }
+      }
+    },
+    "Kunde inte nå servern. Dina utgifter finns kvar på telefonen." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not reach the server. Your expenses are still on the phone."
+          }
+        }
+      }
+    },
     "Kunde inte spara" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1132,6 +1314,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sign in"
+          }
+        }
+      }
+    },
+    "Logga in först — en inbjudan behöver ett konto." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in first — an invite needs an account."
           }
         }
       }
@@ -1422,6 +1614,26 @@
         }
       }
     },
+    "Någon i utgiften finns inte i gruppen." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Someone in the expense is not in the group."
+          }
+        }
+      }
+    },
+    "Något gick fel med inbjudan." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something went wrong with the invite."
+          }
+        }
+      }
+    },
     "Nöje" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1472,6 +1684,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Percent"
+          }
+        }
+      }
+    },
+    "Påminn mig om skulder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remind me about debts"
           }
         }
       }
@@ -1542,6 +1764,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Counts once %1$@ confirms. With no answer it counts after %2$lld days."
+          }
+        }
+      }
+    },
+    "Servern kunde inte ta emot den här posten." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The server could not accept this entry."
+          }
+        }
+      }
+    },
+    "Servern tillåter inte utvecklarinloggning." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The server does not allow developer sign-in."
           }
         }
       }
@@ -1714,6 +1956,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Swish number"
+          }
+        }
+      }
+    },
+    "Synka med servern" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync with the server"
           }
         }
       }
@@ -1945,6 +2197,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choose group photo"
+          }
+        }
+      }
+    },
+    "Väntar på anslutning" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for a connection"
           }
         }
       }
@@ -2183,7 +2445,19 @@
         }
       }
     },
-    "≈" : {},
+    "överhoppade händelser" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "skipped events"
+          }
+        }
+      }
+    },
+    "≈" : {
+      "shouldTranslate" : false
+    },
     "≈ %@ totalt" : {
       "localizations" : {
         "en" : {
@@ -2204,7 +2478,9 @@
         }
       }
     },
-    "🙌" : {}
+    "🙌" : {
+      "shouldTranslate" : false
+    }
   },
   "version" : "1.0"
 }

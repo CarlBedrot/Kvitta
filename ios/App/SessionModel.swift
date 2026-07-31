@@ -77,11 +77,11 @@ final class SessionModel {
     private func message(for error: SyncError) -> String {
         switch error {
         case .unreachable:
-            return "Kunde inte nå servern. Dina utgifter finns kvar på telefonen."
+            return String(localized: "Kunde inte nå servern. Dina utgifter finns kvar på telefonen.")
         case .unauthorized:
             return "Inloggningen avvisades."
         case .upgradeRequired:
-            return "Den här versionen av Kvitta är för gammal."
+            return String(localized: "Den här versionen av Kvitta är för gammal.")
         case .server(let status, _):
             return status == 404
                 ? "Servern tillåter inte utvecklarinloggning."
