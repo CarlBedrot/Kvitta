@@ -354,7 +354,9 @@ struct GroupBadge: View {
     }
 
     /// The first emoji anywhere in the name, so both "🏔️ Fjällresan" and "Båstad 🎾" work.
-    static func emoji(of name: String) -> Character? {
+    /// `nonisolated`: pure string work, also called from ShareLink's export closure, which runs
+    /// off the main actor — an implicit @MainActor here is a runtime trap, not a type error.
+    nonisolated static func emoji(of name: String) -> Character? {
         name.first { character in
             guard let first = character.unicodeScalars.first, first.properties.isEmoji else {
                 return false
@@ -367,7 +369,7 @@ struct GroupBadge: View {
     }
 
     /// The name with its icon-emoji lifted out, so it is not shown twice.
-    static func title(of name: String) -> String {
+    nonisolated static func title(of name: String) -> String {
         guard let emoji = emoji(of: name) else { return name }
         return name
             .replacingOccurrences(of: String(emoji), with: "")

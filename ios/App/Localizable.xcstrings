@@ -730,6 +730,16 @@
         }
       }
     },
+    "Exportera CSV" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export CSV"
+          }
+        }
+      }
+    },
     "Fika" : {
       "extractionState" : "stale",
       "localizations" : {
