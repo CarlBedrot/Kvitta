@@ -134,7 +134,11 @@ public sealed class KvittaApiFixture : IAsyncLifetime
                 var settings = new Dictionary<string, string?>(AuthSettings)
                 {
                     ["Database:ConnectionString"] = ConnectionString,
-                    ["Database:MigrateOnStartup"] = "false"
+                    ["Database:MigrateOnStartup"] = "false",
+                    // Off by default here as in the shared host: appsettings.Development.json
+                    // carries the real compat floor, and a test booting in Development is testing
+                    // an environment guard, not the 426 gate. The gate's own tests override this.
+                    ["Sync:MinimumClientBuild"] = "0"
                 };
 
                 foreach (var (key, value) in overrides)
