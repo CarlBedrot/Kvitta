@@ -103,13 +103,17 @@ private struct AuditRow: View {
     let group: GroupState
     let currency: CurrencyCode
 
+    /// The kr-collision rule: entries in a non-primary bucket spell out their code, so a DKK
+    /// line never reads as "kr" just because both currencies happen to say it.
+    private var explicit: Bool { currency != group.currency }
+
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(verbatim: "\(emoji) \(label)")
                     .font(.subheadline)
                     .foregroundStyle(Theme.ink)
-                Text("löpande: \(MoneyFormat.string(entry.runningTotalMinor, currency, sign: .always))")
+                Text("löpande: \(MoneyFormat.string(entry.runningTotalMinor, currency, sign: .always, explicit: explicit))")
                     .font(.caption)
                     .foregroundStyle(Theme.secondary)
                     .monospacedDigit()
@@ -119,7 +123,8 @@ private struct AuditRow: View {
                 amountMinor: entry.deltaMinor,
                 currency: currency,
                 size: 15,
-                accessibilityPhrase: "\(label), \(MoneyFormat.string(entry.deltaMinor, currency, sign: .always))"
+                explicit: explicit,
+                accessibilityPhrase: "\(label), \(MoneyFormat.string(entry.deltaMinor, currency, sign: .always, explicit: explicit))"
             )
         }
         .padding(.vertical, 9)
