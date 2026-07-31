@@ -70,6 +70,12 @@ struct SettleUpSheet: View {
                 if transfer.currency == .sek {
                     RequestPaymentButton(link: requestLink)
                 }
+            } else if !iAmThePayer {
+                // A transfer between two other people. Recording that it happened is legitimate —
+                // it is how the friend who never installed the app gets their cash payment into
+                // the books — but a payment-app button here would invite *you* to pay somebody
+                // else's debt from your own account. "Markera som betald" below is the whole flow.
+                EmptyView()
             } else if let link = paymentLink {
                 // Swish pink, deliberately off-palette: recognition beats palette purity for a
                 // button whose whole job is to look like the app it opens (ui-design.md).
@@ -161,6 +167,11 @@ struct SettleUpSheet: View {
     /// need the other person's number when the one that matters is yours.
     private var theyOweMe: Bool {
         transfer.to == group?.me(for: userId)?.id
+    }
+
+    /// The debt is yours to pay — the only case where opening a payment app makes sense.
+    private var iAmThePayer: Bool {
+        transfer.from == group?.me(for: userId)?.id
     }
 
     /// The payment-app link for this transfer, if the currency has one and we know a number.

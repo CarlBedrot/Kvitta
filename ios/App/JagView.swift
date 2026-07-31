@@ -119,7 +119,7 @@ struct JagView: View {
                     .foregroundStyle(Theme.clay)
             }
         } footer: {
-            Text("Sparas bara på den här telefonen. Används när du skickar en betalningslänk till någon som är skyldig dig pengar.")
+            Text("Delas med medlemmarna i dina grupper så att de kan swisha rätt nummer. Tar du bort det slutar det delas. Utan konto sparas det bara på den här telefonen.")
         }
     }
 

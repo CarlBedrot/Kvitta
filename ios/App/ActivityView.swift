@@ -64,6 +64,8 @@ private struct FeedEntry: Identifiable {
     let subtitle: String
     let amountMinor: Int64
     let currency: CurrencyCode
+    /// The kr-collision rule: an amount not in its group's primary currency spells out its code.
+    let explicit: Bool
     let wasEdited: Bool
 
     static func build(from state: LedgerState, userId: UserID) -> [FeedEntry] {
@@ -89,6 +91,7 @@ private struct FeedEntry: Identifiable {
                     subtitle: "\(groupTitle) · \(String(localized: "\(payerName) betalade"))",
                     amountMinor: expense.amountMinor,
                     currency: expense.currency,
+                    explicit: expense.currency != group.currency,
                     wasEdited: expense.wasEdited
                 ))
             }
@@ -110,6 +113,7 @@ private struct FeedEntry: Identifiable {
                     subtitle: groupTitle,
                     amountMinor: payment.amountMinor,
                     currency: payment.currency,
+                    explicit: payment.currency != group.currency,
                     wasEdited: false
                 ))
             }
@@ -202,16 +206,16 @@ private struct FeedRow: View {
     private var amount: some View {
         switch entry.kind {
         case .expense:
-            NeutralAmountText(amountMinor: entry.amountMinor, currency: entry.currency, size: 16)
+            NeutralAmountText(amountMinor: entry.amountMinor, currency: entry.currency, size: 16, explicit: entry.explicit)
         case .payment(let incoming):
             switch incoming {
             case .some(true):
                 // Money that reached you. The + and the green agree.
-                SignedAmountText(amountMinor: entry.amountMinor, currency: entry.currency, size: 16)
+                SignedAmountText(amountMinor: entry.amountMinor, currency: entry.currency, size: 16, explicit: entry.explicit)
             case .some(false):
-                SignedAmountText(amountMinor: -entry.amountMinor, currency: entry.currency, size: 16)
+                SignedAmountText(amountMinor: -entry.amountMinor, currency: entry.currency, size: 16, explicit: entry.explicit)
             case .none:
-                NeutralAmountText(amountMinor: entry.amountMinor, currency: entry.currency, size: 16)
+                NeutralAmountText(amountMinor: entry.amountMinor, currency: entry.currency, size: 16, explicit: entry.explicit)
             }
         }
     }

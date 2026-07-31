@@ -335,7 +335,15 @@ struct GroupBadge: View {
 
     /// The first emoji anywhere in the name, so both "🏔️ Fjällresan" and "Båstad 🎾" work.
     static func emoji(of name: String) -> Character? {
-        name.first { $0.unicodeScalars.contains { $0.properties.isEmojiPresentation } }
+        name.first { character in
+            guard let first = character.unicodeScalars.first, first.properties.isEmoji else {
+                return false
+            }
+            // Pictographs like 🏖️ have Emoji_Presentation false and rely on a variation
+            // selector, so a multi-scalar emoji character counts too. Plain digits are isEmoji
+            // but single-scalar and text-presenting, so they stay excluded.
+            return first.properties.isEmojiPresentation || character.unicodeScalars.count > 1
+        }
     }
 
     /// The name with its icon-emoji lifted out, so it is not shown twice.
