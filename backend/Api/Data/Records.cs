@@ -17,6 +17,17 @@ public sealed class UserRecord
     public string? AppleSub { get; set; }
 
     public string? DisplayName { get; set; }
+
+    /// <summary>
+    /// The number people Swish this user on, digits with country code (<c>46701234567</c>).
+    /// </summary>
+    /// <remarks>
+    /// A mutable profile column and deliberately not an event: events are immutable, so a phone
+    /// number in a group log would reach every member forever with no way to take it back. Here
+    /// the owner can change or delete it and it simply stops being served.
+    /// </remarks>
+    public string? SwishNumber { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
 }
 

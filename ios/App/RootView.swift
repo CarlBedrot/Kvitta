@@ -16,6 +16,7 @@ struct RootView: View {
     let invites: InviteModel
     let reminders: ReminderScheduler
     let rates: RateStore
+    let profiles: ProfileSyncer
 
     private enum AppTab: Hashable { case grupper, aktivitet, jag }
 
@@ -65,12 +66,20 @@ struct RootView: View {
             NewExpenseSheet(model: model)
                 .presentationDragIndicator(.visible)
         }
+        // Your Swish number up to your server profile, debounced past the keystrokes. The id
+        // includes the sign-in state so the first push after signing in is not missed.
+        .task(id: "\(profile.swishNumber)|\(session.isSignedIn)") {
+            try? await Task.sleep(for: .seconds(1.5))
+            guard !Task.isCancelled else { return }
+            await profiles.push(profile)
+        }
     }
 
     private var grupperTab: some View {
         NavigationStack(path: $grupperPath) {
             HomeView(ledger: ledger, userId: userId, invites: invites, profile: profile,
-                     images: images, rates: rates, onNewGroup: { showingNewGroup = true })
+                     images: images, rates: rates, profiles: profiles,
+                     onNewGroup: { showingNewGroup = true })
                 .overlay(alignment: .bottomTrailing) {
                     // Hidden on the empty state, which carries its own call to action.
                     if !ledger.state.groups.isEmpty {

@@ -254,13 +254,15 @@ struct SettleUpSheet: View {
 
     private func settle(method: PaymentMethod) {
         awaitingReturn = nil
-        guard let group else { return }
+        guard group != nil else { return }
         do {
             try ledger.record(
+                // The transfer's own currency, not the group's: in a mixed group a DKK debt is
+                // paid in DKK, and recording it as SEK would unbalance both buckets.
                 .paymentRecorded(try PaymentRecordedPayload(
                     fromMemberId: transfer.from,
                     toMemberId: transfer.to,
-                    currency: group.currency,
+                    currency: transfer.currency,
                     amountMinor: transfer.amountMinor,
                     date: CalendarDate(Date()),
                     method: method

@@ -13,6 +13,7 @@ struct HomeView: View {
     let profile: UserProfile
     let images: GroupImageStore
     let rates: RateStore
+    let profiles: ProfileSyncer
     var onNewGroup: () -> Void
 
     private var groups: [GroupState] { ledger.state.groupsByLastActivity }
@@ -51,7 +52,8 @@ struct HomeView: View {
         }
         .navigationDestination(for: GroupID.self) { groupId in
             GroupDetailView(ledger: ledger, userId: userId, groupId: groupId,
-                            invites: invites, profile: profile, images: images, rates: rates)
+                            invites: invites, profile: profile, images: images, rates: rates,
+                            profiles: profiles)
         }
     }
 }
