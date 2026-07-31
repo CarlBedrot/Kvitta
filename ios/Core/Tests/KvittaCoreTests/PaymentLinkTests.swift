@@ -7,9 +7,10 @@ import KvittaCoreTestSupport
 ///
 /// Worth saying plainly what these can and cannot prove. They pin the amount arithmetic, the
 /// number normalisation, the escaping, and which currencies get which button — all of which are
-/// ours to get right. They cannot prove Swish accepts the payload, because that needs a real
-/// phone with Swish on it. One such phone has already rejected the `swish://payment?data=` shape;
-/// the universal link below is the replacement and is itself unverified until someone taps it.
+/// ours to get right. What Swish accepts needed a real phone: as of 2026-07 the confirmed shape is
+/// `swish://payment?data=` with a *quoted* payee (`preferred` → `swishAppSwitch`, callback nil).
+/// The `app.swish.nu` universal link and an unquoted payee number were both rejected as "felaktigt
+/// format" — `swish(...)` still exists for the debug tester, but nothing ships it.
 @Suite("Payment links")
 struct PaymentLinkTests {
     private let callback = URL(string: "kvitta://payment-return")!
@@ -65,9 +66,9 @@ struct PaymentLinkTests {
         #expect(SwishNumber.normalised(raw) == nil)
     }
 
-    // MARK: - The link we lead with
+    // MARK: - The app.swish.nu shape (rejected on device, kept for the tester)
 
-    @Test("The Swish link carries the payee, the exact amount and the message")
+    @Test("The app.swish.nu link carries the payee, the exact amount and the message")
     func swishCarriesEverything() throws {
         let link = try #require(PaymentLinkBuilder.swish(
             payee: "070-123 45 67",
@@ -114,7 +115,7 @@ struct PaymentLinkTests {
             message: "") == nil)
     }
 
-    // MARK: - The alternate shape, kept as a candidate
+    // MARK: - The shape we lead with (verified on device)
 
     @Test("The app-switch payload still normalises the number and stays valid JSON")
     func appSwitchIsWellFormed() throws {
@@ -145,7 +146,9 @@ struct PaymentLinkTests {
             for: Money(amountMinor: 100, currency: .sek),
             payee: "0701234567", message: "")
         #expect(sek?.method == .swish)
-        #expect(sek?.url.host == "app.swish.nu")
+        // The verified shape, not the rejected app.swish.nu one: swish://payment?data=…
+        #expect(sek?.url.scheme == "swish")
+        #expect(sek?.url.host == "payment")
 
         // MobilePay has no public prefill link, so this only opens the app — inventing a format
         // would give us a button that quietly does the wrong thing.
@@ -163,5 +166,26 @@ struct PaymentLinkTests {
         #expect(PaymentLinkBuilder.preferred(
             for: Money(amountMinor: 100, currency: .eur),
             payee: "0701234567", message: "") == nil)
+    }
+
+    @Test("preferred emits exactly the shape a real phone accepted")
+    func preferredEmitsVerifiedShape() throws {
+        // Pins what one device session settled: the swish://payment?data= shape with a quoted
+        // payee and no callback. The app.swish.nu link and an unquoted payee were both rejected as
+        // "felaktigt format", so this is the regression guard against quietly reverting to either.
+        let link = try #require(PaymentLinkBuilder.preferred(
+            for: Money(amountMinor: 14_567, currency: .sek),
+            payee: "070-123 45 67", message: "Fjällresan"))
+
+        #expect(link.url.scheme == "swish")
+        #expect(link.url.host == "payment")
+        #expect(link.probe?.scheme == "swish")
+
+        let payload = try appSwitchData(in: link)
+        // Quoted payee with country code — the unquoted number failed on the phone.
+        #expect(payload.contains("\"value\":\"46701234567\""))
+        #expect(payload.contains("\"value\":145.67"))
+        // No callback: it made Swish ask "open Kvitta?" on the way out.
+        #expect(link.url.absoluteString.contains("callbackurl") == false)
     }
 }
