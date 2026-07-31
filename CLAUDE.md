@@ -128,6 +128,7 @@ A PR touching ios/Core or backend event handling without tests is incomplete.
 ## Workflow
 
 - New features: plan first (Plan mode), reference the design doc section, then build.
+- When a PR is green, squash-merge it directly (delete the branch) without asking. Never end on "next step: merge it".
 - Tool split: terminal Claude Code for ios/Core and backend/ (test-driven logic). In-Xcode Claude Agent (Xcode 26.3+) for SwiftUI screens, where Preview capture lets it verify UI visually.
 - Keep ios/Core free of dependencies. It should compile on any platform.
 - Prefer boring solutions. The project exists because clever backends go down.
