@@ -71,6 +71,15 @@ struct GroupDetailView: View {
                     SoloGroupCard { showingMembers = true }
                 }
 
+                // The "om gruppen" blurb, when someone has written one. Quiet text, not a card:
+                // it is context, not data.
+                if let about = group.about {
+                    Text(about)
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.secondary)
+                        .padding(.horizontal, 4)
+                }
+
                 // A question outranks the shortcuts: somebody's books are waiting on the answer.
                 PendingPaymentsCard(
                     group: group,

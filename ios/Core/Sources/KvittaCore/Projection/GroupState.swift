@@ -9,6 +9,8 @@ public struct GroupState: Hashable, Sendable, Identifiable {
     public var name: String
     public var currency: CurrencyCode
     public var coverPhotoRef: String?
+    /// The free-text "om gruppen" blurb, set via `GroupUpdated.description`. Nil when unset.
+    public var about: String?
     public var members: [MemberID: Member]
     public var expenses: [ExpenseID: Expense]
     public var payments: [PaymentID: Payment]
