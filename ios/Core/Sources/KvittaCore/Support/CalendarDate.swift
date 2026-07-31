@@ -60,6 +60,17 @@ public struct CalendarDate: Hashable, Sendable, Comparable, Codable, CustomStrin
 
     public var description: String { iso8601 }
 
+    /// Days since 1970-01-01, by pure integer math (Howard Hinnant's days-from-civil), so date
+    /// distances — "has this pending payment aged out?" — need no Calendar and no time zone.
+    public var dayNumber: Int {
+        let y = month <= 2 ? year - 1 : year
+        let era = (y >= 0 ? y : y - 399) / 400
+        let yearOfEra = y - era * 400
+        let dayOfYear = (153 * (month > 2 ? month - 3 : month + 9) + 2) / 5 + day - 1
+        let dayOfEra = yearOfEra * 365 + yearOfEra / 4 - yearOfEra / 100 + dayOfYear
+        return era * 146_097 + dayOfEra - 719_468
+    }
+
     public static func < (lhs: CalendarDate, rhs: CalendarDate) -> Bool {
         (lhs.year, lhs.month, lhs.day) < (rhs.year, rhs.month, rhs.day)
     }

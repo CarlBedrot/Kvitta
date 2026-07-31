@@ -67,6 +67,9 @@ private struct FeedEntry: Identifiable {
     /// The kr-collision rule: an amount not in its group's primary currency spells out its code.
     let explicit: Bool
     let wasEdited: Bool
+    /// Set for payments only (M8): pending and disputed rows say so, because a payment that is
+    /// visible but not yet in the balances would otherwise look like a bug.
+    let paymentStatus: PaymentStatus?
 
     static func build(from state: LedgerState, userId: UserID) -> [FeedEntry] {
         var entries: [FeedEntry] = []
@@ -92,7 +95,8 @@ private struct FeedEntry: Identifiable {
                     amountMinor: expense.amountMinor,
                     currency: expense.currency,
                     explicit: expense.currency != group.currency,
-                    wasEdited: expense.wasEdited
+                    wasEdited: expense.wasEdited,
+                    paymentStatus: nil
                 ))
             }
 
@@ -114,7 +118,8 @@ private struct FeedEntry: Identifiable {
                     amountMinor: payment.amountMinor,
                     currency: payment.currency,
                     explicit: payment.currency != group.currency,
-                    wasEdited: false
+                    wasEdited: false,
+                    paymentStatus: payment.status
                 ))
             }
         }
@@ -174,6 +179,15 @@ private struct FeedRow: View {
                         Text("redigerad")
                             .font(.caption2)
                             .foregroundStyle(Theme.tertiary)
+                    }
+                    if entry.paymentStatus == .pending {
+                        Text("väntar")
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(Theme.accent)
+                    } else if entry.paymentStatus == .disputed {
+                        Text("bestriden")
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(Theme.negative)
                     }
                 }
                 Text(entry.subtitle).font(.caption).foregroundStyle(Theme.secondary)

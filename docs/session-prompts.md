@@ -103,6 +103,13 @@ a different thing away. Pick one before writing any of it.
 property, and "applying the suggested transfers as payments zeroes all balances" needs restating in
 terms of confirmed payments.
 
+**Status: done.** The never-confirms decision landed as auto-confirm after 7 days, computed at
+query time (`balances(asOf:)`) so projections stay pure; a dispute beats the clock. Born-confirmed
+exceptions: placeholder payees (nobody to ask) and payee-recorded payments (their own
+confirmation). Only the payee's word is accepted — forged confirmations are skipped in projection
+on every device. P1/P1b hold at any asOf; P4 restated as record → *not* settled → confirm →
+settled. No server changes: the unknown-event fan-out path carried both new types; build floor 3.
+
 ---
 
 ## Product principles (paste into CLAUDE.md if not already there)

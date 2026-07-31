@@ -50,14 +50,15 @@ public struct EventFactory {
         entityId: UUID,
         payload: EventPayload,
         eventId: EventID = EventID(),
-        acknowledged: Bool = true
+        acknowledged: Bool = true,
+        author: UserID? = nil
     ) -> EventEnvelope {
         seq += 1
         return EventEnvelope(
             eventId: eventId,
             groupId: groupId,
             entityId: entityId,
-            authorId: authorId,
+            authorId: author ?? authorId,
             clientTimestamp: Timestamp(epochMilliseconds: 1_784_000_000_000 + seq),
             serverSeq: acknowledged ? seq : nil,
             payload: payload
@@ -127,8 +128,20 @@ public struct EventFactory {
         make(entityId: expenseId.rawValue, payload: .expenseRestored(EmptyPayload()))
     }
 
-    public mutating func paymentRecorded(_ paymentId: PaymentID, _ payload: PaymentRecordedPayload) -> EventEnvelope {
-        make(entityId: paymentId.rawValue, payload: .paymentRecorded(payload))
+    public mutating func paymentRecorded(
+        _ paymentId: PaymentID,
+        _ payload: PaymentRecordedPayload,
+        author: UserID? = nil
+    ) -> EventEnvelope {
+        make(entityId: paymentId.rawValue, payload: .paymentRecorded(payload), author: author)
+    }
+
+    public mutating func paymentConfirmed(_ paymentId: PaymentID, by user: UserID? = nil) -> EventEnvelope {
+        make(entityId: paymentId.rawValue, payload: .paymentConfirmed(EmptyPayload()), author: user)
+    }
+
+    public mutating func paymentDisputed(_ paymentId: PaymentID, by user: UserID? = nil) -> EventEnvelope {
+        make(entityId: paymentId.rawValue, payload: .paymentDisputed(EmptyPayload()), author: user)
     }
 
     public mutating func unknownType(_ type: String, entityId: UUID = UUID()) -> EventEnvelope {

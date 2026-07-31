@@ -59,6 +59,10 @@ public enum SkipReason: Hashable, Sendable, CustomStringConvertible {
     case unknownMember(MemberID)
     case memberAlreadyExists(MemberID)
     case currencyMismatch(expected: CurrencyCode, found: CurrencyCode)
+    case unknownPayment(PaymentID)
+    /// A confirmation or dispute from anyone but the payment's payee. Skipping it on every
+    /// device is what makes the payee's word the only one that counts (M8).
+    case notThePayee(PaymentID)
 
     public var description: String {
         switch self {
@@ -78,6 +82,10 @@ public enum SkipReason: Hashable, Sendable, CustomStringConvertible {
             return "Member \(id) is already in this group."
         case .currencyMismatch(let expected, let found):
             return "Group currency is \(expected) but the event carried \(found)."
+        case .unknownPayment(let id):
+            return "Payment \(id) is not in this group."
+        case .notThePayee(let id):
+            return "Only the payee may confirm or dispute payment \(id)."
         }
     }
 }

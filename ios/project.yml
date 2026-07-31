@@ -44,7 +44,7 @@ targets:
         # Build 2 = multi-currency groups (M7). A build-1 client replaying a mixed-currency log
         # would skip the foreign-currency events and show wrong balances; the server's
         # MinimumClientBuild gate turns that into 426 Upgrade Required instead.
-        CURRENT_PROJECT_VERSION: 2
+        CURRENT_PROJECT_VERSION: 3
         MARKETING_VERSION: "0.1"
         GENERATE_INFOPLIST_FILE: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

@@ -112,6 +112,10 @@ extension EventEnvelope: Codable {
             payload = .paymentRecorded(
                 try container.decode(PaymentRecordedPayload.self, forKey: .payload)
             )
+        case EventType.paymentConfirmed:
+            payload = .paymentConfirmed(try container.decode(EmptyPayload.self, forKey: .payload))
+        case EventType.paymentDisputed:
+            payload = .paymentDisputed(try container.decode(EmptyPayload.self, forKey: .payload))
         default:
             // Unknown type: keep the body verbatim rather than failing the whole sync page.
             let raw = try container.decodeIfPresent(JSONValue.self, forKey: .payload) ?? .null
@@ -153,6 +157,8 @@ extension EventEnvelope: Codable {
         case .expenseDeleted(let value): try container.encode(value, forKey: .payload)
         case .expenseRestored(let value): try container.encode(value, forKey: .payload)
         case .paymentRecorded(let value): try container.encode(value, forKey: .payload)
+        case .paymentConfirmed(let value): try container.encode(value, forKey: .payload)
+        case .paymentDisputed(let value): try container.encode(value, forKey: .payload)
         case .unknown(_, let raw): try container.encode(raw, forKey: .payload)
         }
     }

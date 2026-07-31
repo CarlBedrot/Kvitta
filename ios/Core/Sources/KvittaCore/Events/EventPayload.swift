@@ -18,6 +18,8 @@ public enum EventPayload: Hashable, Sendable {
     case expenseDeleted(EmptyPayload)
     case expenseRestored(EmptyPayload)
     case paymentRecorded(PaymentRecordedPayload)
+    case paymentConfirmed(EmptyPayload)
+    case paymentDisputed(EmptyPayload)
     case unknown(type: String, raw: JSONValue)
 
     /// The wire `type` string. Derived from the case so the envelope's type and its payload can
@@ -34,6 +36,8 @@ public enum EventPayload: Hashable, Sendable {
         case .expenseDeleted: return EventType.expenseDeleted
         case .expenseRestored: return EventType.expenseRestored
         case .paymentRecorded: return EventType.paymentRecorded
+        case .paymentConfirmed: return EventType.paymentConfirmed
+        case .paymentDisputed: return EventType.paymentDisputed
         case .unknown(let type, _): return type
         }
     }
@@ -64,11 +68,15 @@ public enum EventType {
     public static let expenseDeleted = "ExpenseDeleted"
     public static let expenseRestored = "ExpenseRestored"
     public static let paymentRecorded = "PaymentRecorded"
+    public static let paymentConfirmed = "PaymentConfirmed"
+    public static let paymentDisputed = "PaymentDisputed"
 
     public static let allKnown: Set<String> = [
         groupCreated, groupUpdated,
         memberAdded, memberUpdated, memberRemoved,
         expenseCreated, expenseUpdated, expenseDeleted, expenseRestored,
-        paymentRecorded
+        paymentRecorded,
+        paymentConfirmed,
+        paymentDisputed
     ]
 }
