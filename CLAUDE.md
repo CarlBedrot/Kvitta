@@ -86,6 +86,14 @@ Payments and reminders (M5):
 - No `callbackurl`. Returning from Swish is read from the scene phase; the callback is what made Swish ask "open Kvitta?" on the way out, which reads like the app wants something.
 - Still unverified, and only a real phone can settle it: which of those URL shapes Swish actually accepts. The simulator has no Swish app, so `canOpenURL` is always false and `openURL` always fails there. `JagView` has a DEBUG-only "Testa Swish-format" that opens every candidate against 1,00 kr, so the answer costs one device session rather than one per guess.
 
+Multi-currency (M7):
+- An expense is exactly one currency — payers, shares and total all in `ExpensePayload.currency`. The *group* is the thing that mixes: `balances()` returns per-currency buckets (`GroupBalances`), each independently zero-sum, and buckets never net against each other. A SEK debt is paid in SEK.
+- `GroupCreated.currency` is the group's *primary* currency: the default for new expenses and the ≈-conversion target. `GroupUpdated` may only change it while the ledger is empty — after that the field is ignored on both client and server, because relabelling stored amounts moves real money.
+- Conversion is display-only and never stored. Rates are ECB's daily fixing, fetched as *decimal strings* from `eurofxref-daily.xml` (chosen over any JSON API precisely because JSON numbers arrive as Doubles) and parsed by string/integer math into micro-units (`ExchangeRates.micro(parsing:)`). All conversion is Int64; converted amounts are marked ≈ in the UI. `ECBRateClient` lives in ios/Sync because it is a network call.
+- The server validates currency *shape* (three uppercase ASCII letters), not equality with the group. `currency_mismatch` is retired but the constant stays for old logs.
+- Build 2 is the multi-currency floor: a build-1 client would skip foreign-currency events and show wrong balances, so `MinimumClientBuild` is 2. Bump both together or not at all.
+- MobilePay (DKK transfers) opens the app with the exact amount on the clipboard — there is no public person-to-person prefill, and inventing one would be a button that lies.
+
 Shipping (M6):
 - Blocked on a paid Apple Developer account: TestFlight, App Store Connect, Sign in with Apple, APNs. Sorting the account out unblocks all four at once.
 - Blocked on decisions that are Carl's to make, not a script's: choosing a host and deploying, creating a Sentry account, wiring an uptime monitor. The Dockerfile builds the artefact; nothing deploys it.

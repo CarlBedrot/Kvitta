@@ -55,7 +55,7 @@ struct ReplayPerformanceTests {
         // Sanity: the fold did real work rather than skipping everything.
         let group = try #require(state.groups[HeavyGroup.groupId])
         #expect(group.expenses.count > 1_000)
-        #expect(group.balances().totalMinor == 0)
+        #expect(group.primaryBalances().totalMinor == 0)
 
         if enforcesBudget {
             #expect(elapsed < budgetSeconds, "replay of \(events.count) events took \(elapsed)s")

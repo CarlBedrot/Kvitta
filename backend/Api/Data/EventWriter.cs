@@ -141,7 +141,6 @@ public sealed class EventWriter(KvittaDbContext db, IOptions<SyncOptions> syncOp
             var moneyCheck = MoneyValidator.Validate(
                 envelope.Type,
                 envelope.Payload,
-                group.Currency ?? "",
                 knownMembers);
 
             if (!moneyCheck.IsValid)

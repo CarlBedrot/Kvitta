@@ -23,22 +23,20 @@ public static class MoneyValidator
     public static ValidationResult Validate(
         string type,
         JsonElement payload,
-        string groupCurrency,
         IReadOnlySet<Guid> knownMembers)
     {
         return type switch
         {
             EventTypes.ExpenseCreated or EventTypes.ExpenseUpdated
-                => ValidateExpense(payload, groupCurrency, knownMembers),
+                => ValidateExpense(payload, knownMembers),
             EventTypes.PaymentRecorded
-                => ValidatePayment(payload, groupCurrency, knownMembers),
+                => ValidatePayment(payload, knownMembers),
             _ => ValidationResult.Valid
         };
     }
 
     private static ValidationResult ValidateExpense(
         JsonElement payload,
-        string groupCurrency,
         IReadOnlySet<Guid> knownMembers)
     {
         if (payload.ValueKind != JsonValueKind.Object)
@@ -61,11 +59,14 @@ public static class MoneyValidator
             return ValidationResult.Reject(RejectionCode.MalformedPayload, "currency is missing.");
         }
 
-        if (!string.Equals(currency, groupCurrency, StringComparison.Ordinal))
+        // M7: a group holds expenses in any currency side by side — each currency is its own
+        // sub-ledger and the clients bucket by it. The server checks only that the code is a
+        // currency-shaped thing; equality with the group's primary currency stopped being a rule.
+        if (!IsCurrencyShaped(currency))
         {
             return ValidationResult.Reject(
-                RejectionCode.CurrencyMismatch,
-                $"Group currency is {groupCurrency} but the expense is in {currency}.");
+                RejectionCode.MalformedPayload,
+                $"'{currency}' is not a currency code (three uppercase ASCII letters).");
         }
 
         var payers = ReadLines(payload, "payers");
@@ -140,7 +141,6 @@ public static class MoneyValidator
 
     private static ValidationResult ValidatePayment(
         JsonElement payload,
-        string groupCurrency,
         IReadOnlySet<Guid> knownMembers)
     {
         if (payload.ValueKind != JsonValueKind.Object)
@@ -158,12 +158,11 @@ public static class MoneyValidator
             return ValidationResult.Reject(RejectionCode.InvalidAmount, $"amountMinor must be positive, got {amountMinor}.");
         }
 
-        if (!TryGetString(payload, "currency", out var currency) ||
-            !string.Equals(currency, groupCurrency, StringComparison.Ordinal))
+        if (!TryGetString(payload, "currency", out var currency) || !IsCurrencyShaped(currency))
         {
             return ValidationResult.Reject(
-                RejectionCode.CurrencyMismatch,
-                $"Group currency is {groupCurrency} but the payment is in {currency ?? "(missing)"}.");
+                RejectionCode.MalformedPayload,
+                $"'{currency ?? "(missing)"}' is not a currency code (three uppercase ASCII letters).");
         }
 
         if (!TryGetGuid(payload, "fromMemberId", out var from) ||
@@ -259,6 +258,25 @@ public static class MoneyValidator
         return element.TryGetProperty(property, out var found)
             && found.ValueKind == JsonValueKind.Number
             && found.TryGetInt64(out value);
+    }
+
+    /// <summary>Three ASCII uppercase letters — the same shape rule the client's decoder enforces.</summary>
+    private static bool IsCurrencyShaped(string value)
+    {
+        if (value.Length != 3)
+        {
+            return false;
+        }
+
+        foreach (var c in value)
+        {
+            if (c is < 'A' or > 'Z')
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static bool TryGetString(JsonElement element, string property, out string? value)

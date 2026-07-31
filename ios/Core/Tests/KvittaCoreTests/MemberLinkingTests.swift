@@ -42,8 +42,8 @@ struct MemberLinkingTests {
         let linked = history + [factory.memberUpdated(members[1], linkedUserId: joiner)]
         let after = try #require(Projector.replay(linked).groups[Fixtures.groupId]).balances()
 
-        #expect(after.byMember == before.byMember)
-        #expect(after.totalMinor == 0)
+        #expect(after.byCurrency == before.byCurrency)
+        #expect(after.byCurrency.allSatisfy { $0.totalMinor == 0 })
     }
 
     @Test("The placeholder becomes the joiner's own member")
@@ -60,7 +60,7 @@ struct MemberLinkingTests {
         // This is the lookup every screen does to find "you" in a group.
         let mine = group.members.values.first { $0.linkedUserId == joiner }
         #expect(mine?.id == members[1])
-        #expect(group.balances().money(for: members[1]).amountMinor == -14_567)
+        #expect(group.primaryBalances().money(for: members[1]).amountMinor == -14_567)
     }
 
     @Test("A rename leaves the link alone, and a link leaves the name alone")
@@ -89,7 +89,7 @@ struct MemberLinkingTests {
         let group = try #require(state.groups[Fixtures.groupId])
 
         #expect(group.members[stranger] == nil)
-        #expect(group.balances().totalMinor == 0)
+        #expect(group.balances().byCurrency.allSatisfy { $0.totalMinor == 0 })
     }
 
     @Test("A MemberUpdated survives an encode/decode round trip")

@@ -18,6 +18,7 @@ struct JagView: View {
     let session: SessionModel
     let invites: InviteModel
     let reminders: ReminderScheduler
+    let rates: RateStore
     let userId: UserID
 
     @State private var photoItem: PhotosPickerItem?
@@ -32,6 +33,7 @@ struct JagView: View {
                 joinSection
                 remindersSection
                 backupSection
+                ratesSection
                 aboutSection
                 #if DEBUG
                 developerSection
@@ -296,6 +298,38 @@ struct JagView: View {
         case .offline: return "Väntar på anslutning"
         case .blocked(let message): return message
         }
+    }
+
+    // MARK: - Rates
+
+    /// The cached ECB table, read-only. Shown so the ≈ numbers are auditable to their source —
+    /// the same trust rule as balances: no figure without its provenance.
+    @ViewBuilder
+    private var ratesSection: some View {
+        if let rates = rates.rates {
+            Section {
+                ForEach(rates.currencies.filter { $0 != .eur }, id: \.self) { currency in
+                    HStack {
+                        SettingsIcon(systemImage: "coloncurrencysign", fill: Color(hex: 0x5A78FF))
+                        LabeledContent("\(currency.code) per €", value: microString(rates.microPerEuro[currency] ?? 0))
+                    }
+                }
+            } header: {
+                Text("Valutakurser")
+            } footer: {
+                Text("ECB:s referenskurser, hämtade \(rates.asOf). Används bara för ungefärlig omräkning — allt sparas exakt i sin egen valuta.")
+            }
+        }
+    }
+
+    /// `11_234_500` micro → `"11,2345"`. Integer maths and string padding, like everything else
+    /// that touches a rate.
+    private func microString(_ micro: Int64) -> String {
+        let whole = micro / 1_000_000
+        var fraction = String(micro % 1_000_000)
+        fraction = String(repeating: "0", count: 6 - fraction.count) + fraction
+        while fraction.count > 2 && fraction.hasSuffix("0") { fraction.removeLast() }
+        return "\(whole),\(fraction)"
     }
 
     // MARK: - About

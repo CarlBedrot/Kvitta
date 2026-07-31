@@ -75,39 +75,65 @@ public struct GroupState: Hashable, Sendable, Identifiable {
 
     // MARK: - Derived money
 
-    /// Folds every non-deleted expense and every payment into a net position per member.
+    /// Folds every non-deleted expense and every payment into a net position per member,
+    /// **per currency** — each event lands in the bucket of its own currency, and buckets never
+    /// mix (M7: a group holds SEK and DKK side by side; an expense is still exactly one currency).
     ///
     /// Each expense credits its payers and debits its share holders. Because the payload type
-    /// guarantees those two totals are equal, every expense contributes exactly zero to the group
-    /// total — which is why the whole thing sums to zero no matter what sequence produced it.
-    public func balances() -> Balances {
-        var byMember: [MemberID: Int64] = [:]
-        byMember.reserveCapacity(members.count)
-        for memberId in members.keys {
-            byMember[memberId] = 0
+    /// guarantees those two totals are equal, every expense contributes exactly zero to its
+    /// bucket's total — which is why every bucket sums to zero no matter what sequence produced
+    /// it (property test P1, per bucket).
+    public func balances() -> GroupBalances {
+        var buckets: [CurrencyCode: [MemberID: Int64]] = [:]
+
+        func bucket(_ code: CurrencyCode) -> [MemberID: Int64] {
+            if let existing = buckets[code] { return existing }
+            // Every member appears in every bucket at zero, so "kvitt" renders as 0 rather than
+            // as absence — and the settled count over a bucket means something.
+            var fresh: [MemberID: Int64] = [:]
+            fresh.reserveCapacity(members.count)
+            for memberId in members.keys { fresh[memberId] = 0 }
+            return fresh
         }
 
         for expense in expenses.values where !expense.isDeleted {
+            var byMember = bucket(expense.currency)
             for line in expense.payload.payers {
                 byMember[line.memberId, default: 0] += line.amountMinor
             }
             for line in expense.payload.shares {
                 byMember[line.memberId, default: 0] -= line.amountMinor
             }
+            buckets[expense.currency] = byMember
         }
 
         for payment in payments.values {
+            var byMember = bucket(payment.currency)
             // Paying down a debt moves the payer toward zero from below.
             byMember[payment.fromMemberId, default: 0] += payment.amountMinor
             byMember[payment.toMemberId, default: 0] -= payment.amountMinor
+            buckets[payment.currency] = byMember
         }
 
-        return Balances(currency: currency, byMember: byMember)
+        // An empty group still has a ledger: its primary currency, everyone at zero.
+        if buckets.isEmpty {
+            buckets[currency] = bucket(currency)
+        }
+
+        return GroupBalances(byCurrency: buckets.map { Balances(currency: $0.key, byMember: $0.value) })
     }
 
-    /// Every line behind one member's balance, oldest first, with a running total that ends on
-    /// exactly the number shown in the UI. This is the Balansgranskning screen and the CSV export.
-    public func breakdown(for memberId: MemberID) -> [LedgerEntry] {
+    /// The bucket of the group's primary currency — the one `GroupCreated` fixed, the default
+    /// for new expenses, and the ≈-conversion target. Always present.
+    public func primaryBalances() -> Balances {
+        balances().balances(in: currency) ?? Balances(currency: currency, byMember: [:])
+    }
+
+    /// Every line behind one member's balance **in one currency**, oldest first, with a running
+    /// total that ends on exactly the number shown in the UI. Currency-scoped because a running
+    /// total across SEK and DKK lines would be adding kronor to kroner — a number with no meaning.
+    /// This is the Balansgranskning screen and the CSV export.
+    public func breakdown(for memberId: MemberID, in entryCurrency: CurrencyCode) -> [LedgerEntry] {
         struct Contribution {
             let source: LedgerEntry.Source
             let date: CalendarDate
@@ -117,7 +143,7 @@ public struct GroupState: Hashable, Sendable, Identifiable {
 
         var contributions: [Contribution] = []
 
-        for expense in expenses.values where !expense.isDeleted {
+        for expense in expenses.values where !expense.isDeleted && expense.currency == entryCurrency {
             let delta = expense.payload.paid(by: memberId) - expense.payload.share(of: memberId)
             guard delta != 0 || expense.payload.involvedMembers.contains(memberId) else { continue }
             contributions.append(
@@ -130,7 +156,7 @@ public struct GroupState: Hashable, Sendable, Identifiable {
             )
         }
 
-        for payment in payments.values {
+        for payment in payments.values where payment.currency == entryCurrency {
             let delta: Int64
             switch memberId {
             case payment.fromMemberId: delta = payment.amountMinor
@@ -180,8 +206,10 @@ public struct GroupState: Hashable, Sendable, Identifiable {
         }
     }
 
-    /// Suggested settle-up transfers for this group. Display only — it creates no events.
+    /// Suggested settle-up transfers for this group, per currency bucket in currency order.
+    /// Display only — it creates no events. Buckets never net against each other: a SEK debt is
+    /// paid in SEK, full stop, because the alternative is a transfer at a rate somebody disputes.
     public func suggestedTransfers() -> [SuggestedTransfer] {
-        DebtSimplifier.simplify(balances())
+        balances().byCurrency.flatMap { DebtSimplifier.simplify($0) }
     }
 }

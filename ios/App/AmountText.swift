@@ -24,13 +24,22 @@ enum MoneyFormat {
     }
 
     /// `43_700` SEK → `"437 kr"`; `14_566` → `"145,66 kr"`. Swedish decimal comma.
-    static func string(_ amountMinor: Int64, _ currency: CurrencyCode, sign: SignStyle = .none) -> String {
+    ///
+    /// `explicit` renders the ISO code instead of the symbol — `"80 DKK"`. Required wherever
+    /// currencies mix, because SEK, DKK and NOK all *symbolise* as "kr" and a screen showing
+    /// two of them with the same suffix would be lying with formatting (M7).
+    static func string(
+        _ amountMinor: Int64,
+        _ currency: CurrencyCode,
+        sign: SignStyle = .none,
+        explicit: Bool = false
+    ) -> String {
         let magnitude = abs(amountMinor)
         let kronor = magnitude / 100
         let ore = magnitude % 100
         // Öre only when there is a remainder — the mockup writes whole amounts as "437 kr".
         let number = ore == 0 ? "\(kronor)" : "\(kronor),\(ore < 10 ? "0" : "")\(ore)"
-        return "\(prefix(amountMinor, sign))\(number) \(symbol(currency))"
+        return "\(prefix(amountMinor, sign))\(number) \(explicit ? currency.code : symbol(currency))"
     }
 
     private static func prefix(_ amountMinor: Int64, _ sign: SignStyle) -> String {
@@ -56,11 +65,14 @@ struct SignedAmountText: View {
     let currency: CurrencyCode
     var size: CGFloat = 17
     var sign: MoneyFormat.SignStyle = .always
+    /// Show the ISO code instead of the symbol — for any amount not in its context's primary
+    /// currency, where "kr" alone would not say which kronor.
+    var explicit: Bool = false
     /// A spoken phrase for VoiceOver, e.g. "Du ska få 340 kronor". Falls back to the plain string.
     var accessibilityPhrase: String?
 
     var body: some View {
-        Text(MoneyFormat.string(amountMinor, currency, sign: sign))
+        Text(MoneyFormat.string(amountMinor, currency, sign: sign, explicit: explicit))
             .font(.system(size: size, weight: .semibold))
             .monospacedDigit()
             .foregroundStyle(Theme.tint(forSign: amountMinor))
@@ -75,9 +87,10 @@ struct NeutralAmountText: View {
     let amountMinor: Int64
     let currency: CurrencyCode
     var size: CGFloat = 17
+    var explicit: Bool = false
 
     var body: some View {
-        Text(MoneyFormat.string(amountMinor, currency))
+        Text(MoneyFormat.string(amountMinor, currency, explicit: explicit))
             .font(.system(size: size, weight: .semibold))
             .monospacedDigit()
             .foregroundStyle(Theme.ink)

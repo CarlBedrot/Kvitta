@@ -14,6 +14,8 @@ public static class RejectionCode
     public const string MoneyInvariantViolated = "money_invariant_violated";
     public const string InvalidAmount = "invalid_amount";
     public const string UnknownMember = "unknown_member";
+    // Retired in M7: a group holds any mix of currencies, each its own sub-ledger. The constant
+    // stays because rejected events recorded before M7 still carry it and clients still map it.
     public const string CurrencyMismatch = "currency_mismatch";
     public const string MalformedPayload = "malformed_payload";
     public const string PayloadTooLarge = "payload_too_large";

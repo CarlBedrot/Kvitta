@@ -28,20 +28,23 @@ public enum ReminderPlanner {
     /// it exists to stop money being awkward, not to automate the awkwardness.
     public static func outstanding(in state: LedgerState, for userId: UserID) -> [DebtReminder] {
         state.groups.values
-            .compactMap { group -> DebtReminder? in
+            .flatMap { group -> [DebtReminder] in
                 guard let me = group.members.values.first(where: { $0.linkedUserId == userId }),
-                      me.isActive else { return nil }
+                      me.isActive else { return [] }
 
-                let balance = group.balances().money(for: me.id)
+                // One reminder per currency you owe in — a mixed group can have you square in
+                // SEK and behind in DKK, and those are two different debts to two intents.
                 // Negative is owing. Zero is settled, and settled is the state this whole app is
                 // trying to reach — never remind anyone about it.
-                guard balance.amountMinor < 0 else { return nil }
-
-                return DebtReminder(
-                    groupId: group.id,
-                    groupName: group.name,
-                    owed: Money(amountMinor: -balance.amountMinor, currency: balance.currency)
-                )
+                return group.balances().byCurrency.compactMap { bucket in
+                    let balance = bucket.money(for: me.id)
+                    guard balance.amountMinor < 0 else { return nil }
+                    return DebtReminder(
+                        groupId: group.id,
+                        groupName: group.name,
+                        owed: Money(amountMinor: -balance.amountMinor, currency: balance.currency)
+                    )
+                }
             }
             .sorted { lhs, rhs in
                 if lhs.owed.amountMinor != rhs.owed.amountMinor {

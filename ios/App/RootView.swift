@@ -15,6 +15,7 @@ struct RootView: View {
     let session: SessionModel
     let invites: InviteModel
     let reminders: ReminderScheduler
+    let rates: RateStore
 
     private enum AppTab: Hashable { case grupper, aktivitet, jag }
 
@@ -40,7 +41,7 @@ struct RootView: View {
                 }
                 Tab("Jag", systemImage: "person.crop.circle", value: AppTab.jag) {
                     JagView(ledger: ledger, sync: sync, profile: profile, session: session,
-                            invites: invites, reminders: reminders, userId: userId)
+                            invites: invites, reminders: reminders, rates: rates, userId: userId)
                 }
             }
 
@@ -69,7 +70,7 @@ struct RootView: View {
     private var grupperTab: some View {
         NavigationStack(path: $grupperPath) {
             HomeView(ledger: ledger, userId: userId, invites: invites, profile: profile,
-                     images: images, onNewGroup: { showingNewGroup = true })
+                     images: images, rates: rates, onNewGroup: { showingNewGroup = true })
                 .overlay(alignment: .bottomTrailing) {
                     // Hidden on the empty state, which carries its own call to action.
                     if !ledger.state.groups.isEmpty {

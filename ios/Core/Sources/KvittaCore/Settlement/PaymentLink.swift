@@ -161,7 +161,8 @@ public enum PaymentLinkBuilder {
     }
 
     /// Minor units to a decimal, by integer arithmetic only: `43_700` → `"437.00"`.
-    static func decimalString(_ minor: Int64) -> String {
+    /// Public since M7: the MobilePay clipboard hand-off needs the same exact string.
+    public static func decimalString(_ minor: Int64) -> String {
         let major = minor / 100
         let remainder = abs(minor % 100)
         return "\(major).\(remainder < 10 ? "0" : "")\(remainder)"

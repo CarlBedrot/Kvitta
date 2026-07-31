@@ -13,10 +13,22 @@ extension GroupState {
         members.values.first { $0.linkedUserId == userId }
     }
 
-    /// The local user's net position in this group. Zero when there is no linked member yet.
+    /// The local user's net position in this group, one `Money` per currency bucket, primary
+    /// currency first. Zero-in-primary when there is no linked member yet.
+    func nets(for userId: UserID) -> [Money] {
+        guard let me = me(for: userId) else { return [.zero(currency)] }
+        let all = balances().byCurrency.map { $0.money(for: me.id) }
+        // Primary first, then the rest in bucket order — every screen leads with the same line.
+        return all.sorted { lhs, rhs in
+            if lhs.currency == currency { return true }
+            if rhs.currency == currency { return false }
+            return lhs.currency.code < rhs.currency.code
+        }
+    }
+
+    /// The primary-currency net alone, for contexts that lead with one number.
     func net(for userId: UserID) -> Money {
-        guard let me = me(for: userId) else { return .zero(currency) }
-        return balances().money(for: me.id)
+        nets(for: userId).first ?? .zero(currency)
     }
 
     /// When the group last changed, for sorting the home list. `nil` means no expenses or

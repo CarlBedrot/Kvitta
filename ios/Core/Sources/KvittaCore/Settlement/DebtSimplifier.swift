@@ -6,11 +6,15 @@ public struct SuggestedTransfer: Hashable, Sendable {
     public let from: MemberID
     public let to: MemberID
     public let amountMinor: Int64
+    /// The bucket this transfer settles. A SEK debt is paid in SEK — transfers never convert,
+    /// because a converted transfer is an amount at a rate somebody can dispute.
+    public let currency: CurrencyCode
 
-    public init(from: MemberID, to: MemberID, amountMinor: Int64) {
+    public init(from: MemberID, to: MemberID, amountMinor: Int64, currency: CurrencyCode) {
         self.from = from
         self.to = to
         self.amountMinor = amountMinor
+        self.currency = currency
     }
 }
 
@@ -25,10 +29,10 @@ public struct SuggestedTransfer: Hashable, Sendable {
 public enum DebtSimplifier {
 
     public static func simplify(_ balances: Balances) -> [SuggestedTransfer] {
-        simplify(balances.byMember)
+        simplify(balances.byMember, currency: balances.currency)
     }
 
-    public static func simplify(_ byMember: [MemberID: Int64]) -> [SuggestedTransfer] {
+    public static func simplify(_ byMember: [MemberID: Int64], currency: CurrencyCode) -> [SuggestedTransfer] {
         // A named struct rather than a labelled tuple: the tuple version of this chain sends
         // Swift's expression type checker into the weeds and takes minutes to compile.
         struct Side {
@@ -66,7 +70,8 @@ public enum DebtSimplifier {
                 SuggestedTransfer(
                     from: debtors[debtorIndex].memberId,
                     to: creditors[creditorIndex].memberId,
-                    amountMinor: amount
+                    amountMinor: amount,
+                    currency: currency
                 )
             )
 

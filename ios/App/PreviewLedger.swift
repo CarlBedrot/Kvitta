@@ -132,14 +132,16 @@ enum PreviewLedger {
     let ledger = PreviewLedger.populated()
     RootView(ledger: ledger, userId: PreviewLedger.userId, sync: PreviewLedger.sync(ledger),
              profile: UserProfile(defaults: .previewProfile), session: PreviewLedger.session(ledger),
-             invites: PreviewLedger.invites(ledger), reminders: ReminderScheduler())
+             invites: PreviewLedger.invites(ledger), reminders: ReminderScheduler(),
+             rates: RateStore(defaults: .previewProfile))
 }
 
 #Preview("Hem – tom") {
     let ledger = PreviewLedger.empty()
     RootView(ledger: ledger, userId: PreviewLedger.userId, sync: PreviewLedger.sync(ledger),
              profile: UserProfile(defaults: .previewProfile), session: PreviewLedger.session(ledger),
-             invites: PreviewLedger.invites(ledger), reminders: ReminderScheduler())
+             invites: PreviewLedger.invites(ledger), reminders: ReminderScheduler(),
+             rates: RateStore(defaults: .previewProfile))
 }
 
 #Preview("Ny utgift") {
@@ -158,7 +160,8 @@ enum PreviewLedger {
         GroupDetailView(ledger: ledger, userId: PreviewLedger.userId, groupId: group.id,
                         invites: PreviewLedger.invites(ledger),
                         profile: UserProfile(defaults: .previewProfile),
-                        images: GroupImageStore(defaults: .previewProfile))
+                        images: GroupImageStore(defaults: .previewProfile),
+                        rates: RateStore(defaults: .previewProfile))
     }
 }
 

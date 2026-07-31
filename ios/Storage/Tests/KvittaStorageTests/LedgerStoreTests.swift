@@ -56,8 +56,8 @@ struct LedgerStoreTests {
         let groupId = try seed(ledger)
 
         let group = try #require(ledger.state.groups[groupId])
-        #expect(group.balances().amountMinor(for: members[0]) == 29_133)
-        #expect(group.balances().totalMinor == 0)
+        #expect(group.primaryBalances().amountMinor(for: members[0]) == 29_133)
+        #expect(group.primaryBalances().totalMinor == 0)
         // Everything written locally is queued for push; nothing is lost if the app dies here.
         #expect(try ledger.pendingPushCount() == 5)
     }
@@ -73,7 +73,7 @@ struct LedgerStoreTests {
         try second.rebuild()
 
         #expect(second.state == first.state)
-        #expect(second.state.groups[groupId]?.balances().amountMinor(for: members[0]) == 29_133)
+        #expect(second.state.groups[groupId]?.primaryBalances().amountMinor(for: members[0]) == 29_133)
     }
 
     @Test("Rebuilding from the log changes nothing — it is the launch path, not a repair tool")
@@ -115,7 +115,7 @@ struct LedgerStoreTests {
         #expect(ledger.state.groups[Fixtures.groupId]?.expenses.count
             == before.groups[Fixtures.groupId]?.expenses.count)
         #expect(ledger.state.skipped.count == 1)
-        #expect(ledger.state.groups[Fixtures.groupId]?.balances().totalMinor == 0)
+        #expect(ledger.state.groups[Fixtures.groupId]?.primaryBalances().totalMinor == 0)
     }
 
     @Test("Pulled events are folded in and acknowledged ones leave the queue")
@@ -133,7 +133,7 @@ struct LedgerStoreTests {
         #expect(try ledger.pendingPushCount() == 0)
         #expect(ledger.state.groups[Fixtures.groupId]?.lastAppliedSeq == 5)
         // Acknowledgement is bookkeeping: the money must not move.
-        #expect(ledger.state.groups[Fixtures.groupId]?.balances().amountMinor(for: members[0])
+        #expect(ledger.state.groups[Fixtures.groupId]?.primaryBalances().amountMinor(for: members[0])
             == 29_133)
     }
 

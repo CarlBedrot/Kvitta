@@ -29,6 +29,9 @@ final class NewExpenseModel: Identifiable {
     var amount = AmountInput()
     var descriptionText = ""
     var categoryId = Categories.fallbackId
+    /// The expense's own currency (M7). Defaults to the group's primary; a Copenhagen dinner in
+    /// a SEK group is entered as DKK and lands in the DKK bucket, no conversion anywhere.
+    var currency: CurrencyCode = .sek
     var payerId: MemberID?
     var draft: SplitDraft
     var failure: String?
@@ -46,6 +49,7 @@ final class NewExpenseModel: Identifiable {
         let memberIds = (group?.activeMembers ?? []).map(\.id)
         self.draft = SplitDraft(members: memberIds)
         self.payerId = group?.me(for: userId)?.id ?? memberIds.first
+        self.currency = group?.currency ?? .sek
     }
 
     /// Prefills the sheet from an existing expense, reopening the split editor in the mode the
@@ -60,6 +64,8 @@ final class NewExpenseModel: Identifiable {
         self.descriptionText = expense.title
         self.categoryId = expense.categoryId
         self.payerId = expense.payload.payers.first?.memberId
+        // An edit keeps the stored currency: a correction to the amount is not a re-denomination.
+        self.currency = expense.currency
         let memberIds = (ledger.state[groupId]?.activeMembers ?? []).map(\.id)
         self.draft = SplitDraft(
             splitInput: expense.payload.splitInput,
@@ -78,15 +84,15 @@ final class NewExpenseModel: Identifiable {
     var group: GroupState? { ledger.state[groupId] }
     var members: [Member] { group?.activeMembers ?? [] }
     var memberIds: [MemberID] { members.map(\.id) }
-    var currency: CurrencyCode { group?.currency ?? .sek }
     var amountMinor: Int64 { amount.amountMinor }
 
-    /// Switching the group resets the split and payer to the new membership.
+    /// Switching the group resets the split, payer and currency to the new group's.
     func selectGroup(_ id: GroupID) {
         groupId = id
         let ids = memberIds
         draft = SplitDraft(members: ids)
         payerId = group?.me(for: userId)?.id ?? ids.first
+        currency = group?.currency ?? .sek
     }
 
     // MARK: - Payer display

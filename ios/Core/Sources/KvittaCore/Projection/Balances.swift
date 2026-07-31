@@ -60,6 +60,43 @@ public struct Balances: Hashable, Sendable {
     }
 }
 
+/// Every balance in a group, one `Balances` per currency — the shape of a group since M7.
+///
+/// A group is a container of per-currency sub-ledgers: an expense is always in exactly one
+/// currency (its rounding invariant depends on that), but a trip can hold ICA receipts in SEK
+/// and restaurant bills in DKK side by side. Nothing here converts anything — conversion is a
+/// display concern (`ExchangeRates`), and a stored conversion would break the zero-sum property
+/// the moment a rate moved.
+public struct GroupBalances: Hashable, Sendable {
+    /// Sorted by currency code, so two devices with the same log render the same order.
+    public let byCurrency: [Balances]
+
+    public init(byCurrency: [Balances]) {
+        self.byCurrency = byCurrency.sorted { $0.currency.code < $1.currency.code }
+    }
+
+    public func balances(in currency: CurrencyCode) -> Balances? {
+        byCurrency.first { $0.currency == currency }
+    }
+
+    /// One member's position in every currency they have any position in. Zero-balances in a
+    /// currency the member never touched are omitted; a zero in a currency they moved through
+    /// is kept, because "kvitt" is information.
+    public func money(for memberId: MemberID) -> [Money] {
+        byCurrency.map { $0.money(for: memberId) }
+    }
+
+    /// Settled means *every* bucket is settled. One outstanding DKK debt keeps a group open no
+    /// matter how clean the SEK side is.
+    public var isSettled: Bool {
+        byCurrency.allSatisfy(\.isSettled)
+    }
+
+    public var currencies: [CurrencyCode] {
+        byCurrency.map(\.currency)
+    }
+}
+
 /// One line behind a balance: which expense or payment moved it, and by how much.
 ///
 /// This is what makes a balance auditable rather than a number you have to trust. Tapping a

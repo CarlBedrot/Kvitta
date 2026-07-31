@@ -71,6 +71,16 @@ public struct EventFactory {
         )
     }
 
+    public mutating func groupUpdated(
+        name: String? = nil,
+        currency: CurrencyCode? = nil
+    ) -> EventEnvelope {
+        make(
+            entityId: groupId.rawValue,
+            payload: .groupUpdated(GroupUpdatedPayload(name: name, currency: currency))
+        )
+    }
+
     public mutating func memberAdded(
         _ memberId: MemberID,
         name: String,

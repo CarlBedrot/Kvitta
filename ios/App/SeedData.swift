@@ -47,6 +47,23 @@ enum SeedData {
             in: groupId
         )
 
+        // A DKK dinner in the same group (M7): the trip crossed the Øresund. Lands in its own
+        // bucket, shows the mixed-currency hero, the filter menu, and the MobilePay settle path.
+        try ledger.record(
+            .expenseCreated(
+                try ExpensePayload.make(
+                    description: "Middag i København",
+                    categoryId: "restaurang",
+                    date: today,
+                    total: Money(amountMinor: 60_000, currency: .dkk),
+                    paidBy: members[1],
+                    splitEquallyAmong: members
+                )
+            ),
+            entityId: ExpenseID().rawValue,
+            in: groupId
+        )
+
         // A settle-up, so the payment path gets exercised too.
         try ledger.record(
             .paymentRecorded(

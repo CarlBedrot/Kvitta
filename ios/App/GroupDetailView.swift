@@ -16,6 +16,8 @@ struct GroupDetailView: View {
     let invites: InviteModel
     let profile: UserProfile
     let images: GroupImageStore
+    let rates: RateStore
+    var displayModes = CurrencyDisplayStore()
 
     @State private var settlingTransfer: TransferPresentation?
     @State private var auditingMember: MemberID?
@@ -43,6 +45,7 @@ struct GroupDetailView: View {
     private func content(for group: GroupState) -> some View {
         let meId = group.me(for: userId)?.id
         let canSplit = group.activeMembers.count >= 2
+        let mode = displayModes.mode(for: groupId)
         return ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 // The trust rule (product principles): every balance on screen opens the exact
@@ -50,8 +53,11 @@ struct GroupDetailView: View {
                 GroupHeroCard(
                     group: group,
                     userId: userId,
+                    mode: mode,
+                    rates: rates.rates,
                     photo: images.image(for: groupId),
                     onPhotoPicked: { images.set($0, for: groupId) },
+                    onMode: { displayModes.set($0, for: groupId) },
                     onAudit: { if let meId { auditingMember = meId } }
                 )
 
@@ -72,13 +78,16 @@ struct GroupDetailView: View {
                 TransfersCard(
                     group: group,
                     meId: meId,
+                    mode: mode,
                     onSettle: { settlingTransfer = TransferPresentation(transfer: $0) },
                     onAudit: { auditingMember = $0 }
                 )
 
-                MembersCard(group: group, meId: meId) { auditingMember = $0 }
+                MembersCard(group: group, meId: meId, mode: mode, rates: rates.rates) {
+                    auditingMember = $0
+                }
 
-                ExpenseList(group: group, meId: meId) { viewingExpense = $0 }
+                ExpenseList(group: group, meId: meId, mode: mode) { viewingExpense = $0 }
                 DeletedExpensesSection(
                     group: group,
                     showingDeleted: $showingDeleted,
@@ -160,19 +169,21 @@ private struct TransferPresentation: Identifiable {
 private struct GroupHeroCard: View {
     let group: GroupState
     let userId: UserID
+    let mode: CurrencyDisplay
+    let rates: ExchangeRates?
     let photo: Data?
     let onPhotoPicked: (Data?) -> Void
+    let onMode: (CurrencyDisplay) -> Void
     let onAudit: () -> Void
 
     @State private var photoItem: PhotosPickerItem?
 
     var body: some View {
-        let net = group.net(for: userId)
         Group {
-            if group.balances().byMember.values.allSatisfy({ $0 == 0 }) {
+            if group.balances().isSettled {
                 settled
             } else {
-                open(net: net)
+                open
             }
         }
         .task(id: photoItem) { await loadPhoto() }
@@ -215,44 +226,141 @@ private struct GroupHeroCard: View {
         .background(Theme.positiveWash, in: .rect(cornerRadius: 28))
     }
 
-    private func open(net: Money) -> some View {
-        let direction = BalanceDirection(net.amountMinor)
-        let members = group.activeMembers.count
-        let settledMembers = group.balances().byMember.values.filter { $0 == 0 }.count
-        return HStack(alignment: .top, spacing: 16) {
-            Button(action: onAudit) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(direction == .owe ? "Du är skyldig" : (direction == .owed ? "Du ligger ute med" : "Din balans"))
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(Theme.secondary)
-
-                    SignedAmountText(
-                        amountMinor: net.amountMinor,
-                        currency: net.currency,
-                        size: 40,
-                        sign: direction == .settled ? .always : .none,
-                        accessibilityPhrase: "\(direction.spokenWord) \(MoneyFormat.string(abs(net.amountMinor), net.currency))"
-                    )
-                    .contentTransition(.numericText())
-
-                    SettleProgressBar(
-                        fraction: members == 0 ? 0 : Double(settledMembers) / Double(members),
-                        tint: Theme.tint(forSign: net.amountMinor)
-                    )
-                    .padding(.top, 8)
-
-                    Text("\(settledMembers) av \(members) är kvitt")
-                        .font(.caption)
-                        .foregroundStyle(Theme.tertiary)
+    /// The nets to draw, shaped by the viewing mode. Exact by default; ≈ on request.
+    private var displayedNets: [(money: Money, approximate: Bool)] {
+        let nets = group.nets(for: userId)
+        switch mode {
+        case .native:
+            return nets.map { ($0, false) }
+        case .only(let currency):
+            return nets.filter { $0.currency == currency }.map { ($0, false) }
+        case .converted:
+            guard let rates else { return nets.map { ($0, false) } }
+            // Sum in the primary currency, integer math throughout. Any bucket the table
+            // cannot convert keeps its own line rather than silently vanishing from the total.
+            var totalMinor: Int64 = 0
+            var stubborn: [(Money, Bool)] = []
+            var anyConverted = false
+            for net in nets {
+                if let converted = rates.convert(net, to: group.currency) {
+                    totalMinor += converted.amountMinor
+                    if net.currency != group.currency { anyConverted = true }
+                } else {
+                    stubborn.append((net, false))
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(.rect)
             }
-            .buttonStyle(ScaleButtonStyle())
+            return [(Money(amountMinor: totalMinor, currency: group.currency), anyConverted)] + stubborn
+        }
+    }
 
-            badge
+    private var open: some View {
+        let nets = displayedNets
+        let lead = nets.first
+        let members = group.activeMembers.count
+        // Settled here means settled in every bucket — one open DKK debt keeps you un-kvitt.
+        let settledMembers = group.activeMembers.filter { member in
+            group.balances().byCurrency.allSatisfy { $0.amountMinor(for: member.id) == 0 }
+        }.count
+
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top, spacing: 16) {
+                Button(action: onAudit) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if let lead {
+                            let direction = BalanceDirection(lead.money.amountMinor)
+                            Text(direction == .owe ? "Du är skyldig" : (direction == .owed ? "Du ligger ute med" : "Din balans"))
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(Theme.secondary)
+
+                            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                if lead.approximate {
+                                    // The ≈ is the honesty marker: this number moves when the
+                                    // ECB fixing does, without any money moving.
+                                    Text("≈").font(.system(size: 28, weight: .medium))
+                                        .foregroundStyle(Theme.tertiary)
+                                }
+                                SignedAmountText(
+                                    amountMinor: lead.money.amountMinor,
+                                    currency: lead.money.currency,
+                                    size: 40,
+                                    sign: .none,
+                                    explicit: lead.money.currency != group.currency,
+                                    accessibilityPhrase: "\(BalanceDirection(lead.money.amountMinor).spokenWord) \(MoneyFormat.string(abs(lead.money.amountMinor), lead.money.currency, explicit: true))"
+                                )
+                                .contentTransition(.numericText())
+                            }
+
+                            // The other buckets, exact and explicit — the default view leads with
+                            // precision and never hides a currency you have money in.
+                            ForEach(nets.dropFirst(), id: \.money.currency) { line in
+                                SignedAmountText(
+                                    amountMinor: line.money.amountMinor,
+                                    currency: line.money.currency,
+                                    size: 22,
+                                    explicit: true
+                                )
+                            }
+                        }
+
+                        SettleProgressBar(
+                            fraction: members == 0 ? 0 : Double(settledMembers) / Double(members),
+                            tint: Theme.tint(forSign: lead?.money.amountMinor ?? 0)
+                        )
+                        .padding(.top, 8)
+
+                        Text("\(settledMembers) av \(members) är kvitt")
+                            .font(.caption)
+                            .foregroundStyle(Theme.tertiary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(.rect)
+                }
+                .buttonStyle(ScaleButtonStyle())
+
+                VStack(alignment: .trailing, spacing: 10) {
+                    badge
+                    currencyMenu
+                }
+            }
         }
         .cardSurface(padding: 24)
+    }
+
+    /// The mode switch, only shown once there is more than one currency to have an opinion about.
+    @ViewBuilder
+    private var currencyMenu: some View {
+        let currencies = group.balances().currencies
+        if currencies.count > 1 {
+            Menu {
+                Picker("Visa", selection: Binding(get: { mode }, set: onMode)) {
+                    Text("Alla valutor").tag(CurrencyDisplay.native)
+                    ForEach(currencies, id: \.self) { currency in
+                        Text("Bara \(currency.code)").tag(CurrencyDisplay.only(currency))
+                    }
+                    if rates != nil {
+                        Text("≈ i \(group.currency.code)").tag(CurrencyDisplay.converted)
+                    }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "coloncurrencysign.arrow.circlepath")
+                    Text(modeLabel)
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.secondary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Theme.ink.opacity(0.05), in: .capsule)
+            }
+        }
+    }
+
+    private var modeLabel: String {
+        switch mode {
+        case .native: return String(localized: "Alla")
+        case .only(let currency): return currency.code
+        case .converted: return "≈ \(group.currency.code)"
+        }
     }
 }
 
@@ -339,11 +447,22 @@ private struct QuickActionRow: View {
 private struct TransfersCard: View {
     let group: GroupState
     let meId: MemberID?
+    let mode: CurrencyDisplay
     let onSettle: (SuggestedTransfer) -> Void
     let onAudit: (MemberID) -> Void
 
+    /// Transfers are always native — a converted transfer would be an unpayable number at a
+    /// rate somebody disputes. The filter narrows; converted mode leaves them exact.
+    private var filteredTransfers: [SuggestedTransfer] {
+        let all = group.suggestedTransfers()
+        if case .only(let currency) = mode {
+            return all.filter { $0.currency == currency }
+        }
+        return all
+    }
+
     var body: some View {
-        let transfers = group.suggestedTransfers()
+        let transfers = filteredTransfers
         if !transfers.isEmpty {
             SectionHeader(title: String(localized: "Vem är skyldig vem"))
             VStack(spacing: 0) {
@@ -389,9 +508,10 @@ private struct TransferRow: View {
                         .foregroundStyle(Theme.ink)
                     SignedAmountText(
                         amountMinor: transfer.amountMinor,
-                        currency: group.currency,
+                        currency: transfer.currency,
                         size: 15,
                         sign: .none,
+                        explicit: transfer.currency != group.currency,
                         accessibilityPhrase: spokenPhrase
                     )
                     Spacer(minLength: 8)
@@ -420,7 +540,7 @@ private struct TransferRow: View {
     }
 
     private var spokenPhrase: String {
-        "\(name(transfer.from)) → \(name(transfer.to)), \(MoneyFormat.string(transfer.amountMinor, group.currency))"
+        "\(name(transfer.from)) → \(name(transfer.to)), \(MoneyFormat.string(transfer.amountMinor, transfer.currency, explicit: true))"
     }
 }
 
@@ -431,10 +551,11 @@ private struct TransferRow: View {
 private struct MembersCard: View {
     let group: GroupState
     let meId: MemberID?
+    let mode: CurrencyDisplay
+    let rates: ExchangeRates?
     let onAudit: (MemberID) -> Void
 
     var body: some View {
-        let balances = group.balances().byMember
         let members = group.activeMembers.sorted { left, right in
             // You first, then by name — the mockup's order, and the one people scan for.
             if left.id == meId { return true }
@@ -456,12 +577,22 @@ private struct MembersCard: View {
                             .font(.body.weight(.medium))
                             .foregroundStyle(Theme.ink)
                         Spacer()
-                        SignedAmountText(
-                            amountMinor: balances[member.id] ?? 0,
-                            currency: group.currency,
-                            size: 15,
-                            accessibilityPhrase: "\(member.displayName): \(BalanceDirection(balances[member.id] ?? 0).spokenWord) \(MoneyFormat.string(abs(balances[member.id] ?? 0), group.currency))"
-                        )
+                        VStack(alignment: .trailing, spacing: 2) {
+                            ForEach(lines(for: member.id), id: \.money.currency) { line in
+                                HStack(spacing: 3) {
+                                    if line.approximate {
+                                        Text("≈").font(.caption).foregroundStyle(Theme.tertiary)
+                                    }
+                                    SignedAmountText(
+                                        amountMinor: line.money.amountMinor,
+                                        currency: line.money.currency,
+                                        size: 15,
+                                        explicit: line.money.currency != group.currency,
+                                        accessibilityPhrase: "\(member.displayName): \(BalanceDirection(line.money.amountMinor).spokenWord) \(MoneyFormat.string(abs(line.money.amountMinor), line.money.currency, explicit: true))"
+                                    )
+                                }
+                            }
+                        }
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
@@ -472,6 +603,43 @@ private struct MembersCard: View {
         }
         .cardSurface(padding: 8)
     }
+
+    /// A member's balance lines under the current mode: every bucket, one bucket, or one ≈ sum.
+    private func lines(for memberId: MemberID) -> [(money: Money, approximate: Bool)] {
+        let buckets = group.balances().byCurrency
+        switch mode {
+        case .native:
+            // Primary first, matching the hero.
+            let all = buckets.map { $0.money(for: memberId) }
+            return all.sorted { lhs, rhs in
+                if lhs.currency == group.currency { return true }
+                if rhs.currency == group.currency { return false }
+                return lhs.currency.code < rhs.currency.code
+            }.map { ($0, false) }
+        case .only(let currency):
+            return buckets.filter { $0.currency == currency }
+                .map { ($0.money(for: memberId), false) }
+        case .converted:
+            guard let rates else { return lines(forNative: memberId) }
+            var totalMinor: Int64 = 0
+            var stubborn: [(Money, Bool)] = []
+            var anyConverted = false
+            for bucket in buckets {
+                let money = bucket.money(for: memberId)
+                if let converted = rates.convert(money, to: group.currency) {
+                    totalMinor += converted.amountMinor
+                    if money.currency != group.currency && money.amountMinor != 0 { anyConverted = true }
+                } else {
+                    stubborn.append((money, false))
+                }
+            }
+            return [(Money(amountMinor: totalMinor, currency: group.currency), anyConverted)] + stubborn
+        }
+    }
+
+    private func lines(forNative memberId: MemberID) -> [(money: Money, approximate: Bool)] {
+        group.balances().byCurrency.map { ($0.money(for: memberId), false) }
+    }
 }
 
 // MARK: - Expense list
@@ -479,11 +647,21 @@ private struct MembersCard: View {
 private struct ExpenseList: View {
     let group: GroupState
     let meId: MemberID?
+    let mode: CurrencyDisplay
     let onSelect: (ExpenseID) -> Void
+
+    /// The only-mode filter narrows the list; native and ≈ modes always show every expense
+    /// in its own currency — an expense is a fact, and facts do not convert.
+    private var visibleUnderMode: [Expense] {
+        if case .only(let currency) = mode {
+            return group.visibleExpenses.filter { $0.currency == currency }
+        }
+        return group.visibleExpenses
+    }
 
     var body: some View {
         // visibleExpenses is already newest-first; chunk into months preserving that order.
-        let months = MonthGroup.group(group.visibleExpenses)
+        let months = MonthGroup.group(visibleUnderMode)
         ForEach(months) { month in
             SectionHeader(title: month.title)
             VStack(spacing: 0) {
@@ -614,10 +792,11 @@ private struct ExpenseRow: View {
                 NeutralAmountText(
                     amountMinor: expense.amountMinor,
                     currency: expense.currency,
-                    size: 16
+                    size: 16,
+                    explicit: expense.currency != group.currency
                 )
                 if let meId {
-                    Text("din del \(MoneyFormat.string(expense.payload.share(of: meId), expense.currency))")
+                    Text("din del \(MoneyFormat.string(expense.payload.share(of: meId), expense.currency, explicit: expense.currency != group.currency))")
                         .font(.caption)
                         .foregroundStyle(Theme.secondary)
                         .monospacedDigit()

@@ -73,7 +73,15 @@ public enum Projector {
 
         case .groupUpdated(let payload):
             if let name = payload.name { group.name = name }
-            if let currency = payload.currency { group.currency = currency }
+            if let currency = payload.currency {
+                // Only while the ledger is empty. The primary currency decides how existing
+                // amounts are read and defaulted; changing it under a live ledger would
+                // reinterpret every stored number (Payloads.swift already warns). Ignored, not
+                // skipped: the rest of the update (a rename, say) still applies.
+                if group.expenses.isEmpty && group.payments.isEmpty {
+                    group.currency = currency
+                }
+            }
             if let coverPhotoRef = payload.coverPhotoRef { group.coverPhotoRef = coverPhotoRef }
 
         case .memberAdded(let payload):
@@ -119,10 +127,6 @@ public enum Projector {
                 skipReason = .entityAlreadyExists
                 break
             }
-            guard payload.currency == group.currency else {
-                skipReason = .currencyMismatch(expected: group.currency, found: payload.currency)
-                break
-            }
             if let unknown = firstUnknownMember(payload.involvedMembers, in: group) {
                 skipReason = .unknownMember(unknown)
                 break
@@ -140,10 +144,6 @@ public enum Projector {
             let expenseId = event.expenseId
             guard group.expenses[expenseId] != nil else {
                 skipReason = .unknownExpense(expenseId)
-                break
-            }
-            guard payload.currency == group.currency else {
-                skipReason = .currencyMismatch(expected: group.currency, found: payload.currency)
                 break
             }
             if let unknown = firstUnknownMember(payload.involvedMembers, in: group) {
@@ -177,10 +177,6 @@ public enum Projector {
             let paymentId = event.paymentId
             guard group.payments[paymentId] == nil else {
                 skipReason = .entityAlreadyExists
-                break
-            }
-            guard payload.currency == group.currency else {
-                skipReason = .currencyMismatch(expected: group.currency, found: payload.currency)
                 break
             }
             if let unknown = firstUnknownMember(
