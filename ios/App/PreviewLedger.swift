@@ -157,7 +157,8 @@ enum PreviewLedger {
     NavigationStack {
         GroupDetailView(ledger: ledger, userId: PreviewLedger.userId, groupId: group.id,
                         invites: PreviewLedger.invites(ledger),
-                        profile: UserProfile(defaults: .previewProfile))
+                        profile: UserProfile(defaults: .previewProfile),
+                        images: GroupImageStore(defaults: .previewProfile))
     }
 }
 

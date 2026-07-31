@@ -22,6 +22,7 @@ struct RootView: View {
     @State private var showingNewGroup = false
     @State private var expenseModel: NewExpenseModel?
     @State private var showingActions = false
+    @State private var images = GroupImageStore()
     /// Held here so creating a group can push straight into it. A new group has nobody in it yet,
     /// so landing back on the list would leave you looking at a row you cannot do anything with.
     @State private var grupperPath = NavigationPath()
@@ -68,7 +69,7 @@ struct RootView: View {
     private var grupperTab: some View {
         NavigationStack(path: $grupperPath) {
             HomeView(ledger: ledger, userId: userId, invites: invites, profile: profile,
-                     onNewGroup: { showingNewGroup = true })
+                     images: images, onNewGroup: { showingNewGroup = true })
                 .overlay(alignment: .bottomTrailing) {
                     // Hidden on the empty state, which carries its own call to action.
                     if !ledger.state.groups.isEmpty {

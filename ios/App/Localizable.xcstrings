@@ -1,6 +1,7 @@
 {
   "sourceLanguage" : "sv",
   "strings" : {
+    "%@" : {},
     "%@ är kvitt" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -19,6 +20,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ owes"
+          }
+        }
+      }
+    },
+    "%@ av %@ är kvitt" : {
+      "localizations" : {
+        "sv" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ av %2$@ är kvitt"
+          }
+        }
+      }
+    },
+    "%@ av %@ grupper är kvitt" : {
+      "localizations" : {
+        "sv" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ av %2$@ grupper är kvitt"
           }
         }
       }
@@ -77,6 +98,7 @@
       }
     },
     "%lld av %lld är kvitt" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -87,6 +109,7 @@
       }
     },
     "%lld av %lld grupper är kvitt" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -108,6 +131,7 @@
       }
     },
     "%lld personer" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -279,6 +303,7 @@
       }
     },
     "Dela en ny kostnad med gruppen" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -417,6 +442,7 @@
       }
     },
     "Din balans" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -459,6 +485,7 @@
       }
     },
     "Drinkar" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -469,6 +496,7 @@
       }
     },
     "Du" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -551,6 +579,7 @@
       }
     },
     "Du ligger ute med" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -624,6 +653,7 @@
       }
     },
     "Fika" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -698,6 +728,7 @@
       }
     },
     "Grupperna är inte kvitt än" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -718,6 +749,7 @@
       }
     },
     "Idag" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -728,6 +760,7 @@
       }
     },
     "Igår" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -948,6 +981,7 @@
       }
     },
     "Lägg till" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -968,6 +1002,7 @@
       }
     },
     "Lägg till eller bjud in" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1011,6 +1046,7 @@
       }
     },
     "Lägg till utgift" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1052,6 +1088,7 @@
       }
     },
     "Markera som betald" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1073,7 +1110,6 @@
       }
     },
     "Medlemmar" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1084,6 +1120,7 @@
       }
     },
     "Medlemmar och inbjudan" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1094,6 +1131,7 @@
       }
     },
     "Middag" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1201,6 +1239,7 @@
       }
     },
     "Om Kvitta" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1211,6 +1250,7 @@
       }
     },
     "Öppna Swish" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1265,6 +1305,7 @@
       }
     },
     "Redigera" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1296,6 +1337,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Redigerad %1$@ gånger · senast %2$@%3$@"
+          }
+        }
+      }
+    },
+    "Registrera betalning" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Register payment"
           }
         }
       }
@@ -1380,6 +1431,7 @@
       }
     },
     "Snabbfunktioner" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1390,6 +1442,7 @@
       }
     },
     "Spara" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1431,6 +1484,7 @@
       }
     },
     "Stäng" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1441,6 +1495,7 @@
       }
     },
     "Starta en grupp och bjud in med en länk" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1503,6 +1558,7 @@
       }
     },
     "Totalt" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1540,6 +1596,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Developer tools"
+          }
+        }
+      }
+    },
+    "Välj gruppbild" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose group photo"
           }
         }
       }
@@ -1588,6 +1654,7 @@
       }
     },
     "Version" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

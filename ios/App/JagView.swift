@@ -507,22 +507,4 @@ private struct RejectedPushList: View {
     }
 }
 
-private extension UIImage {
-    /// Centre-cropped to a square and scaled down, so avatars are cheap to store and to draw.
-    func squareThumbnail(side: CGFloat) -> UIImage? {
-        let shortest = min(size.width, size.height)
-        let crop = CGRect(
-            x: (size.width - shortest) / 2,
-            y: (size.height - shortest) / 2,
-            width: shortest,
-            height: shortest
-        )
-        guard let cropped = cgImage?.cropping(to: crop) else { return nil }
-
-        let target = CGSize(width: side, height: side)
-        return UIGraphicsImageRenderer(size: target).image { _ in
-            UIImage(cgImage: cropped, scale: scale, orientation: imageOrientation)
-                .draw(in: CGRect(origin: .zero, size: target))
-        }
-    }
-}
+// squareThumbnail moved to UserProfile.swift — group photos need it too.
