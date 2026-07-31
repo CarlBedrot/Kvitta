@@ -92,7 +92,7 @@ private struct ExpenseHeader: View {
             Text(Categories.emoji(for: expense.categoryId))
                 .font(.system(size: 30))
                 .frame(width: 64, height: 64)
-                .background(Color(hex: 0xF5EBDD), in: .circle)
+                .background(Theme.accent.opacity(0.08), in: .circle)
             Text(expense.title)
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(Theme.ink)
@@ -178,14 +178,8 @@ private struct ActionButtons: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            Button(action: onEdit) {
-                Text("Redigera")
-                    .font(.headline)
-                    .foregroundStyle(Color(hex: 0xF6F1E7))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
-            }
-            .glassEffect(.regular.tint(Theme.espresso).interactive(), in: .rect(cornerRadius: 24))
+            Button("Redigera", action: onEdit)
+                .buttonStyle(PrimaryButtonStyle(fill: Theme.ink))
 
             Button(role: .destructive, action: onDelete) {
                 Text("Ta bort")

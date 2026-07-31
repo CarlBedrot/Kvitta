@@ -62,46 +62,30 @@ struct SettleUpSheet: View {
                     RequestPaymentButton(link: requestLink)
                 }
             } else if let link = paymentLink {
-                Button { handOff(to: link) } label: {
-                    Text(link.method == .swish ? "Öppna Swish" : "Öppna MobilePay")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                }
                 // Swish pink, deliberately off-palette: recognition beats palette purity for a
                 // button whose whole job is to look like the app it opens (ui-design.md).
-                .glassEffect(
-                    .regular.tint(link.method == .swish ? Color(hex: 0xEE4A9B) : Color(hex: 0x5A78FF)).interactive(),
-                    in: .rect(cornerRadius: 24)
-                )
+                Button(link.method == .swish ? "Öppna Swish" : "Öppna MobilePay") {
+                    handOff(to: link)
+                }
+                .buttonStyle(PrimaryButtonStyle(
+                    fill: link.method == .swish ? Color(hex: 0xEE4A9B) : Color(hex: 0x5A78FF)
+                ))
                 .padding(.horizontal, 20)
                 .padding(.bottom, 10)
             } else if needsNumber {
-                Button { askingForNumber = true } label: {
-                    Text("Öppna Swish")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                }
-                .glassEffect(.regular.tint(Color(hex: 0xEE4A9B)).interactive(), in: .rect(cornerRadius: 24))
-                .padding(.horizontal, 20)
-                .padding(.bottom, 10)
+                Button("Öppna Swish") { askingForNumber = true }
+                    .buttonStyle(PrimaryButtonStyle(fill: Color(hex: 0xEE4A9B)))
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 10)
             }
 
-            Button(action: { settle(method: .cash) }) {
-                Text("Markera som betald")
-                    .font(.headline)
-                    .foregroundStyle(Color(hex: 0xF6F1E7))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-            }
-            .glassEffect(.regular.tint(Theme.espresso).interactive(), in: .rect(cornerRadius: 24))
-            .padding(.horizontal, 20)
+            Button("Markera som betald") { settle(method: .cash) }
+                .buttonStyle(PrimaryButtonStyle(fill: Theme.ink))
+                .padding(.horizontal, 20)
 
             Button("Avbryt") { dismiss() }
-                .foregroundStyle(Theme.clay)
+                .font(.body.weight(.medium))
+                .foregroundStyle(Theme.secondary)
                 .padding(.top, 14)
                 .padding(.bottom, 24)
         }
@@ -141,7 +125,7 @@ struct SettleUpSheet: View {
         return VStack(spacing: 12) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(MoneyFormat.string(transfer.amountMinor, currency))
-                    .font(.system(size: 44, weight: .semibold, design: .rounded))
+                    .font(.system(size: 44, weight: .semibold))
                     .monospacedDigit()
                     .foregroundStyle(Theme.ink)
             }
@@ -225,12 +209,13 @@ struct SettleUpSheet: View {
             if let link {
                 ShareLink(item: link) {
                     Text("Skicka betallänk")
-                        .font(.headline)
+                        .font(.body.weight(.semibold))
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
+                        .background(Color(hex: 0xEE4A9B), in: .rect(cornerRadius: 22))
                 }
-                .glassEffect(.regular.tint(Color(hex: 0xEE4A9B)).interactive(), in: .rect(cornerRadius: 24))
+                .buttonStyle(ScaleButtonStyle())
                 .padding(.horizontal, 20)
                 .padding(.bottom, 10)
             } else {

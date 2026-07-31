@@ -85,14 +85,16 @@ private struct SheetHeader: View {
                     .foregroundStyle(Theme.ink)
                     .padding(.horizontal, 13)
                     .padding(.vertical, 7)
-                    .glassEffect(in: .capsule)
+                    .background(Theme.card, in: .capsule)
+                    .shadow(color: .black.opacity(0.05), radius: 6, y: 2)
                 }
             }
 
             Spacer()
 
             Button("Avbryt", action: onCancel)
-                .foregroundStyle(Theme.clay)
+                .font(.body.weight(.medium))
+                .foregroundStyle(Theme.secondary)
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
@@ -108,11 +110,11 @@ private struct AmountDisplay: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text(display)
-                .font(.system(size: 58, weight: .semibold, design: .rounded))
+                .font(.system(size: 58, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(Theme.ink)
             Text(symbol)
-                .font(.system(size: 26, weight: .medium, design: .rounded))
+                .font(.system(size: 26, weight: .medium))
                 .foregroundStyle(Theme.secondary)
         }
         .padding(.top, 20)
@@ -134,6 +136,7 @@ private struct DescriptionSection: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 15)
                 .background(Theme.card, in: .rect(cornerRadius: 18))
+                .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
@@ -146,9 +149,9 @@ private struct DescriptionSection: View {
                                 .font(.subheadline.weight(.medium))
                                 .foregroundStyle(Theme.ink)
                                 .padding(.horizontal, 14)
-                                .padding(.vertical, 7)
-                                .background(Theme.card, in: .capsule)
-                                .overlay(Capsule().stroke(Theme.hairline))
+                                .padding(.vertical, 8)
+                                .background(Theme.card, in: .rect(cornerRadius: 18))
+                                .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
                         }
                         .buttonStyle(.plain)
                     }
@@ -173,14 +176,15 @@ private struct SummaryRow: View {
             HStack {
                 summaryText.foregroundStyle(Theme.ink)
                 Spacer()
-                Image(systemName: "chevron.right").foregroundStyle(Color(hex: 0xC6BDAE))
+                Image(systemName: "chevron.right").foregroundStyle(Theme.tertiary)
             }
             .font(.subheadline.weight(.medium))
             .padding(.horizontal, 16)
             .padding(.vertical, 15)
             .background(Theme.card, in: .rect(cornerRadius: 18))
+            .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScaleButtonStyle())
         .padding(.horizontal, 20)
         .padding(.top, 12)
     }
@@ -258,7 +262,7 @@ private struct KeyButton: View {
     var body: some View {
         Button(action: action) {
             Text(key.label)
-                .font(.system(size: 27, weight: .regular, design: .rounded))
+                .font(.system(size: 27, weight: .regular))
                 .foregroundStyle(Theme.ink)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
@@ -284,15 +288,9 @@ private struct SaveButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            Text("Spara")
-                .font(.headline)
-                .foregroundStyle(Color(hex: 0xF6F1E7))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 17)
-        }
-        .glassEffect(.regular.tint(Theme.espresso).interactive(), in: .rect(cornerRadius: 24))
-        .opacity(enabled ? 1 : 0.5)
+        Button("Spara", action: action)
+            .buttonStyle(PrimaryButtonStyle())
+            .opacity(enabled ? 1 : 0.5)
         .disabled(!enabled)
         .padding(.horizontal, 20)
         .padding(.top, 12)

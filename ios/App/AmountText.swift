@@ -45,8 +45,9 @@ enum MoneyFormat {
     }
 }
 
-/// An amount rendered the way the design demands everywhere: SF Rounded, monospaced digits,
-/// semibold, coloured by sign. The loudest thing on any screen.
+/// An amount rendered the way the design demands everywhere: SF Pro, monospaced digits,
+/// semibold, coloured by sign. The loudest thing on any screen — large numbers dominate the
+/// balance cards, so the face is the system one, not rounded.
 ///
 /// Colour never carries meaning alone (accessibility floor) — callers pair this with a direction
 /// word, and the VoiceOver label folds direction, amount, and counterpart into one phrase.
@@ -60,7 +61,7 @@ struct SignedAmountText: View {
 
     var body: some View {
         Text(MoneyFormat.string(amountMinor, currency, sign: sign))
-            .font(.system(size: size, weight: .semibold, design: .rounded))
+            .font(.system(size: size, weight: .semibold))
             .monospacedDigit()
             .foregroundStyle(Theme.tint(forSign: amountMinor))
             .accessibilityLabel(accessibilityPhrase ?? MoneyFormat.string(amountMinor, currency, sign: sign))
@@ -77,7 +78,7 @@ struct NeutralAmountText: View {
 
     var body: some View {
         Text(MoneyFormat.string(amountMinor, currency))
-            .font(.system(size: size, weight: .semibold, design: .rounded))
+            .font(.system(size: size, weight: .semibold))
             .monospacedDigit()
             .foregroundStyle(Theme.ink)
     }

@@ -2,12 +2,11 @@ import SwiftUI
 import KvittaCore
 import KvittaStorage
 
-/// Gruppvy: your balance on the zero line, who owes whom, and the expense list by month.
+/// Gruppvy: the hero balance, who owes whom, the members, and the expense list by month.
 ///
 /// Everything here is a read of the projection — `balances()`, `suggestedTransfers()`,
 /// `visibleExpenses` — plus one write path: a transfer's "Gör upp" opens `SettleUpSheet`, which
-/// records a `PaymentRecorded` through `LedgerStore.record`. Glass on this screen: the system
-/// tab bar and the per-transfer "Gör upp" buttons.
+/// records a `PaymentRecorded` through `LedgerStore.record`.
 struct GroupDetailView: View {
     let ledger: LedgerStore
     let userId: UserID
@@ -22,9 +21,8 @@ struct GroupDetailView: View {
     @State private var showingDeleted = false
     @State private var restoreFailure: String?
     @State private var showingMembers = false
-    /// Adding an expense from inside the group it belongs to. `RootView` has to guess a group from
-    /// recent activity; here the group is the screen you are standing on, so there is nothing to
-    /// guess and no reason to make you go out to the list to come straight back.
+    /// Adding an expense from inside the group it belongs to — the group is the screen you are
+    /// standing on, so there is nothing to guess.
     @State private var expenseModel: NewExpenseModel?
 
     /// The live group out of the projection. `nil` only if the group vanished mid-navigation,
@@ -44,18 +42,27 @@ struct GroupDetailView: View {
         let meId = group.me(for: userId)?.id
         let canSplit = group.activeMembers.count >= 2
         return ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 16) {
                 // The trust rule (product principles): every balance on screen opens the exact
-                // lines behind it. The card audits you; a transfer row audits the counterparty.
+                // lines behind it. The card audits you; a member row audits that member.
                 Button {
                     if let meId { auditingMember = meId }
                 } label: {
-                    GroupBalanceCard(group: group, userId: userId)
+                    GroupHeroCard(group: group, userId: userId)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ScaleButtonStyle())
 
                 if !canSplit {
                     SoloGroupCard { showingMembers = true }
+                }
+
+                if canSplit {
+                    QuickActionsCard(
+                        onAddExpense: {
+                            expenseModel = NewExpenseModel(ledger: ledger, userId: userId, groupId: groupId)
+                        },
+                        onMembers: { showingMembers = true }
+                    )
                 }
 
                 TransfersCard(
@@ -64,6 +71,9 @@ struct GroupDetailView: View {
                     onSettle: { settlingTransfer = TransferPresentation(transfer: $0) },
                     onAudit: { auditingMember = $0 }
                 )
+
+                MembersCard(group: group, meId: meId) { auditingMember = $0 }
+
                 ExpenseList(group: group, meId: meId) { viewingExpense = $0 }
                 DeletedExpensesSection(
                     group: group,
@@ -71,22 +81,13 @@ struct GroupDetailView: View {
                     failure: restoreFailure,
                     onRestore: restore
                 )
-                Color.clear.frame(height: 120)
+                Color.clear.frame(height: 100)
             }
-            .padding(.horizontal, 18)
-            .padding(.top, 8)
+            .padding(.horizontal, 20)
+            .padding(.top, 4)
         }
         .background(AmbientBackground())
-        .overlay(alignment: .bottomTrailing) {
-            // Hidden until there is somebody to split with, because an expense in a group of one
-            // is not an expense. The card above says what to do instead.
-            if canSplit {
-                FAB { expenseModel = NewExpenseModel(ledger: ledger, userId: userId, groupId: groupId) }
-                    .padding(.trailing, 20)
-                    .padding(.bottom, 80)
-            }
-        }
-        .navigationTitle(group.name)
+        .navigationTitle(GroupBadge.title(of: group.name))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -135,37 +136,68 @@ private struct TransferPresentation: Identifiable {
     let transfer: SuggestedTransfer
 }
 
-// MARK: - Balance card
+// MARK: - Hero
 
-private struct GroupBalanceCard: View {
+/// Your position in this group: the sentence, the number large, and how much of the group is
+/// already settled. Settled gets the green celebration instead of a zero.
+private struct GroupHeroCard: View {
     let group: GroupState
     let userId: UserID
 
     var body: some View {
         let net = group.net(for: userId)
-        let direction = BalanceDirection(net.amountMinor)
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Din balans").font(.subheadline).foregroundStyle(Theme.secondary)
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                SignedAmountText(
-                    amountMinor: net.amountMinor,
-                    currency: net.currency,
-                    size: 30,
-                    accessibilityPhrase: "\(direction.spokenWord) \(MoneyFormat.string(abs(net.amountMinor), net.currency))"
-                )
-                Text(direction.word).font(.footnote).foregroundStyle(Theme.secondary)
-            }
-            .padding(.top, 2)
-            ZeroLine(amountMinor: net.amountMinor, scaleMinor: scale)
-                .padding(.top, 12)
+        if group.balances().byMember.values.allSatisfy({ $0 == 0 }) {
+            settled
+        } else {
+            open(net: net)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .cardSurface()
     }
 
-    /// The largest balance magnitude in the group, so every member's bar reads on one scale.
-    private var scale: Int64 {
-        group.balances().byMember.values.map { abs($0) }.max() ?? 0
+    private var settled: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Ni är kvitt 🎉")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(Theme.ink)
+            Text("Ingen i gruppen är skyldig någon något.")
+                .font(.subheadline)
+                .foregroundStyle(Theme.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(24)
+        .background(Theme.positiveWash, in: .rect(cornerRadius: 28))
+        .accessibilityElement(children: .combine)
+    }
+
+    private func open(net: Money) -> some View {
+        let direction = BalanceDirection(net.amountMinor)
+        let members = group.activeMembers.count
+        let settledMembers = group.balances().byMember.values.filter { $0 == 0 }.count
+        return VStack(alignment: .leading, spacing: 8) {
+            Text(direction == .owe ? "Du är skyldig" : (direction == .owed ? "Du ligger ute med" : "Din balans"))
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(Theme.secondary)
+
+            SignedAmountText(
+                amountMinor: net.amountMinor,
+                currency: net.currency,
+                size: 40,
+                sign: direction == .settled ? .always : .none,
+                accessibilityPhrase: "\(direction.spokenWord) \(MoneyFormat.string(abs(net.amountMinor), net.currency))"
+            )
+            .contentTransition(.numericText())
+
+            SettleProgressBar(
+                fraction: members == 0 ? 0 : Double(settledMembers) / Double(members),
+                tint: Theme.tint(forSign: net.amountMinor)
+            )
+            .padding(.top, 8)
+
+            Text("\(settledMembers) av \(members) är kvitt")
+                .font(.caption)
+                .foregroundStyle(Theme.tertiary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardSurface(padding: 24)
     }
 }
 
@@ -175,9 +207,7 @@ private struct GroupBalanceCard: View {
 ///
 /// A group is created with only you in it now, so this is the state every group passes through.
 /// It points at one place — Medlemmar — because that screen already holds both ways forward: the
-/// invite link, and adding somebody by name for the friend who will never install anything. Only
-/// one of those works without an account and a reachable server, which is exactly why neither is
-/// presented as the way.
+/// invite link, and adding somebody by name for the friend who will never install anything.
 private struct SoloGroupCard: View {
     let onOpenMembers: () -> Void
 
@@ -189,16 +219,57 @@ private struct SoloGroupCard: View {
             Text("Bjud in de andra med en länk, eller lägg till dem som namn om de inte tänker skaffa appen.")
                 .font(.subheadline)
                 .foregroundStyle(Theme.secondary)
-            Button(action: onOpenMembers) {
-                Label("Lägg till eller bjud in", systemImage: "person.badge.plus")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.espresso)
-            }
-            .buttonStyle(.glass)
-            .padding(.top, 2)
+            Button("Lägg till eller bjud in", action: onOpenMembers)
+                .buttonStyle(PrimaryButtonStyle())
+                .padding(.top, 6)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardSurface()
+    }
+}
+
+// MARK: - Snabbfunktioner
+
+/// The two things people come to a group screen to do, as named rows — the mockup's quick
+/// actions. Settling is deliberately not here: a payment belongs to a specific transfer, and
+/// those have their own "Gör upp" buttons just below.
+private struct QuickActionsCard: View {
+    let onAddExpense: () -> Void
+    let onMembers: () -> Void
+
+    var body: some View {
+        SectionHeader(title: String(localized: "Snabbfunktioner"))
+        VStack(spacing: 0) {
+            QuickActionRow(title: "Lägg till utgift", systemImage: "receipt", action: onAddExpense)
+            Rectangle().fill(Theme.hairline).frame(height: 1).padding(.leading, 64)
+            QuickActionRow(title: "Medlemmar och inbjudan", systemImage: "person.badge.plus", action: onMembers)
+        }
+        .cardSurface(padding: 8)
+    }
+}
+
+private struct QuickActionRow: View {
+    let title: LocalizedStringKey
+    let systemImage: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                IconBadge(systemImage: systemImage, size: 36)
+                Text(title)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(Theme.ink)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Theme.tertiary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
+            .contentShape(.rect)
+        }
+        .buttonStyle(ScaleButtonStyle())
     }
 }
 
@@ -212,14 +283,7 @@ private struct TransfersCard: View {
 
     var body: some View {
         let transfers = group.suggestedTransfers()
-        if transfers.isEmpty {
-            SectionHeader(title: String(localized: "Vem är skyldig vem"))
-            Text("Alla är kvitt 🎉")
-                .font(.subheadline)
-                .foregroundStyle(Theme.secondary)
-                .frame(maxWidth: .infinity)
-                .cardSurface()
-        } else {
+        if !transfers.isEmpty {
             SectionHeader(title: String(localized: "Vem är skyldig vem"))
             VStack(spacing: 0) {
                 ForEach(Array(transfers.enumerated()), id: \.offset) { index, transfer in
@@ -235,7 +299,7 @@ private struct TransfersCard: View {
                     )
                 }
             }
-            .cardSurface(padding: 6)
+            .cardSurface(padding: 8)
         }
     }
 
@@ -258,9 +322,9 @@ private struct TransferRow: View {
             // The row body opens the audit; the trailing button settles. Two separate targets,
             // matching "tap any balance/transfer" from the design doc's trust rule.
             Button(action: onAudit) {
-                HStack {
+                HStack(spacing: 6) {
                     (Text(name(transfer.from)) + Text(verbatim: " → ") + Text(name(transfer.to)))
-                        .font(.subheadline)
+                        .font(.subheadline.weight(.medium))
                         .foregroundStyle(Theme.ink)
                     SignedAmountText(
                         amountMinor: transfer.amountMinor,
@@ -277,8 +341,11 @@ private struct TransferRow: View {
 
             Button("Gör upp", action: onSettle)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.espresso)
-                .buttonStyle(.glass)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Theme.accent, in: .rect(cornerRadius: 18))
+                .buttonStyle(ScaleButtonStyle())
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -293,6 +360,56 @@ private struct TransferRow: View {
 
     private var spokenPhrase: String {
         "\(name(transfer.from)) → \(name(transfer.to)), \(MoneyFormat.string(transfer.amountMinor, group.currency))"
+    }
+}
+
+// MARK: - Medlemmar
+
+/// Everyone in the group with where they stand, the mockup's member list. Tapping a row opens
+/// the audit for that member — same trust rule as everywhere else.
+private struct MembersCard: View {
+    let group: GroupState
+    let meId: MemberID?
+    let onAudit: (MemberID) -> Void
+
+    var body: some View {
+        let balances = group.balances().byMember
+        let members = group.activeMembers.sorted { left, right in
+            // You first, then by name — the mockup's order, and the one people scan for.
+            if left.id == meId { return true }
+            if right.id == meId { return false }
+            return left.displayName < right.displayName
+        }
+        SectionHeader(title: String(localized: "Medlemmar"))
+        VStack(spacing: 0) {
+            ForEach(Array(members.enumerated()), id: \.element.id) { index, member in
+                if index > 0 {
+                    Rectangle().fill(Theme.hairline).frame(height: 1).padding(.leading, 62)
+                }
+                Button {
+                    onAudit(member.id)
+                } label: {
+                    HStack(spacing: 14) {
+                        Avatar(name: member.displayName, size: 36)
+                        Text(member.id == meId ? String(localized: "Du") : member.displayName)
+                            .font(.body.weight(.medium))
+                            .foregroundStyle(Theme.ink)
+                        Spacer()
+                        SignedAmountText(
+                            amountMinor: balances[member.id] ?? 0,
+                            currency: group.currency,
+                            size: 15,
+                            accessibilityPhrase: "\(member.displayName): \(BalanceDirection(balances[member.id] ?? 0).spokenWord) \(MoneyFormat.string(abs(balances[member.id] ?? 0), group.currency))"
+                        )
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .contentShape(.rect)
+                }
+                .buttonStyle(ScaleButtonStyle())
+            }
+        }
+        .cardSurface(padding: 8)
     }
 }
 
@@ -311,7 +428,7 @@ private struct ExpenseList: View {
             VStack(spacing: 0) {
                 ForEach(Array(month.expenses.enumerated()), id: \.element.id) { index, expense in
                     if index > 0 {
-                        Rectangle().fill(Theme.hairline).frame(height: 1)
+                        Rectangle().fill(Theme.hairline).frame(height: 1).padding(.leading, 62)
                     }
                     Button {
                         onSelect(expense.id)
@@ -319,10 +436,10 @@ private struct ExpenseList: View {
                         ExpenseRow(group: group, meId: meId, expense: expense)
                             .contentShape(.rect)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(ScaleButtonStyle())
                 }
             }
-            .cardSurface(padding: 6)
+            .cardSurface(padding: 8)
         }
     }
 }
@@ -339,7 +456,7 @@ private struct DeletedExpensesSection: View {
         let deleted = group.deletedExpenses
         if !deleted.isEmpty {
             Button {
-                withAnimation { showingDeleted.toggle() }
+                withAnimation(.spring(duration: 0.3)) { showingDeleted.toggle() }
             } label: {
                 Text(showingDeleted ? "Dölj borttagna" : "Visa borttagna (\(deleted.count))")
                     .font(.footnote.weight(.medium))
@@ -368,17 +485,16 @@ private struct DeletedExpensesSection: View {
                             .foregroundStyle(Theme.secondary)
                             Button("Återställ") { onRestore(expense.id) }
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(Theme.espresso)
-                                .buttonStyle(.glass)
+                                .foregroundStyle(Theme.accent)
                         }
                         .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 10)
                     }
                 }
-                .cardSurface(padding: 6)
+                .cardSurface(padding: 8)
 
                 if let failure {
-                    Text(failure).font(.footnote).foregroundStyle(Theme.clay)
+                    Text(failure).font(.footnote).foregroundStyle(Theme.negative)
                 }
             }
         }
@@ -420,20 +536,20 @@ private struct ExpenseRow: View {
     let expense: Expense
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 14) {
             Text(Categories.emoji(for: expense.categoryId))
-                .font(.system(size: 18))
+                .font(.system(size: 17))
                 .frame(width: 36, height: 36)
-                .background(Color(hex: 0xF5EBDD), in: .circle)
+                .background(Theme.accent.opacity(0.08), in: .circle)
 
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(expense.title).font(.body.weight(.medium)).foregroundStyle(Theme.ink)
-                Text(payerLine).font(.footnote).foregroundStyle(Theme.secondary)
+                Text(payerLine).font(.caption).foregroundStyle(Theme.secondary)
             }
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 1) {
+            VStack(alignment: .trailing, spacing: 2) {
                 NeutralAmountText(
                     amountMinor: expense.amountMinor,
                     currency: expense.currency,
@@ -458,17 +574,20 @@ private struct ExpenseRow: View {
         let name = first.memberId == meId
             ? String(localized: "Du")
             : group.members[first.memberId]?.displayName ?? "?"
-        return payers.count == 1
+        let paid = payers.count == 1
             ? String(localized: "\(name) betalade")
             : String(localized: "\(name) med flera betalade")
+        // The day, so a row is placed in time without opening it. The month header carries the
+        // month; this carries the date within it.
+        return "\(paid) · \(expense.date.day)/\(expense.date.month)"
     }
 }
 
 // MARK: - Shared
 
-/// The uppercase warm-grey section label from the mockup. Takes a resolved string; localizable
-/// callers pass `String(localized:)`, computed ones (month names) pass the value directly.
-private struct SectionHeader: View {
+/// The small warm-grey section label. Takes a resolved string; localizable callers pass
+/// `String(localized:)`, computed ones (month names) pass the value directly.
+struct SectionHeader: View {
     let title: String
 
     var body: some View {
@@ -476,8 +595,8 @@ private struct SectionHeader: View {
             .font(.footnote.weight(.semibold))
             .textCase(.uppercase)
             .kerning(0.5)
-            .foregroundStyle(Theme.secondary)
-            .padding(.horizontal, 6)
-            .padding(.top, 8)
+            .foregroundStyle(Theme.tertiary)
+            .padding(.horizontal, 8)
+            .padding(.top, 12)
     }
 }
