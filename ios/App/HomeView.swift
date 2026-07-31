@@ -11,6 +11,7 @@ struct HomeView: View {
     /// Carried through only to reach `SettleUpSheet`, which needs your own Swish number to build
     /// the link you send someone who owes you.
     let profile: UserProfile
+    let images: GroupImageStore
     var onNewGroup: () -> Void
 
     private var groups: [GroupState] { ledger.state.groupsByLastActivity }
@@ -36,7 +37,7 @@ struct HomeView: View {
 
                 ForEach(groups) { group in
                     NavigationLink(value: group.id) {
-                        GroupCard(group: group, userId: userId)
+                        GroupCard(group: group, userId: userId, photo: images.image(for: group.id))
                     }
                     .buttonStyle(ScaleButtonStyle())
                 }
@@ -49,7 +50,7 @@ struct HomeView: View {
         }
         .navigationDestination(for: GroupID.self) { groupId in
             GroupDetailView(ledger: ledger, userId: userId, groupId: groupId,
-                            invites: invites, profile: profile)
+                            invites: invites, profile: profile, images: images)
         }
     }
 }
@@ -100,13 +101,21 @@ private struct StatusCard: View {
     }
 
     private var settledCard: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Alla är kvitt 🎉")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(Theme.ink)
-            Text("Du har inga skulder och ingen ligger ute för dig.")
-                .font(.subheadline)
-                .foregroundStyle(Theme.secondary)
+        HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Alla är kvitt 🎉")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(Theme.ink)
+                Text("Du har inga skulder och ingen ligger ute för dig.")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.secondary)
+            }
+            Spacer()
+            // The mockup puts an illustration here. No asset pipeline for one — the emoji
+            // carries the same celebration at zero bytes.
+            Text("🙌")
+                .font(.system(size: 44))
+                .accessibilityHidden(true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(24)
@@ -161,12 +170,13 @@ private struct StatusCard: View {
 private struct GroupCard: View {
     let group: GroupState
     let userId: UserID
+    let photo: Data?
 
     var body: some View {
         let net = group.net(for: userId)
         let direction = BalanceDirection(net.amountMinor)
         HStack(spacing: 14) {
-            GroupBadge(name: group.name, size: 48)
+            GroupBadge(name: group.name, photo: photo, size: 48)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(GroupBadge.title(of: group.name))
@@ -213,26 +223,46 @@ private struct GroupCard: View {
     }
 }
 
-/// The group's face: its emoji on a soft tint if the name carries one, otherwise initials.
-/// Groups have no photos — expenses live on phones, not on a CDN — so the emoji people already
-/// put in their group names ("🏔️ Fjällresan") is promoted to the icon instead.
+/// The group's face: your photo for it if you have set one — with the name's emoji as a corner
+/// badge, the mockup's treatment — otherwise the emoji on a soft tint, otherwise initials.
+///
+/// The photo is this device's own (`GroupImageStore`): a photo in the immutable log would reach
+/// every member forever, so instead everyone decorates their own list, like contacts.
 struct GroupBadge: View {
     let name: String
+    var photo: Data? = nil
     var size: CGFloat = 44
 
     var body: some View {
         Group {
-            if let emoji = Self.emoji(of: name) {
+            if let photo, let image = UIImage(data: photo) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: size, height: size)
+                    .clipShape(.circle)
+                    .overlay(alignment: .bottomTrailing) {
+                        if let emoji = Self.emoji(of: name) {
+                            Text(String(emoji))
+                                .font(.system(size: size * 0.32))
+                                .padding(1)
+                                .background(Theme.card, in: .circle)
+                                .offset(x: 2, y: 2)
+                        }
+                    }
+            } else if let emoji = Self.emoji(of: name) {
                 Text(String(emoji))
                     .font(.system(size: size * 0.5))
+                    .frame(width: size, height: size)
+                    .background(Theme.accent.opacity(0.1), in: .circle)
             } else {
                 Text(initials)
                     .font(.system(size: size * 0.36, weight: .semibold))
                     .foregroundStyle(Theme.accent)
+                    .frame(width: size, height: size)
+                    .background(Theme.accent.opacity(0.1), in: .circle)
             }
         }
-        .frame(width: size, height: size)
-        .background(Theme.accent.opacity(0.1), in: .circle)
         .accessibilityHidden(true)
     }
 

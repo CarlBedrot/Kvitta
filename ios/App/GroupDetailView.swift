@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 import KvittaCore
 import KvittaStorage
 
@@ -14,6 +15,7 @@ struct GroupDetailView: View {
     var payees = PayeeDirectory()
     let invites: InviteModel
     let profile: UserProfile
+    let images: GroupImageStore
 
     @State private var settlingTransfer: TransferPresentation?
     @State private var auditingMember: MemberID?
@@ -45,12 +47,13 @@ struct GroupDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 // The trust rule (product principles): every balance on screen opens the exact
                 // lines behind it. The card audits you; a member row audits that member.
-                Button {
-                    if let meId { auditingMember = meId }
-                } label: {
-                    GroupHeroCard(group: group, userId: userId)
-                }
-                .buttonStyle(ScaleButtonStyle())
+                GroupHeroCard(
+                    group: group,
+                    userId: userId,
+                    photo: images.image(for: groupId),
+                    onPhotoPicked: { images.set($0, for: groupId) },
+                    onAudit: { if let meId { auditingMember = meId } }
+                )
 
                 if !canSplit {
                     SoloGroupCard { showingMembers = true }
@@ -61,6 +64,7 @@ struct GroupDetailView: View {
                         onAddExpense: {
                             expenseModel = NewExpenseModel(ledger: ledger, userId: userId, groupId: groupId)
                         },
+                        onSettle: settleQuickAction(for: group, meId: meId),
                         onMembers: { showingMembers = true }
                     )
                 }
@@ -120,6 +124,17 @@ struct GroupDetailView: View {
         }
     }
 
+    /// The mockup's "Registrera betalning" quick action, wired to the flow that already exists:
+    /// it opens Gör upp for the first suggested transfer that involves you — the one you can
+    /// actually act on — or the first transfer at all when you are not part of any. `nil` (no
+    /// transfers) hides the row: a settled group has nothing to register.
+    private func settleQuickAction(for group: GroupState, meId: MemberID?) -> (() -> Void)? {
+        let transfers = group.suggestedTransfers()
+        guard let transfer = transfers.first(where: { $0.from == meId || $0.to == meId }) ?? transfers.first
+        else { return nil }
+        return { settlingTransfer = TransferPresentation(transfer: transfer) }
+    }
+
     private func restore(_ expenseId: ExpenseID) {
         do {
             try ledger.record(.expenseRestored(EmptyPayload()), entityId: expenseId.rawValue, in: groupId)
@@ -139,64 +154,104 @@ private struct TransferPresentation: Identifiable {
 // MARK: - Hero
 
 /// Your position in this group: the sentence, the number large, and how much of the group is
-/// already settled. Settled gets the green celebration instead of a zero.
+/// already settled. Settled gets the green celebration instead of a zero. The group's badge sits
+/// top-trailing and is a photo picker — tap it to give the group a face; the numbers themselves
+/// still open the audit.
 private struct GroupHeroCard: View {
     let group: GroupState
     let userId: UserID
+    let photo: Data?
+    let onPhotoPicked: (Data?) -> Void
+    let onAudit: () -> Void
+
+    @State private var photoItem: PhotosPickerItem?
 
     var body: some View {
         let net = group.net(for: userId)
-        if group.balances().byMember.values.allSatisfy({ $0 == 0 }) {
-            settled
-        } else {
-            open(net: net)
+        Group {
+            if group.balances().byMember.values.allSatisfy({ $0 == 0 }) {
+                settled
+            } else {
+                open(net: net)
+            }
+        }
+        .task(id: photoItem) { await loadPhoto() }
+    }
+
+    private var badge: some View {
+        PhotosPicker(selection: $photoItem, matching: .images) {
+            GroupBadge(name: group.name, photo: photo, size: 48)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Välj gruppbild")
+    }
+
+    private func loadPhoto() async {
+        guard let photoItem else { return }
+        // Downscaled before storing, same as the profile photo — UserDefaults is read back on
+        // every launch and a camera-size image there would be megabytes.
+        if let data = try? await photoItem.loadTransferable(type: Data.self),
+           let square = UIImage(data: data)?.squareThumbnail(side: 256),
+           let jpeg = square.jpegData(compressionQuality: 0.85) {
+            onPhotoPicked(jpeg)
         }
     }
 
     private var settled: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Ni är kvitt 🎉")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(Theme.ink)
-            Text("Ingen i gruppen är skyldig någon något.")
-                .font(.subheadline)
-                .foregroundStyle(Theme.secondary)
+        HStack(alignment: .top, spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Ni är kvitt 🎉")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(Theme.ink)
+                Text("Ingen i gruppen är skyldig någon något.")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.secondary)
+            }
+            Spacer()
+            badge
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(24)
         .background(Theme.positiveWash, in: .rect(cornerRadius: 28))
-        .accessibilityElement(children: .combine)
     }
 
     private func open(net: Money) -> some View {
         let direction = BalanceDirection(net.amountMinor)
         let members = group.activeMembers.count
         let settledMembers = group.balances().byMember.values.filter { $0 == 0 }.count
-        return VStack(alignment: .leading, spacing: 8) {
-            Text(direction == .owe ? "Du är skyldig" : (direction == .owed ? "Du ligger ute med" : "Din balans"))
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(Theme.secondary)
+        return HStack(alignment: .top, spacing: 16) {
+            Button(action: onAudit) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(direction == .owe ? "Du är skyldig" : (direction == .owed ? "Du ligger ute med" : "Din balans"))
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Theme.secondary)
 
-            SignedAmountText(
-                amountMinor: net.amountMinor,
-                currency: net.currency,
-                size: 40,
-                sign: direction == .settled ? .always : .none,
-                accessibilityPhrase: "\(direction.spokenWord) \(MoneyFormat.string(abs(net.amountMinor), net.currency))"
-            )
-            .contentTransition(.numericText())
+                    SignedAmountText(
+                        amountMinor: net.amountMinor,
+                        currency: net.currency,
+                        size: 40,
+                        sign: direction == .settled ? .always : .none,
+                        accessibilityPhrase: "\(direction.spokenWord) \(MoneyFormat.string(abs(net.amountMinor), net.currency))"
+                    )
+                    .contentTransition(.numericText())
 
-            SettleProgressBar(
-                fraction: members == 0 ? 0 : Double(settledMembers) / Double(members),
-                tint: Theme.tint(forSign: net.amountMinor)
-            )
-            .padding(.top, 8)
+                    SettleProgressBar(
+                        fraction: members == 0 ? 0 : Double(settledMembers) / Double(members),
+                        tint: Theme.tint(forSign: net.amountMinor)
+                    )
+                    .padding(.top, 8)
 
-            Text("\(settledMembers) av \(members) är kvitt")
-                .font(.caption)
-                .foregroundStyle(Theme.tertiary)
+                    Text("\(settledMembers) av \(members) är kvitt")
+                        .font(.caption)
+                        .foregroundStyle(Theme.tertiary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(.rect)
+            }
+            .buttonStyle(ScaleButtonStyle())
+
+            badge
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .cardSurface(padding: 24)
     }
 }
@@ -235,12 +290,18 @@ private struct SoloGroupCard: View {
 /// those have their own "Gör upp" buttons just below.
 private struct QuickActionsCard: View {
     let onAddExpense: () -> Void
+    /// `nil` when the group is settled — there is no payment to register.
+    let onSettle: (() -> Void)?
     let onMembers: () -> Void
 
     var body: some View {
         SectionHeader(title: String(localized: "Snabbfunktioner"))
         VStack(spacing: 0) {
             QuickActionRow(title: "Lägg till utgift", systemImage: "receipt", action: onAddExpense)
+            if let onSettle {
+                Rectangle().fill(Theme.hairline).frame(height: 1).padding(.leading, 64)
+                QuickActionRow(title: "Registrera betalning", systemImage: "arrow.left.arrow.right", action: onSettle)
+            }
             Rectangle().fill(Theme.hairline).frame(height: 1).padding(.leading, 64)
             QuickActionRow(title: "Medlemmar och inbjudan", systemImage: "person.badge.plus", action: onMembers)
         }
