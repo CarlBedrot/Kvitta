@@ -186,12 +186,40 @@ public enum Projector {
                 skipReason = .unknownMember(unknown)
                 break
             }
+            // Born pending only when there is somebody who could ever confirm it: a payee with
+            // a linked account, who is not the author. The payee recording their own incoming
+            // payment is its own confirmation, and a placeholder payee has no one to ask — that
+            // is the by-name friend who never installs the app, whose cash payments must keep
+            // working exactly as before M8.
+            let payeeUser = group.members[payload.toMemberId]?.linkedUserId
+            let born: PaymentStatus =
+                (payeeUser == nil || payeeUser == event.authorId) ? .confirmed : .pending
             group.payments[paymentId] = Payment(
                 id: paymentId,
                 payload: payload,
                 recordedBy: event.authorId,
-                recordedAt: event.clientTimestamp
+                recordedAt: event.clientTimestamp,
+                status: born
             )
+
+        case .paymentConfirmed, .paymentDisputed:
+            let paymentId = event.paymentId
+            guard let payment = group.payments[paymentId] else {
+                skipReason = .unknownPayment(paymentId)
+                break
+            }
+            // Only the payee's word moves the state — this guard, replayed identically on every
+            // device, is the actual security boundary. A forged confirmation from anyone else is
+            // skipped everywhere, so it moves no money no matter what the server stored.
+            guard let payeeUser = group.members[payment.toMemberId]?.linkedUserId,
+                  payeeUser == event.authorId else {
+                skipReason = .notThePayee(paymentId)
+                break
+            }
+            // Last event wins, like every correction in the log: a payee who disputed and then
+            // found the money can still confirm, and the other way around.
+            group.payments[paymentId]?.status =
+                event.payload.eventType == EventType.paymentConfirmed ? .confirmed : .disputed
 
         case .unknown(let type, _):
             skipReason = .unknownEventType(type)

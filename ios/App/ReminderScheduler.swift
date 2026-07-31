@@ -17,6 +17,7 @@ import UserNotifications
 final class ReminderScheduler {
     /// The one request identifier, so rescheduling replaces rather than accumulates.
     private static let identifier = "se.kvitta.reminder.debts"
+    private static let confirmIdentifier = "se.kvitta.reminder.confirmations"
     private static let enabledKey = "se.kvitta.reminders.enabled"
 
     private let centre: UNUserNotificationCenter
@@ -59,6 +60,8 @@ final class ReminderScheduler {
 
         guard isEnabled else { return }
 
+        await scheduleConfirmationNudge(ledger: ledger, userId: userId)
+
         let outstanding = ReminderPlanner.outstanding(in: ledger.state, for: userId)
         guard let largest = outstanding.first else { return }
 
@@ -88,6 +91,41 @@ final class ReminderScheduler {
             identifier: Self.identifier,
             content: content,
             trigger: UNCalendarNotificationTrigger(dateMatching: when, repeats: true)
+        )
+
+        try? await centre.add(request)
+    }
+
+    /// Somebody says they paid you and is waiting on your answer (M8). One notification the
+    /// next morning, not weekly: unlike a debt, this blocks *their* books, and after seven days
+    /// it auto-confirms anyway — so the useful window is short.
+    private func scheduleConfirmationNudge(ledger: LedgerStore, userId: UserID) async {
+        centre.removePendingNotificationRequests(withIdentifiers: [Self.confirmIdentifier])
+
+        let awaiting = ReminderPlanner.awaitingMyConfirmation(in: ledger.state, for: userId)
+        guard let largest = awaiting.first else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = String(localized: "Stämmer betalningen?")
+        content.body = awaiting.count == 1
+            ? String(
+                format: String(localized: "%@ i %@ väntar på att du bekräftar."),
+                MoneyFormat.string(largest.amount.amountMinor, largest.amount.currency),
+                largest.groupName
+            )
+            : String(
+                format: String(localized: "%d betalningar väntar på att du bekräftar."),
+                awaiting.count
+            )
+        content.sound = .default
+
+        var when = DateComponents()
+        when.hour = 9
+
+        let request = UNNotificationRequest(
+            identifier: Self.confirmIdentifier,
+            content: content,
+            trigger: UNCalendarNotificationTrigger(dateMatching: when, repeats: false)
         )
 
         try? await centre.add(request)

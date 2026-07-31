@@ -25,6 +25,7 @@ struct GroupDetailView: View {
     @State private var viewingExpense: ExpenseID?
     @State private var showingDeleted = false
     @State private var restoreFailure: String?
+    @State private var confirmFailure: String?
     @State private var showingMembers = false
     /// Adding an expense from inside the group it belongs to — the group is the screen you are
     /// standing on, so there is nothing to guess.
@@ -69,6 +70,14 @@ struct GroupDetailView: View {
                 if !canSplit {
                     SoloGroupCard { showingMembers = true }
                 }
+
+                // A question outranks the shortcuts: somebody's books are waiting on the answer.
+                PendingPaymentsCard(
+                    group: group,
+                    meId: meId,
+                    failure: confirmFailure,
+                    onAnswer: answer
+                )
 
                 if canSplit {
                     QuickActionsCard(
@@ -156,6 +165,104 @@ struct GroupDetailView: View {
         } catch {
             restoreFailure = String(describing: error)
         }
+    }
+
+    /// The payee's answer to a pending payment (M8). Written like every other event; the
+    /// projector only accepts it because this device's author *is* the payee — anyone else's
+    /// confirmation is skipped as forged on every device that replays it.
+    private func answer(_ payment: Payment, confirmed: Bool) {
+        do {
+            try ledger.record(
+                confirmed ? .paymentConfirmed(EmptyPayload()) : .paymentDisputed(EmptyPayload()),
+                entityId: payment.id.rawValue,
+                in: groupId
+            )
+            confirmFailure = nil
+        } catch {
+            confirmFailure = String(describing: error)
+        }
+    }
+}
+
+/// Payments waiting on somebody's word (M8). The payee gets the two buttons; everyone else
+/// sees whose word is being waited on, which is what makes the state legible instead of spooky.
+private struct PendingPaymentsCard: View {
+    let group: GroupState
+    let meId: MemberID?
+    let failure: String?
+    let onAnswer: (Payment, Bool) -> Void
+
+    var body: some View {
+        let pending = group.paymentsAwaitingConfirmation()
+        if !pending.isEmpty {
+            SectionHeader(title: String(localized: "Väntar på bekräftelse"))
+            VStack(spacing: 0) {
+                ForEach(Array(pending.enumerated()), id: \.element.id) { index, payment in
+                    if index > 0 {
+                        Rectangle().fill(Theme.hairline).frame(height: 1)
+                    }
+                    row(for: payment)
+                }
+                if let failure {
+                    Text(failure).font(.footnote).foregroundStyle(Theme.negative)
+                        .padding(.top, 8)
+                }
+            }
+            .cardSurface(padding: 14)
+        }
+    }
+
+    private func row(for payment: Payment) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Text("\(name(payment.fromMemberId)) → \(name(payment.toMemberId))")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Theme.ink)
+                NeutralAmountText(
+                    amountMinor: payment.amountMinor,
+                    currency: payment.currency,
+                    size: 15,
+                    explicit: payment.currency != group.currency
+                )
+                Spacer(minLength: 8)
+            }
+
+            if payment.toMemberId == meId {
+                HStack(spacing: 10) {
+                    Button(String(localized: "Ja, jag har fått pengarna")) {
+                        onAnswer(payment, true)
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(Theme.positive, in: .rect(cornerRadius: 18))
+                    .buttonStyle(ScaleButtonStyle())
+
+                    Button(String(localized: "Nej")) {
+                        onAnswer(payment, false)
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.negative)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(Theme.negative.opacity(0.12), in: .rect(cornerRadius: 18))
+                    .buttonStyle(ScaleButtonStyle())
+                }
+            } else {
+                // Not yours to answer — but showing *whose* answer is missing is what keeps the
+                // frozen balance from looking like a bug.
+                Text("Räknas när \(name(payment.toMemberId)) bekräftar. Utan svar räknas den efter \(PaymentStatus.autoConfirmAfterDays) dagar.")
+                    .font(.caption)
+                    .foregroundStyle(Theme.secondary)
+            }
+        }
+        .padding(.vertical, 8)
+    }
+
+    private func name(_ memberId: MemberID) -> String {
+        if memberId == meId { return String(localized: "Du") }
+        return group.members[memberId]?.displayName ?? "?"
     }
 }
 

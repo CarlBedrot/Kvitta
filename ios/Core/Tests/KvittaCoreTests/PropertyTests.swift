@@ -15,6 +15,15 @@ import KvittaCoreTestSupport
 struct PropertyTests {
     private let iterations: UInt64 = 1_000
 
+    /// Balances are always asked for *as of a date* since M8 — it decides which pending payments
+    /// have aged into counting. Two fixed probes: before any generated payment has aged, and
+    /// after every one has. The invariants must hold at both, or the auto-confirm window would
+    /// be a day on which the books stop adding up.
+    private let probeDates = [
+        CalendarDate(year: 2026, month: 1, day: 1)!,
+        CalendarDate(year: 2027, month: 1, day: 1)!
+    ]
+
     // MARK: - P1
 
     @Test("P1: balances in a group sum to exactly zero after any valid event sequence")
@@ -26,11 +35,15 @@ struct PropertyTests {
 
             // Per bucket since M7: a group can hold SEK and DKK side by side, and each
             // currency's ledger must independently sum to zero — kronor never cancel kroner.
-            for bucket in group.balances().byCurrency {
-                #expect(
-                    bucket.totalMinor == 0,
-                    "seed \(seed) [\(bucket.currency.code)]: balances \(bucket.byMember)"
-                )
+            // And per probe date since M8: a pending payment is excluded symmetrically, so
+            // zero-sum must survive any auto-confirm cutoff.
+            for asOf in probeDates {
+                for bucket in group.balances(asOf: asOf).byCurrency {
+                    #expect(
+                        bucket.totalMinor == 0,
+                        "seed \(seed) [\(bucket.currency.code)] asOf \(asOf): balances \(bucket.byMember)"
+                    )
+                }
             }
 
             // Zero-sum is trivially satisfiable by projecting nothing at all, so check the fold
@@ -48,12 +61,14 @@ struct PropertyTests {
             let history = try EventSequenceGenerator.make(seed: seed)
             let state = Projector.replay(history.events)
             let group = try #require(state.groups[history.groupId], "seed \(seed)")
-            for bucket in group.balances().byCurrency {
-                for memberId in group.members.keys {
-                    let lines = group.breakdown(for: memberId, in: bucket.currency)
-                    let expected = bucket.amountMinor(for: memberId)
-                    let actual = lines.last?.runningTotalMinor ?? 0
-                    #expect(actual == expected, "seed \(seed) [\(bucket.currency.code)]: member \(memberId)")
+            for asOf in probeDates {
+                for bucket in group.balances(asOf: asOf).byCurrency {
+                    for memberId in group.members.keys {
+                        let lines = group.breakdown(for: memberId, in: bucket.currency, asOf: asOf)
+                        let expected = bucket.amountMinor(for: memberId)
+                        let actual = lines.last?.runningTotalMinor ?? 0
+                        #expect(actual == expected, "seed \(seed) [\(bucket.currency.code)] asOf \(asOf): member \(memberId)")
+                    }
                 }
             }
         }
@@ -136,22 +151,29 @@ struct PropertyTests {
 
     // MARK: - P4
 
-    @Test("P4: applying the suggested settle-up transfers zeroes every balance")
+    @Test("P4: settle-up transfers, once confirmed by their payees, zero every balance")
     func suggestedTransfersSettleTheGroup() throws {
+        // Since M8 this property is two-sided: recording a payment is not enough when the payee
+        // has an account — their confirmation is what makes it count. The payments are dated on
+        // the probe date itself so none of them can age into counting by the back door.
+        let asOf = probeDates[1]
+
         for seed in 0..<iterations {
             let history = try EventSequenceGenerator.make(seed: seed)
             var state = Projector.replay(history.events)
             let group = try #require(state.groups[history.groupId], "seed \(seed)")
 
-            let transfers = group.suggestedTransfers()
+            let payer = UserID()
+            let transfers = group.suggestedTransfers(asOf: asOf)
 
             // At most n-1 transfers per currency bucket, and never a payment to oneself.
-            let buckets = group.balances().byCurrency.count
+            let buckets = group.balances(asOf: asOf).byCurrency.count
             #expect(transfers.count <= buckets * max(0, group.members.count - 1), "seed \(seed)")
             #expect(transfers.allSatisfy { $0.from != $0.to }, "seed \(seed)")
             #expect(transfers.allSatisfy { $0.amountMinor > 0 }, "seed \(seed)")
 
             var seq = history.nextServerSeq
+            var awaiting: [(paymentId: UUID, payee: UserID)] = []
             for transfer in transfers {
                 // The transfer's own currency — settling the DKK bucket with a SEK payment
                 // would be exactly the cross-bucket bleed this milestone must never allow.
@@ -160,26 +182,52 @@ struct PropertyTests {
                     toMemberId: transfer.to,
                     currency: transfer.currency,
                     amountMinor: transfer.amountMinor,
-                    date: Fixtures.date,
+                    date: asOf,
                     method: .swish
                 )
+                let paymentId = UUID()
                 state = Projector.apply(
                     state,
                     EventEnvelope(
                         groupId: history.groupId,
-                        entityId: UUID(),
-                        authorId: UserID(),
+                        entityId: paymentId,
+                        authorId: payer,
                         clientTimestamp: Fixtures.timestamp,
                         serverSeq: seq,
                         payload: .paymentRecorded(payload)
                     )
                 )
                 seq += 1
+                if let payee = history.linkedUsers[transfer.to] {
+                    awaiting.append((paymentId, payee))
+                }
+            }
+
+            // A payment to a member with an account is pending, and pending moves nothing:
+            // the group must NOT read as settled until those payees have answered.
+            let recorded = try #require(state.groups[history.groupId], "seed \(seed)")
+            if !awaiting.isEmpty {
+                #expect(!recorded.balances(asOf: asOf).isSettled, "seed \(seed): pending payments moved money")
+            }
+
+            for (paymentId, payee) in awaiting {
+                state = Projector.apply(
+                    state,
+                    EventEnvelope(
+                        groupId: history.groupId,
+                        entityId: paymentId,
+                        authorId: payee,
+                        clientTimestamp: Fixtures.timestamp,
+                        serverSeq: seq,
+                        payload: .paymentConfirmed(EmptyPayload())
+                    )
+                )
+                seq += 1
             }
 
             let settled = try #require(state.groups[history.groupId], "seed \(seed)")
-            #expect(settled.balances().isSettled, "seed \(seed): \(settled.primaryBalances().byMember)")
-            #expect(settled.suggestedTransfers().isEmpty, "seed \(seed)")
+            #expect(settled.balances(asOf: asOf).isSettled, "seed \(seed): \(settled.primaryBalances(asOf: asOf).byMember)")
+            #expect(settled.suggestedTransfers(asOf: asOf).isEmpty, "seed \(seed)")
         }
     }
 

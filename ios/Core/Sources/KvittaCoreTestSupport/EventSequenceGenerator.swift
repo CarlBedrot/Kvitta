@@ -11,6 +11,9 @@ public struct GeneratedHistory {
     /// single-currency history; the generator emits both kinds.
     public let otherCurrencies: [CurrencyCode]
     public let memberIds: [MemberID]
+    /// Which members ended the history linked to an account, and to whom — what P4 needs to
+    /// author the confirmations that make its settle-up payments count (M8).
+    public let linkedUsers: [MemberID: UserID]
     public let events: [EventEnvelope]
     public var nextServerSeq: Int64
 }
@@ -48,14 +51,14 @@ public enum EventSequenceGenerator {
 
         // Takes the event id rather than drawing one, so this nested function never captures the
         // generator — otherwise passing `&rng` to `randomExpense` would be an overlapping access.
-        func append(eventId: EventID, entityId: UUID, payload: EventPayload) {
+        func append(eventId: EventID, entityId: UUID, payload: EventPayload, author: UserID? = nil) {
             seq += 1
             events.append(
                 EventEnvelope(
                     eventId: eventId,
                     groupId: groupId,
                     entityId: entityId,
-                    authorId: authorId,
+                    authorId: author ?? authorId,
                     clientTimestamp: Timestamp(epochMilliseconds: 1_784_000_000_000 + seq * 60_000),
                     serverSeq: seq,
                     payload: payload
@@ -82,6 +85,10 @@ public enum EventSequenceGenerator {
 
         var liveExpenses: [ExpenseID] = []
         var deletedExpenses: [ExpenseID] = []
+        // Mirrors what the fold will decide, in the same order (M8): which members are linked,
+        // and which payments were born pending and to whom.
+        var linkedUsers: [MemberID: UserID] = [:]
+        var pendingPayments: [(id: UUID, payee: MemberID)] = []
 
         for _ in 0..<rng.nextInt(in: 1...maxActions) {
             let eventId = EventID(rawValue: rng.nextUUID())
@@ -123,7 +130,19 @@ public enum EventSequenceGenerator {
                     date: randomDate(&rng),
                     method: rng.pick([PaymentMethod.cash, .swish, .mobilePay])
                 )
-                append(eventId: eventId, entityId: rng.nextUUID(), payload: .paymentRecorded(payload))
+                let paymentId = rng.nextUUID()
+                // Sometimes the payee records receiving the money themselves — born confirmed.
+                let payeeUser = linkedUsers[pair.1]
+                let selfRecorded = payeeUser != nil && rng.chance(30)
+                append(
+                    eventId: eventId,
+                    entityId: paymentId,
+                    payload: .paymentRecorded(payload),
+                    author: selfRecorded ? payeeUser : nil
+                )
+                if payeeUser != nil && !selfRecorded {
+                    pendingPayments.append((paymentId, pair.1))
+                }
 
             case 86...90:
                 let memberId = MemberID(rawValue: rng.nextUUID())
@@ -145,15 +164,33 @@ public enum EventSequenceGenerator {
                 // an identity to a member must not move a single öre — that indirection is the
                 // whole reason expenses reference members and never users.
                 let memberId = rng.pick(memberIds)
+                // Linking is stable: once a member has an account it stays theirs, mirroring the
+                // real invariant that there is deliberately no way to unlink.
+                let user = linkedUsers[memberId] ?? UserID(rawValue: rng.nextUUID())
                 append(
                     eventId: eventId,
                     entityId: memberId.rawValue,
                     payload: .memberUpdated(
                         MemberUpdatedPayload(
                             displayName: rng.nextInt(in: 1...2) == 1 ? "Renamed" : nil,
-                            linkedUserId: UserID(rawValue: rng.nextUUID())
+                            linkedUserId: user
                         )
                     )
+                )
+                linkedUsers[memberId] = user
+
+            case 96...97 where !pendingPayments.isEmpty:
+                // The payee answers a pending settle-up: usually yes, sometimes no (M8). Always
+                // authored by the payee's linked user — the generator emits only valid events,
+                // and a confirmation from anyone else would be skipped as forged.
+                let index = rng.nextInt(in: 0...(pendingPayments.count - 1))
+                let pending = pendingPayments.remove(at: index)
+                guard let payee = linkedUsers[pending.payee] else { continue }
+                append(
+                    eventId: eventId,
+                    entityId: pending.id,
+                    payload: rng.chance(75) ? .paymentConfirmed(EmptyPayload()) : .paymentDisputed(EmptyPayload()),
+                    author: payee
                 )
 
             case 96...97:
@@ -181,6 +218,7 @@ public enum EventSequenceGenerator {
             currency: currency,
             otherCurrencies: otherCurrencies,
             memberIds: memberIds,
+            linkedUsers: linkedUsers,
             events: events,
             nextServerSeq: seq + 1
         )

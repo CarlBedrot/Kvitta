@@ -83,7 +83,10 @@ public struct GroupState: Hashable, Sendable, Identifiable {
     /// guarantees those two totals are equal, every expense contributes exactly zero to its
     /// bucket's total — which is why every bucket sums to zero no matter what sequence produced
     /// it (property test P1, per bucket).
-    public func balances() -> GroupBalances {
+    /// `asOf` decides which *pending* payments count (aged past the auto-confirm window) —
+    /// see `Payment.countsTowardBalances(asOf:)`. Defaults to today, which is what every screen
+    /// wants; tests pass a fixed date so the answer never depends on when they run.
+    public func balances(asOf: CalendarDate = CalendarDate(Date())) -> GroupBalances {
         var buckets: [CurrencyCode: [MemberID: Int64]] = [:]
 
         func bucket(_ code: CurrencyCode) -> [MemberID: Int64] {
@@ -107,7 +110,7 @@ public struct GroupState: Hashable, Sendable, Identifiable {
             buckets[expense.currency] = byMember
         }
 
-        for payment in payments.values {
+        for payment in payments.values where payment.countsTowardBalances(asOf: asOf) {
             var byMember = bucket(payment.currency)
             // Paying down a debt moves the payer toward zero from below.
             byMember[payment.fromMemberId, default: 0] += payment.amountMinor
@@ -125,15 +128,28 @@ public struct GroupState: Hashable, Sendable, Identifiable {
 
     /// The bucket of the group's primary currency — the one `GroupCreated` fixed, the default
     /// for new expenses, and the ≈-conversion target. Always present.
-    public func primaryBalances() -> Balances {
-        balances().balances(in: currency) ?? Balances(currency: currency, byMember: [:])
+    public func primaryBalances(asOf: CalendarDate = CalendarDate(Date())) -> Balances {
+        balances(asOf: asOf).balances(in: currency) ?? Balances(currency: currency, byMember: [:])
+    }
+
+    /// Payments still waiting on their payee, newest first — the card that asks for a decision.
+    public func paymentsAwaitingConfirmation(asOf: CalendarDate = CalendarDate(Date())) -> [Payment] {
+        payments.values
+            .filter { $0.awaitsConfirmation(asOf: asOf) }
+            .sorted { left, right in
+                left.date == right.date ? left.id < right.id : left.date > right.date
+            }
     }
 
     /// Every line behind one member's balance **in one currency**, oldest first, with a running
     /// total that ends on exactly the number shown in the UI. Currency-scoped because a running
     /// total across SEK and DKK lines would be adding kronor to kroner — a number with no meaning.
     /// This is the Balansgranskning screen and the CSV export.
-    public func breakdown(for memberId: MemberID, in entryCurrency: CurrencyCode) -> [LedgerEntry] {
+    public func breakdown(
+        for memberId: MemberID,
+        in entryCurrency: CurrencyCode,
+        asOf: CalendarDate = CalendarDate(Date())
+    ) -> [LedgerEntry] {
         struct Contribution {
             let source: LedgerEntry.Source
             let date: CalendarDate
@@ -156,7 +172,10 @@ public struct GroupState: Hashable, Sendable, Identifiable {
             )
         }
 
-        for payment in payments.values where payment.currency == entryCurrency {
+        // Only payments that count: the running total must land on exactly the number the
+        // balance shows, and a pending payment is not in that number yet.
+        for payment in payments.values
+        where payment.currency == entryCurrency && payment.countsTowardBalances(asOf: asOf) {
             let delta: Int64
             switch memberId {
             case payment.fromMemberId: delta = payment.amountMinor
@@ -209,7 +228,7 @@ public struct GroupState: Hashable, Sendable, Identifiable {
     /// Suggested settle-up transfers for this group, per currency bucket in currency order.
     /// Display only — it creates no events. Buckets never net against each other: a SEK debt is
     /// paid in SEK, full stop, because the alternative is a transfer at a rate somebody disputes.
-    public func suggestedTransfers() -> [SuggestedTransfer] {
-        balances().byCurrency.flatMap { DebtSimplifier.simplify($0) }
+    public func suggestedTransfers(asOf: CalendarDate = CalendarDate(Date())) -> [SuggestedTransfer] {
+        balances(asOf: asOf).byCurrency.flatMap { DebtSimplifier.simplify($0) }
     }
 }

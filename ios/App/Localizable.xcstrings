@@ -65,6 +65,16 @@
         }
       }
     },
+    "%@ i %@ väntar på att du bekräftar." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ in %2$@ is waiting for you to confirm."
+          }
+        }
+      }
+    },
     "%@ med flera betalade" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -116,6 +126,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ owes"
+          }
+        }
+      }
+    },
+    "%d betalningar väntar på att du bekräftar." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d payments are waiting for you to confirm."
           }
         }
       }
@@ -910,6 +930,16 @@
         }
       }
     },
+    "Ja, jag har fått pengarna" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yes, I got the money"
+          }
+        }
+      }
+    },
     "Jag" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1249,6 +1279,16 @@
         }
       }
     },
+    "Nej" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No"
+          }
+        }
+      }
+    },
     "Nej, inte än" : {
       "localizations" : {
         "en" : {
@@ -1436,6 +1476,16 @@
         }
       }
     },
+    "Räknas när %@ bekräftar. Utan svar räknas den efter %lld dagar." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Counts once %1$@ confirms. With no answer it counts after %2$lld days."
+          }
+        }
+      }
+    },
     "Skapa" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1563,6 +1613,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Status"
+          }
+        }
+      }
+    },
+    "Stämmer betalningen?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Is this payment right?"
           }
         }
       }
@@ -1809,6 +1869,16 @@
         }
       }
     },
+    "Väntar på bekräftelse" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Awaiting confirmation"
+          }
+        }
+      }
+    },
     "Väntar på push" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1816,6 +1886,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Awaiting push"
+          }
+        }
+      }
+    },
+    "bestriden" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "disputed"
           }
         }
       }
@@ -1945,6 +2025,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "edited"
+          }
+        }
+      }
+    },
+    "väntar" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pending"
           }
         }
       }
