@@ -291,11 +291,17 @@ struct JagView: View {
 
     /// Plain language. "Offline" is a normal state for this app, not a problem worth a red badge.
     private var backupStatus: String {
+        // `String(localized:)` on every branch: a plain literal returned from a `String`
+        // property never passes through the catalog, which is how this row stayed Swedish on
+        // an English phone while everything around it translated.
         switch sync.status {
-        case .disabled: return "Bara på den här telefonen"
-        case .idle: return sync.lastSyncedAt == nil ? "Klar" : "Allt är sparat"
-        case .syncing: return "Sparar…"
-        case .offline: return "Väntar på anslutning"
+        case .disabled: return String(localized: "Bara på den här telefonen")
+        case .idle:
+            return sync.lastSyncedAt == nil
+                ? String(localized: "Klar")
+                : String(localized: "Allt är sparat")
+        case .syncing: return String(localized: "Sparar…")
+        case .offline: return String(localized: "Väntar på anslutning")
         case .blocked(let message): return message
         }
     }
@@ -532,11 +538,11 @@ private struct RejectedPushList: View {
     /// The server's codes are stable strings meant to be shown to a person, once translated.
     private func describe(_ code: String) -> String {
         switch code {
-        case "money_invariant_violated": return "Beloppen gick inte ihop."
-        case "not_a_member": return "Du är inte längre med i gruppen."
-        case "unknown_member": return "Någon i utgiften finns inte i gruppen."
-        case "currency_mismatch": return "Fel valuta för gruppen."
-        default: return "Servern kunde inte ta emot den här posten."
+        case "money_invariant_violated": return String(localized: "Beloppen gick inte ihop.")
+        case "not_a_member": return String(localized: "Du är inte längre med i gruppen.")
+        case "unknown_member": return String(localized: "Någon i utgiften finns inte i gruppen.")
+        case "currency_mismatch": return String(localized: "Fel valuta för gruppen.")
+        default: return String(localized: "Servern kunde inte ta emot den här posten.")
         }
     }
 }

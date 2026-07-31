@@ -121,22 +121,22 @@ final class InviteModel {
 
         switch error {
         case .unreachable:
-            return "Kunde inte nå servern."
+            return String(localized: "Kunde inte nå servern.")
         case .unauthorized:
-            return "Du är utloggad. Logga in igen."
+            return String(localized: "Du är utloggad. Logga in igen.")
         case .notAMember:
-            return "Du är inte med i den gruppen."
+            return String(localized: "Du är inte med i den gruppen.")
         case .upgradeRequired:
-            return "Den här versionen av Kvitta är för gammal."
+            return String(localized: "Den här versionen av Kvitta är för gammal.")
         case .server(let status, _):
             switch status {
-            case 404: return "Inbjudan finns inte."
-            case 409: return "Den platsen är redan någon annans."
-            case 410: return "Inbjudan har gått ut. Be om en ny."
-            default: return "Servern svarade med fel \(status)."
+            case 404: return String(localized: "Inbjudan finns inte.")
+            case 409: return String(localized: "Den platsen är redan någon annans.")
+            case 410: return String(localized: "Inbjudan har gått ut. Be om en ny.")
+            default: return String(localized: "Servern svarade med fel \(status).")
             }
         case .malformedResponse:
-            return "Något gick fel med inbjudan."
+            return String(localized: "Något gick fel med inbjudan.")
         }
     }
 }
