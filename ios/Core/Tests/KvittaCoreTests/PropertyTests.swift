@@ -24,8 +24,14 @@ struct PropertyTests {
             let state = Projector.replay(history.events)
             let group = try #require(state.groups[history.groupId], "seed \(seed)")
 
-            let balances = group.balances()
-            #expect(balances.totalMinor == 0, "seed \(seed): balances \(balances.byMember)")
+            // Per bucket since M7: a group can hold SEK and DKK side by side, and each
+            // currency's ledger must independently sum to zero — kronor never cancel kroner.
+            for bucket in group.balances().byCurrency {
+                #expect(
+                    bucket.totalMinor == 0,
+                    "seed \(seed) [\(bucket.currency.code)]: balances \(bucket.byMember)"
+                )
+            }
 
             // Zero-sum is trivially satisfiable by projecting nothing at all, so check the fold
             // actually did some work and that nothing legitimate was quietly discarded.
@@ -42,13 +48,13 @@ struct PropertyTests {
             let history = try EventSequenceGenerator.make(seed: seed)
             let state = Projector.replay(history.events)
             let group = try #require(state.groups[history.groupId], "seed \(seed)")
-            let balances = group.balances()
-
-            for memberId in group.members.keys {
-                let lines = group.breakdown(for: memberId)
-                let expected = balances.amountMinor(for: memberId)
-                let actual = lines.last?.runningTotalMinor ?? 0
-                #expect(actual == expected, "seed \(seed): member \(memberId)")
+            for bucket in group.balances().byCurrency {
+                for memberId in group.members.keys {
+                    let lines = group.breakdown(for: memberId, in: bucket.currency)
+                    let expected = bucket.amountMinor(for: memberId)
+                    let actual = lines.last?.runningTotalMinor ?? 0
+                    #expect(actual == expected, "seed \(seed) [\(bucket.currency.code)]: member \(memberId)")
+                }
             }
         }
     }
@@ -139,17 +145,20 @@ struct PropertyTests {
 
             let transfers = group.suggestedTransfers()
 
-            // At most n-1 transfers, and never a payment to oneself.
-            #expect(transfers.count <= max(0, group.members.count - 1), "seed \(seed)")
+            // At most n-1 transfers per currency bucket, and never a payment to oneself.
+            let buckets = group.balances().byCurrency.count
+            #expect(transfers.count <= buckets * max(0, group.members.count - 1), "seed \(seed)")
             #expect(transfers.allSatisfy { $0.from != $0.to }, "seed \(seed)")
             #expect(transfers.allSatisfy { $0.amountMinor > 0 }, "seed \(seed)")
 
             var seq = history.nextServerSeq
             for transfer in transfers {
+                // The transfer's own currency — settling the DKK bucket with a SEK payment
+                // would be exactly the cross-bucket bleed this milestone must never allow.
                 let payload = try PaymentRecordedPayload(
                     fromMemberId: transfer.from,
                     toMemberId: transfer.to,
-                    currency: history.currency,
+                    currency: transfer.currency,
                     amountMinor: transfer.amountMinor,
                     date: Fixtures.date,
                     method: .swish
@@ -169,7 +178,7 @@ struct PropertyTests {
             }
 
             let settled = try #require(state.groups[history.groupId], "seed \(seed)")
-            #expect(settled.balances().isSettled, "seed \(seed): \(settled.balances().byMember)")
+            #expect(settled.balances().isSettled, "seed \(seed): \(settled.primaryBalances().byMember)")
             #expect(settled.suggestedTransfers().isEmpty, "seed \(seed)")
         }
     }

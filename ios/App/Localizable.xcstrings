@@ -86,6 +86,16 @@
         }
       }
     },
+    "%@ per €" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ per €"
+          }
+        }
+      }
+    },
     "%@ ska få" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -163,12 +173,32 @@
         }
       }
     },
+    "Alla" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All"
+          }
+        }
+      }
+    },
     "Alla är kvitt 🎉" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "All settled 🎉"
+          }
+        }
+      }
+    },
+    "Alla valutor" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All currencies"
           }
         }
       }
@@ -206,6 +236,16 @@
         }
       }
     },
+    "Bara %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only %@"
+          }
+        }
+      }
+    },
     "Bara du i gruppen än" : {
       "localizations" : {
         "en" : {
@@ -223,6 +263,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Amount %@ %@"
+          }
+        }
+      }
+    },
+    "Beloppet är kopierat — klistra in det i MobilePay." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The amount is copied — paste it in MobilePay."
           }
         }
       }
@@ -607,6 +657,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You're owed"
+          }
+        }
+      }
+    },
+    "ECB:s referenskurser, hämtade %@. Används bara för ungefärlig omräkning — allt sparas exakt i sin egen valuta." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ECB reference rates, fetched %@. Used only for approximate conversion — everything is stored exactly in its own currency."
+          }
+        }
+      }
+    },
+    "Efter betalningen: %@ · ni är kvitt i %@ 🎉" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After the payment: %1$@ · you're settled in %2$@ 🎉"
           }
         }
       }
@@ -1621,6 +1691,16 @@
         }
       }
     },
+    "Valutakurser" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exchange rates"
+          }
+        }
+      }
+    },
     "Väntar på push" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1664,6 +1744,16 @@
         }
       }
     },
+    "Visa" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show"
+          }
+        }
+      }
+    },
     "Visa borttagna (%@)" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1681,6 +1771,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Shown as you in new groups."
+          }
+        }
+      }
+    },
+    "≈ %@ totalt" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "≈ %@ in total"
+          }
+        }
+      }
+    },
+    "≈ i %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "≈ in %@"
           }
         }
       }

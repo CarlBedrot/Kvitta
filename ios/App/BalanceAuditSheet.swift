@@ -28,11 +28,15 @@ struct BalanceAuditSheet: View {
     }
 
     private func content(for group: GroupState) -> some View {
-        let entries = group.breakdown(for: memberId)
         let isMe = memberId == group.me(for: userId)?.id
         let memberName = isMe
             ? String(localized: "Du")
             : group.members[memberId]?.displayName ?? "?"
+        // One audit card per currency bucket the member has lines in. A running total across
+        // SEK and DKK would be adding kronor to kroner, so the buckets never share a card.
+        let perCurrency = group.balances().currencies
+            .map { ($0, group.breakdown(for: memberId, in: $0)) }
+            .filter { !$0.1.isEmpty }
 
         return ScrollView {
             VStack(alignment: .leading, spacing: 14) {
@@ -41,14 +45,20 @@ struct BalanceAuditSheet: View {
                     .foregroundStyle(Theme.ink)
                     .padding(.top, 20)
 
-                if entries.isEmpty {
+                if perCurrency.isEmpty {
                     Text("Inga utgifter eller betalningar än.")
                         .font(.subheadline)
                         .foregroundStyle(Theme.secondary)
                         .frame(maxWidth: .infinity)
                         .cardSurface()
                 } else {
-                    entriesCard(entries, group: group, isMe: isMe, memberName: memberName)
+                    ForEach(perCurrency, id: \.0) { currency, entries in
+                        if perCurrency.count > 1 {
+                            SectionHeader(title: currency.code)
+                        }
+                        entriesCard(entries, group: group, currency: currency,
+                                    isMe: isMe, memberName: memberName)
+                    }
                     Text("Varje siffra kan spåras till sina utgifter.")
                         .font(.footnote)
                         .foregroundStyle(Theme.secondary)
@@ -62,20 +72,22 @@ struct BalanceAuditSheet: View {
     }
 
     private func entriesCard(
-        _ entries: [LedgerEntry], group: GroupState, isMe: Bool, memberName: String
+        _ entries: [LedgerEntry], group: GroupState, currency: CurrencyCode,
+        isMe: Bool, memberName: String
     ) -> some View {
         VStack(spacing: 0) {
             ForEach(Array(entries.enumerated()), id: \.offset) { index, entry in
                 if index > 0 {
                     Rectangle().fill(Theme.hairline).frame(height: 1)
                 }
-                AuditRow(entry: entry, group: group)
+                AuditRow(entry: entry, group: group, currency: currency)
             }
             TotalRow(
                 // The API's guarantee, restated where it is visible: the last running total IS
                 // the balance. Render that value rather than recomputing anything.
                 totalMinor: entries.last?.runningTotalMinor ?? 0,
-                currency: group.currency,
+                currency: currency,
+                explicit: currency != group.currency,
                 isMe: isMe,
                 memberName: memberName
             )
@@ -89,6 +101,7 @@ struct BalanceAuditSheet: View {
 private struct AuditRow: View {
     let entry: LedgerEntry
     let group: GroupState
+    let currency: CurrencyCode
 
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
@@ -96,7 +109,7 @@ private struct AuditRow: View {
                 Text(verbatim: "\(emoji) \(label)")
                     .font(.subheadline)
                     .foregroundStyle(Theme.ink)
-                Text("löpande: \(MoneyFormat.string(entry.runningTotalMinor, group.currency, sign: .always))")
+                Text("löpande: \(MoneyFormat.string(entry.runningTotalMinor, currency, sign: .always))")
                     .font(.caption)
                     .foregroundStyle(Theme.secondary)
                     .monospacedDigit()
@@ -104,9 +117,9 @@ private struct AuditRow: View {
             Spacer()
             SignedAmountText(
                 amountMinor: entry.deltaMinor,
-                currency: group.currency,
+                currency: currency,
                 size: 15,
-                accessibilityPhrase: "\(label), \(MoneyFormat.string(entry.deltaMinor, group.currency, sign: .always))"
+                accessibilityPhrase: "\(label), \(MoneyFormat.string(entry.deltaMinor, currency, sign: .always))"
             )
         }
         .padding(.vertical, 9)
@@ -141,6 +154,7 @@ private struct AuditRow: View {
 private struct TotalRow: View {
     let totalMinor: Int64
     let currency: CurrencyCode
+    var explicit: Bool = false
     let isMe: Bool
     let memberName: String
 
@@ -152,7 +166,8 @@ private struct TotalRow: View {
                 amountMinor: totalMinor,
                 currency: currency,
                 size: 17,
-                accessibilityPhrase: "\(phrase): \(MoneyFormat.string(abs(totalMinor), currency))"
+                explicit: explicit,
+                accessibilityPhrase: "\(phrase): \(MoneyFormat.string(abs(totalMinor), currency, explicit: explicit))"
             )
         }
         .padding(.top, 12)

@@ -122,7 +122,7 @@ struct SyncEngineTests {
         #expect(await transport.pushedEvents.count == 5)
         #expect(ledger.state.groups[groupId]?.lastAppliedSeq == 5)
         // Balances are untouched by syncing — it assigns an order, it does not change the money.
-        #expect(ledger.state.groups[groupId]?.balances().amountMinor(for: members[0]) == 29_133)
+        #expect(ledger.state.groups[groupId]?.primaryBalances().amountMinor(for: members[0]) == 29_133)
         #expect(engine.status == .idle)
     }
 
@@ -257,7 +257,7 @@ struct SyncEngineTests {
 
         let group = try #require(ledger.state.groups[groupId])
         #expect(group.expenses.count == 2)
-        #expect(group.balances().totalMinor == 0)
+        #expect(group.primaryBalances().totalMinor == 0)
         #expect(try ledger.cursor(forGroup: groupId) == 6)
     }
 

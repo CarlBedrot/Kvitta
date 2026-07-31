@@ -19,7 +19,7 @@ struct DebtSimplifierTests {
             byMember: [members[0]: 15_000, members[1]: -15_000]
         )
         #expect(DebtSimplifier.simplify(balances)
-            == [SuggestedTransfer(from: members[1], to: members[0], amountMinor: 15_000)])
+            == [SuggestedTransfer(from: members[1], to: members[0], amountMinor: 15_000, currency: .sek)])
     }
 
     @Test("A chain of debts collapses into at most n-1 transfers")
@@ -49,9 +49,9 @@ struct DebtSimplifierTests {
         let transfers = DebtSimplifier.simplify(balances)
 
         #expect(transfers == [
-            SuggestedTransfer(from: members[2], to: members[0], amountMinor: 4_000),
-            SuggestedTransfer(from: members[3], to: members[0], amountMinor: 1_000),
-            SuggestedTransfer(from: members[3], to: members[1], amountMinor: 1_000)
+            SuggestedTransfer(from: members[2], to: members[0], amountMinor: 4_000, currency: .sek),
+            SuggestedTransfer(from: members[3], to: members[0], amountMinor: 1_000, currency: .sek),
+            SuggestedTransfer(from: members[3], to: members[1], amountMinor: 1_000, currency: .sek)
         ])
         #expect(transfers.count <= members.count - 1)
     }
@@ -67,8 +67,8 @@ struct DebtSimplifierTests {
         let transfers = DebtSimplifier.simplify(balances)
 
         #expect(transfers == [
-            SuggestedTransfer(from: members[2], to: members[0], amountMinor: 1_000),
-            SuggestedTransfer(from: members[3], to: members[1], amountMinor: 1_000)
+            SuggestedTransfer(from: members[2], to: members[0], amountMinor: 1_000, currency: .sek),
+            SuggestedTransfer(from: members[3], to: members[1], amountMinor: 1_000, currency: .sek)
         ])
     }
 

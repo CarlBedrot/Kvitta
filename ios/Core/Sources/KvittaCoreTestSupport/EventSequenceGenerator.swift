@@ -4,7 +4,12 @@ import KvittaCore
 public struct GeneratedHistory {
     public let seed: UInt64
     public let groupId: GroupID
+    /// The group's primary currency. Since M7 a history can also contain events in
+    /// `otherCurrencies` — a group is a container of per-currency ledgers.
     public let currency: CurrencyCode
+    /// The extra currencies this history's expenses and payments may use. Empty for a
+    /// single-currency history; the generator emits both kinds.
+    public let otherCurrencies: [CurrencyCode]
     public let memberIds: [MemberID]
     public let events: [EventEnvelope]
     public var nextServerSeq: Int64
@@ -25,6 +30,18 @@ public enum EventSequenceGenerator {
         let groupId = GroupID(rawValue: rng.nextUUID())
         let authorId = UserID(rawValue: rng.nextUUID())
         let currency = rng.pick([CurrencyCode.sek, .dkk, .nok])
+        // Roughly half the histories are mixed-currency (M7). The property tests must hold over
+        // both shapes — a single-currency group is still the common case, not a legacy one.
+        let otherCurrencies: [CurrencyCode] = rng.nextInt(in: 1...100) <= 50
+            ? [rng.pick([CurrencyCode.sek, .dkk, .nok, .eur].filter { $0 != currency })]
+            : []
+        // Each money event rolls its own currency: mostly the primary, sometimes the other.
+        func eventCurrency(_ rng: inout SeededRandom) -> CurrencyCode {
+            guard let other = otherCurrencies.first, rng.nextInt(in: 1...100) <= 35 else {
+                return currency
+            }
+            return other
+        }
 
         var events: [EventEnvelope] = []
         var seq: Int64 = 0
@@ -73,13 +90,14 @@ public enum EventSequenceGenerator {
 
             case 1...40:
                 let expenseId = ExpenseID(rawValue: rng.nextUUID())
-                let payload = try randomExpense(&rng, members: memberIds, currency: currency)
+                let rolled = eventCurrency(&rng)
+                let payload = try randomExpense(&rng, members: memberIds, currency: rolled)
                 append(eventId: eventId, entityId: expenseId.rawValue, payload: .expenseCreated(payload))
                 liveExpenses.append(expenseId)
 
             case 41...53:
                 guard let expenseId = rng.pickIfAny(liveExpenses) else { continue }
-                let payload = try randomExpense(&rng, members: memberIds, currency: currency)
+                let payload = try randomExpense(&rng, members: memberIds, currency: eventCurrency(&rng))
                 append(eventId: eventId, entityId: expenseId.rawValue, payload: .expenseUpdated(payload))
 
             case 54...63:
@@ -100,7 +118,7 @@ public enum EventSequenceGenerator {
                 let payload = try PaymentRecordedPayload(
                     fromMemberId: pair.0,
                     toMemberId: pair.1,
-                    currency: currency,
+                    currency: eventCurrency(&rng),
                     amountMinor: rng.nextInt64(in: 1...250_000),
                     date: randomDate(&rng),
                     method: rng.pick([PaymentMethod.cash, .swish, .mobilePay])
@@ -161,6 +179,7 @@ public enum EventSequenceGenerator {
             seed: seed,
             groupId: groupId,
             currency: currency,
+            otherCurrencies: otherCurrencies,
             memberIds: memberIds,
             events: events,
             nextServerSeq: seq + 1

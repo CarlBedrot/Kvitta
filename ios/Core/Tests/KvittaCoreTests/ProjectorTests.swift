@@ -35,7 +35,7 @@ struct ProjectorTests {
 
         let state = Projector.replay(events)
         let group = try #require(state.groups[Fixtures.groupId])
-        let balances = group.balances()
+        let balances = group.primaryBalances()
 
         #expect(balances.amountMinor(for: members[0]) == 29_133)   // 437.00 paid, 145.67 owed
         #expect(balances.amountMinor(for: members[1]) == -14_567)
@@ -64,14 +64,14 @@ struct ProjectorTests {
         )
 
         let group = try #require(Projector.replay(events).groups[Fixtures.groupId])
-        let balances = group.balances()
+        let balances = group.primaryBalances()
 
         #expect(balances.amountMinor(for: members[0]) == 14_566)
         #expect(balances.amountMinor(for: members[1]) == 0)
         #expect(balances.amountMinor(for: members[2]) == -14_566)
         #expect(balances.totalMinor == 0)
         #expect(group.suggestedTransfers()
-            == [SuggestedTransfer(from: members[2], to: members[0], amountMinor: 14_566)])
+            == [SuggestedTransfer(from: members[2], to: members[0], amountMinor: 14_566, currency: .sek)])
     }
 
     @Test("A balance can be walked line by line and lands on exactly the number shown")
@@ -93,11 +93,11 @@ struct ProjectorTests {
         )
 
         let group = try #require(Projector.replay(events).groups[Fixtures.groupId])
-        let lines = group.breakdown(for: members[0])
+        let lines = group.breakdown(for: members[0], in: .sek)
 
         #expect(lines.map(\.deltaMinor) == [29_133, -14_567])
         #expect(lines.map(\.runningTotalMinor) == [29_133, 14_566])
-        #expect(lines.last?.runningTotalMinor == group.balances().amountMinor(for: members[0]))
+        #expect(lines.last?.runningTotalMinor == group.primaryBalances().amountMinor(for: members[0]))
         #expect(lines.first?.source == .expense(Fixtures.expense(1)))
         #expect(lines.last?.source == .payment(Fixtures.payment(1)))
     }
@@ -124,7 +124,7 @@ struct ProjectorTests {
         let state = Projector.replay(events)
         let group = try #require(state.groups[Fixtures.groupId])
 
-        #expect(group.balances().amountMinor(for: members[0]) == 29_133)
+        #expect(group.primaryBalances().amountMinor(for: members[0]) == 29_133)
         #expect(state.skipped.count == 1)
         #expect(state.skipped.first?.reason == .unknownEventType("CommentAdded"))
         // Skipped is not unseen: the watermark still moved, so the cursor cannot stall on it.
@@ -154,7 +154,7 @@ struct ProjectorTests {
 
         events.append(factory.expenseRestored(Fixtures.expense(1)))
         let afterRestore = try #require(Projector.replay(events).groups[Fixtures.groupId])
-        #expect(afterRestore.balances().amountMinor(for: members[0]) == 29_133)
+        #expect(afterRestore.primaryBalances().amountMinor(for: members[0]) == 29_133)
         #expect(afterRestore.visibleExpenses.count == 1)
     }
 
@@ -179,9 +179,9 @@ struct ProjectorTests {
         #expect(expense.revision == 1)
         #expect(expense.wasEdited)
         #expect(expense.title == "Systembolaget (rättad)")
-        #expect(group.balances().amountMinor(for: members[1]) == 15_000)
-        #expect(group.balances().amountMinor(for: members[2]) == 0)
-        #expect(group.balances().totalMinor == 0)
+        #expect(group.primaryBalances().amountMinor(for: members[1]) == 15_000)
+        #expect(group.primaryBalances().amountMinor(for: members[2]) == 0)
+        #expect(group.primaryBalances().totalMinor == 0)
     }
 
     @Test("A removed member keeps their balance — otherwise the books stop adding up")
@@ -194,8 +194,8 @@ struct ProjectorTests {
 
         #expect(group.members[members[2]]?.isActive == false)
         #expect(group.activeMembers.count == 2)
-        #expect(group.balances().amountMinor(for: members[2]) == -14_566)
-        #expect(group.balances().totalMinor == 0)
+        #expect(group.primaryBalances().amountMinor(for: members[2]) == -14_566)
+        #expect(group.primaryBalances().totalMinor == 0)
     }
 
     @Test("An expense naming a member who was never added is skipped rather than guessed at")
@@ -219,8 +219,10 @@ struct ProjectorTests {
         #expect(state.skipped.first?.reason == .unknownMember(stranger))
     }
 
-    @Test("An expense in the wrong currency is skipped")
-    func currencyMismatchIsSkipped() throws {
+    @Test("An expense in another currency lands in its own bucket (M7)")
+    func foreignCurrencyGetsItsOwnBucket() throws {
+        // The exact history the app used to refuse: a DKK dinner in a SEK group. Since M7 the
+        // group is a container of per-currency ledgers, and each bucket balances on its own.
         var (factory, events) = try openGroup()
         let payload = try ExpensePayload(
             description: "København",
@@ -229,14 +231,42 @@ struct ProjectorTests {
             currency: .dkk,
             amountMinor: 1_000,
             payers: [MoneyLine(memberId: members[0], amountMinor: 1_000)],
-            shares: [MoneyLine(memberId: members[0], amountMinor: 1_000)],
+            shares: [MoneyLine(memberId: members[1], amountMinor: 1_000)],
             splitMethod: .exact
         )
         events.append(factory.expenseCreated(Fixtures.expense(3), payload))
 
         let state = Projector.replay(events)
-        #expect(state.groups[Fixtures.groupId]?.expenses.isEmpty == true)
-        #expect(state.skipped.first?.reason == .currencyMismatch(expected: .sek, found: .dkk))
+        let group = try #require(state.groups[Fixtures.groupId])
+
+        #expect(state.skipped.isEmpty)
+        #expect(group.expenses[Fixtures.expense(3)] != nil)
+
+        let dkk = try #require(group.balances().balances(in: .dkk))
+        #expect(dkk.amountMinor(for: members[0]) == 1_000)
+        #expect(dkk.amountMinor(for: members[1]) == -1_000)
+        #expect(dkk.totalMinor == 0)
+        // And the SEK bucket never heard about it.
+        #expect(group.primaryBalances().amountMinor(for: members[0]) == 0)
+
+        // Transfers never cross buckets: the DKK debt is settled in DKK.
+        let transfers = group.suggestedTransfers()
+        #expect(transfers == [SuggestedTransfer(
+            from: members[1], to: members[0], amountMinor: 1_000, currency: .dkk
+        )])
+    }
+
+    @Test("GroupUpdated cannot change the currency once money exists")
+    func currencyIsFixedOnceThereAreExpenses() throws {
+        var (factory, events) = try openGroup()
+        events.append(factory.expenseCreated(Fixtures.expense(1), try wineExpense()))
+        events.append(factory.groupUpdated(name: "Renamed", currency: .dkk))
+
+        let group = try #require(Projector.replay(events).groups[Fixtures.groupId])
+        // The rename applies; the currency change is ignored, because the primary currency
+        // decides how existing amounts are read and re-labelling them would move real money.
+        #expect(group.name == "Renamed")
+        #expect(group.currency == .sek)
     }
 
     @Test("Unacknowledged local events replay after everything the server has ordered")
@@ -263,8 +293,8 @@ struct ProjectorTests {
         let group = try #require(state.groups[Fixtures.groupId])
 
         #expect(group.expenses.count == 1)
-        #expect(group.balances().amountMinor(for: members[0]) == 29_133)
-        #expect(group.balances().totalMinor == 0)
+        #expect(group.primaryBalances().amountMinor(for: members[0]) == 29_133)
+        #expect(group.primaryBalances().totalMinor == 0)
         #expect(state.skipped.isEmpty)
     }
 

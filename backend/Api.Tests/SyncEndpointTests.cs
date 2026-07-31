@@ -127,8 +127,10 @@ public sealed class SyncEndpointTests(KvittaApiFixture fixture)
     }
 
     [Fact]
-    public async Task An_expense_in_the_wrong_currency_is_rejected()
+    public async Task An_expense_in_another_currency_is_accepted()
     {
+        // M7: a group holds SEK and DKK side by side — each currency is its own sub-ledger on
+        // the clients, and the server's job is to store what the log can hold, not to referee it.
         var scenario = await fixture.ScenarioAsync();
         await fixture.Client.PushAsync(scenario, scenario.OpeningBatch());
 
@@ -136,7 +138,23 @@ public sealed class SyncEndpointTests(KvittaApiFixture fixture)
             scenario,
             [scenario.ExpenseCreated(currency: "DKK")])).ReadJsonAsync();
 
-        Assert.Equal("currency_mismatch", Assert.Single(body.Rejections()).Code);
+        Assert.Empty(body.Rejections());
+        Assert.Single(body.AcceptedSeqs());
+    }
+
+    [Fact]
+    public async Task A_currency_that_is_not_currency_shaped_is_rejected()
+    {
+        // Any real ISO code passes; "kronor" is not a code and would poison every client's
+        // bucketing, so it is refused at the door as malformed.
+        var scenario = await fixture.ScenarioAsync();
+        await fixture.Client.PushAsync(scenario, scenario.OpeningBatch());
+
+        var body = await (await fixture.Client.PushAsync(
+            scenario,
+            [scenario.ExpenseCreated(currency: "kronor")])).ReadJsonAsync();
+
+        Assert.Equal("malformed_payload", Assert.Single(body.Rejections()).Code);
     }
 
     [Fact]

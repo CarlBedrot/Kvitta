@@ -22,7 +22,13 @@ struct NewExpenseSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             SheetHeader(model: model, groups: selectableGroups, onCancel: { dismiss() })
-            AmountDisplay(display: model.amount.display, symbol: MoneyFormat.symbol(model.currency))
+            AmountDisplay(
+                display: model.amount.display,
+                currency: model.currency,
+                primary: model.group?.currency ?? .sek,
+                // Locked while editing: correcting an amount is not re-denominating the dinner.
+                onCurrency: model.isEditing ? nil : { model.currency = $0 }
+            )
             DescriptionSection(model: model)
             SummaryRow(model: model) { showingSplitEditor = true }
             Spacer(minLength: 8)
@@ -105,7 +111,19 @@ private struct SheetHeader: View {
 
 private struct AmountDisplay: View {
     let display: String
-    let symbol: String
+    let currency: CurrencyCode
+    let primary: CurrencyCode
+    /// `nil` locks the currency (editing). Otherwise the suffix is a menu — the M7 entry point:
+    /// type 200, tap "kr", pick DKK, and the dinner lands in the DKK bucket.
+    let onCurrency: ((CurrencyCode) -> Void)?
+
+    private static let choices: [CurrencyCode] = [.sek, .dkk, .nok, .eur]
+
+    /// Explicit whenever the expense strays from the group's primary — "kr" alone cannot say
+    /// which kronor.
+    private var suffix: String {
+        currency == primary ? MoneyFormat.symbol(currency) : currency.code
+    }
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -113,15 +131,33 @@ private struct AmountDisplay: View {
                 .font(.system(size: 58, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(Theme.ink)
-            Text(symbol)
-                .font(.system(size: 26, weight: .medium))
-                .foregroundStyle(Theme.secondary)
+            if let onCurrency {
+                Menu {
+                    ForEach(Self.choices, id: \.self) { choice in
+                        Button(choice == primary ? "\(choice.code) · \(MoneyFormat.symbol(choice))" : choice.code) {
+                            onCurrency(choice)
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 3) {
+                        Text(suffix)
+                            .font(.system(size: 26, weight: .medium))
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .foregroundStyle(currency == primary ? Theme.secondary : Theme.accent)
+                }
+            } else {
+                Text(suffix)
+                    .font(.system(size: 26, weight: .medium))
+                    .foregroundStyle(Theme.secondary)
+            }
         }
         .padding(.top, 20)
         .padding(.bottom, 6)
         .contentTransition(.numericText())
-        .accessibilityElement()
-        .accessibilityLabel("Belopp \(display) \(symbol)")
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Belopp \(display) \(currency.code)")
     }
 }
 

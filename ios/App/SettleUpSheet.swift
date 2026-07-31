@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import KvittaCore
 import KvittaStorage
 
@@ -32,6 +33,7 @@ struct SettleUpSheet: View {
     @State private var askingToConfirm = false
     @State private var swishNumber = ""
     @State private var askingForNumber = false
+    @State private var copiedAmount = false
 
     private var group: GroupState? { ledger.state[groupId] }
 
@@ -50,6 +52,13 @@ struct SettleUpSheet: View {
             amountSection
             Spacer()
 
+            if copiedAmount {
+                Text("Beloppet är kopierat — klistra in det i MobilePay.")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.secondary)
+                    .padding(.bottom, 8)
+            }
+
             if let failure {
                 Text(failure).font(.footnote).foregroundStyle(Theme.clay).padding(.bottom, 8)
             }
@@ -58,7 +67,7 @@ struct SettleUpSheet: View {
                 // Only SEK has a link worth sending. In any other currency the person paying
                 // arranges it themselves and "Markera som betald" below is the whole flow —
                 // offering MobilePay here would invite you to pay a debt owed *to* you.
-                if group?.currency == .sek {
+                if transfer.currency == .sek {
                     RequestPaymentButton(link: requestLink)
                 }
             } else if let link = paymentLink {
@@ -121,17 +130,20 @@ struct SettleUpSheet: View {
     }
 
     private var amountSection: some View {
-        let currency = group?.currency ?? .sek
+        // The transfer's own bucket — in a mixed group a DKK debt is a DKK payment, and the
+        // code is spelled out whenever it strays from the group's primary.
+        let currency = transfer.currency
+        let explicit = currency != group?.currency
         return VStack(spacing: 12) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(MoneyFormat.string(transfer.amountMinor, currency))
+                Text(MoneyFormat.string(transfer.amountMinor, currency, explicit: explicit))
                     .font(.system(size: 44, weight: .semibold))
                     .monospacedDigit()
                     .foregroundStyle(Theme.ink)
             }
             ZeroLine(amountMinor: -transfer.amountMinor, scaleMinor: transfer.amountMinor * 2)
                 .padding(.horizontal, 40)
-            Text("Efter betalningen: 0 kr · ni är kvitt 🎉")
+            Text("Efter betalningen: \(MoneyFormat.string(0, currency, explicit: explicit)) · ni är kvitt i \(currency.code) 🎉")
                 .font(.footnote)
                 .foregroundStyle(Theme.secondary)
         }
@@ -159,7 +171,7 @@ struct SettleUpSheet: View {
     private func link(payee: String?) -> PaymentLink? {
         guard let group else { return nil }
         return PaymentLinkBuilder.preferred(
-            for: Money(amountMinor: transfer.amountMinor, currency: group.currency),
+            for: Money(amountMinor: transfer.amountMinor, currency: transfer.currency),
             payee: payee,
             message: group.name
         )
@@ -175,17 +187,23 @@ struct SettleUpSheet: View {
         guard let group, let number = profile.swishNumberForPayment else { return nil }
         return PaymentLinkBuilder.swish(
             payee: number,
-            amount: Money(amountMinor: transfer.amountMinor, currency: group.currency),
+            amount: Money(amountMinor: transfer.amountMinor, currency: transfer.currency),
             message: group.name
         )?.url
     }
 
-    /// SEK with nobody's number yet: offer to ask for it rather than hiding the button.
+    /// A SEK transfer with nobody's number yet: offer to ask for it rather than hiding the button.
     private var needsNumber: Bool {
-        group?.currency == .sek && payees.number(for: transfer.to) == nil
+        transfer.currency == .sek && payees.number(for: transfer.to) == nil
     }
 
     private func handOff(to link: PaymentLink) {
+        if link.method == .mobilePay {
+            // MobilePay has no public person-to-person prefill, so the exact amount goes on the
+            // clipboard instead — paste beats retyping a number you can mistype.
+            UIPasteboard.general.string = PaymentLinkBuilder.decimalString(transfer.amountMinor)
+            copiedAmount = true
+        }
         awaitingReturn = link.method
         openURL(link.url) { opened in
             guard !opened else { return }

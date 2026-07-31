@@ -8,6 +8,7 @@ struct KvittaApp: App {
     @State private var profile: UserProfile
     @State private var startup: Startup
     @State private var reminders = ReminderScheduler()
+    @State private var rates = RateStore()
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -31,7 +32,8 @@ struct KvittaApp: App {
                     profile: profile,
                     session: session,
                     invites: invites,
-                    reminders: reminders
+                    reminders: reminders,
+                    rates: rates
                 )
                 // The palette is light-only by design (`Theme`), and the plist says so too. This
                 // is the SwiftUI half of the same statement, so Previews and any future scene
@@ -56,6 +58,9 @@ struct KvittaApp: App {
                     // debounced post-save pushes, and APNs in M5 — only makes it sooner.
                     guard phase == .active else { return }
                     Task { await sync.syncAll() }
+                    // The day's ECB fixing, refreshed at most once per date. Failure is silence:
+                    // conversion is a convenience on top of exact numbers, never a dependency.
+                    Task { await rates.refresh() }
                 }
             case .failed(let message):
                 StartupFailureView(message: message).preferredColorScheme(.light)

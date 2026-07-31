@@ -12,6 +12,7 @@ struct HomeView: View {
     /// the link you send someone who owes you.
     let profile: UserProfile
     let images: GroupImageStore
+    let rates: RateStore
     var onNewGroup: () -> Void
 
     private var groups: [GroupState] { ledger.state.groupsByLastActivity }
@@ -32,7 +33,7 @@ struct HomeView: View {
         let summary = HomeSummary(groups: groups, userId: userId)
         return ScrollView {
             VStack(spacing: 16) {
-                StatusCard(summary: summary)
+                StatusCard(summary: summary, rates: rates.rates)
                     .padding(.bottom, 12)
 
                 ForEach(groups) { group in
@@ -50,7 +51,7 @@ struct HomeView: View {
         }
         .navigationDestination(for: GroupID.self) { groupId in
             GroupDetailView(ledger: ledger, userId: userId, groupId: groupId,
-                            invites: invites, profile: profile, images: images)
+                            invites: invites, profile: profile, images: images, rates: rates)
         }
     }
 }
@@ -59,27 +60,38 @@ struct HomeView: View {
 /// v1 is single-currency per group and per user in practice (Nordic friend groups), so Totalt
 /// reports the currency most groups use and sums the user's net within it.
 struct HomeSummary {
-    let totalMinor: Int64
-    let currency: CurrencyCode
+    /// Your net per currency across all groups, largest bucket count first. Since M7 every
+    /// bucket is shown — the old version silently dropped everything but the dominant currency,
+    /// which was a lie of omission the moment a second currency held real money.
+    let totals: [Money]
     let settledGroups: Int
     let groupCount: Int
 
     init(groups: [GroupState], userId: UserID) {
         var sums: [CurrencyCode: Int64] = [:]
-        var counts: [CurrencyCode: Int] = [:]
+        var primaries: [CurrencyCode: Int] = [:]
         var settled = 0
         for group in groups {
-            let net = group.net(for: userId)
-            sums[net.currency, default: 0] += net.amountMinor
-            counts[net.currency, default: 0] += 1
-            if group.balances().byMember.values.allSatisfy({ $0 == 0 }) { settled += 1 }
+            for net in group.nets(for: userId) {
+                sums[net.currency, default: 0] += net.amountMinor
+            }
+            primaries[group.currency, default: 0] += 1
+            if group.balances().isSettled { settled += 1 }
         }
-        let dominant = counts.max { $0.value < $1.value }?.key ?? .sek
-        self.currency = dominant
-        self.totalMinor = sums[dominant] ?? 0
+        // The currency most groups call home leads — a DKK side-bucket must not out-rank the
+        // SEK your groups actually live in. Ties break on code so two devices agree.
+        self.totals = sums
+            .map { Money(amountMinor: $0.value, currency: $0.key) }
+            .sorted { lhs, rhs in
+                let l = primaries[lhs.currency] ?? 0
+                let r = primaries[rhs.currency] ?? 0
+                return l == r ? lhs.currency.code < rhs.currency.code : l > r
+            }
         self.settledGroups = settled
         self.groupCount = groups.count
     }
+
+    var lead: Money { totals.first ?? .zero(.sek) }
 
     /// Everyone in every group is at zero — not just you.
     var allSettled: Bool { settledGroups == groupCount }
@@ -91,6 +103,7 @@ struct HomeSummary {
 /// else is the sentence, the number large, and a bar filling toward done.
 private struct StatusCard: View {
     let summary: HomeSummary
+    let rates: ExchangeRates?
 
     var body: some View {
         if summary.allSettled {
@@ -124,7 +137,8 @@ private struct StatusCard: View {
     }
 
     private var openCard: some View {
-        let direction = BalanceDirection(summary.totalMinor)
+        let lead = summary.lead
+        let direction = BalanceDirection(lead.amountMinor)
         return VStack(alignment: .leading, spacing: 8) {
             Text(statusSentence)
                 .font(.subheadline.weight(.medium))
@@ -133,31 +147,65 @@ private struct StatusCard: View {
             // No leading sign: the sentence above carries the direction, and "Du ligger ute
             // med +191 kr" reads like a stutter. Colour still reinforces it.
             SignedAmountText(
-                amountMinor: summary.totalMinor,
-                currency: summary.currency,
+                amountMinor: lead.amountMinor,
+                currency: lead.currency,
                 size: 40,
                 sign: .none,
-                accessibilityPhrase: "\(direction.spokenWord) \(MoneyFormat.string(abs(summary.totalMinor), summary.currency))"
+                // Explicit the moment currencies mix: "200 kr" that means 200 DKK is the exact
+                // lie the kr-collision rule exists to prevent.
+                explicit: summary.totals.count > 1,
+                accessibilityPhrase: "\(direction.spokenWord) \(MoneyFormat.string(abs(lead.amountMinor), lead.currency, explicit: true))"
             )
             .contentTransition(.numericText())
 
+            // The other currencies, exact, with explicit codes — "kr" alone cannot say which
+            // kronor once SEK and DKK share a screen.
+            ForEach(summary.totals.dropFirst(), id: \.currency) { total in
+                SignedAmountText(
+                    amountMinor: total.amountMinor,
+                    currency: total.currency,
+                    size: 22,
+                    explicit: true
+                )
+            }
+
             SettleProgressBar(
                 fraction: summary.groupCount == 0 ? 0 : Double(summary.settledGroups) / Double(summary.groupCount),
-                tint: Theme.tint(forSign: summary.totalMinor)
+                tint: Theme.tint(forSign: lead.amountMinor)
             )
             .padding(.top, 8)
 
-            Text("\(summary.settledGroups) av \(summary.groupCount) grupper är kvitt")
-                .font(.caption)
-                .foregroundStyle(Theme.tertiary)
+            HStack(spacing: 6) {
+                Text("\(summary.settledGroups) av \(summary.groupCount) grupper är kvitt")
+                if let approx = approximateTotal {
+                    Text(verbatim: "·")
+                    Text("≈ \(MoneyFormat.string(approx.amountMinor, approx.currency, sign: .always, explicit: true)) totalt")
+                        .monospacedDigit()
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(Theme.tertiary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardSurface(padding: 24)
     }
 
+    /// Everything folded into the lead currency at ECB rates — a caption, never the headline.
+    /// `nil` with one bucket (nothing to add), without rates, or if any bucket cannot convert.
+    private var approximateTotal: Money? {
+        guard summary.totals.count > 1, let rates else { return nil }
+        let target = summary.lead.currency
+        var totalMinor: Int64 = 0
+        for total in summary.totals {
+            guard let converted = rates.convert(total, to: target) else { return nil }
+            totalMinor += converted.amountMinor
+        }
+        return Money(amountMinor: totalMinor, currency: target)
+    }
+
     /// Direction in words, always — the number's colour is reinforcement, never the message.
     private var statusSentence: LocalizedStringKey {
-        switch BalanceDirection(summary.totalMinor) {
+        switch BalanceDirection(summary.lead.amountMinor) {
         case .owed: return "Du ligger ute med"
         case .owe: return "Du är skyldig"
         case .settled: return "Grupperna är inte kvitt än"
@@ -173,8 +221,9 @@ private struct GroupCard: View {
     let photo: Data?
 
     var body: some View {
-        let net = group.net(for: userId)
-        let direction = BalanceDirection(net.amountMinor)
+        let nets = group.nets(for: userId).filter { $0.amountMinor != 0 }
+        let net = nets.first ?? group.net(for: userId)
+        let direction: BalanceDirection = nets.isEmpty ? .settled : BalanceDirection(net.amountMinor)
         HStack(spacing: 14) {
             GroupBadge(name: group.name, photo: photo, size: 48)
 
@@ -199,8 +248,18 @@ private struct GroupCard: View {
                         amountMinor: net.amountMinor,
                         currency: net.currency,
                         size: 17,
-                        accessibilityPhrase: "\(GroupBadge.title(of: group.name)): \(direction.spokenWord) \(MoneyFormat.string(abs(net.amountMinor), net.currency))"
+                        explicit: net.currency != group.currency,
+                        accessibilityPhrase: "\(GroupBadge.title(of: group.name)): \(direction.spokenWord) \(MoneyFormat.string(abs(net.amountMinor), net.currency, explicit: true))"
                     )
+                    // A second currency in play: one small exact line, not a hidden truth.
+                    ForEach(nets.dropFirst(), id: \.currency) { extra in
+                        SignedAmountText(
+                            amountMinor: extra.amountMinor,
+                            currency: extra.currency,
+                            size: 12,
+                            explicit: true
+                        )
+                    }
                     Text(direction.word)
                         .font(.caption2)
                         .foregroundStyle(Theme.secondary)
