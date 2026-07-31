@@ -28,6 +28,7 @@ Full architecture: docs/expense-app-sync-design.md. Read it before touching sync
 - Core package tests: swift test (from ios/Core/)
 - Storage package tests: swift test (from ios/Storage/)
 - Sync package tests: swift test (from ios/Sync/)
+- App store tests: xcodebuild test -scheme AppTests -destination "platform=iOS Simulator,name=iPhone 17 Pro" (device-local stores; TEST_HOST is pinned in project.yml because PRODUCT_NAME is Kvitta, not App)
 - Performance tests: swift test -c release. Debug builds are ~5x slower and say nothing about a shipped app.
 - Backend run: dotnet run --project backend/Api (serves http://localhost:5142; the port is pinned in launchSettings.json because it overrides ASPNETCORE_URLS)
 - Backend first run on a machine: dotnet user-secrets set "Auth:SigningKey" "$(openssl rand -base64 48)" --project backend/Api
