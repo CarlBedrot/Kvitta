@@ -185,10 +185,13 @@ struct SettleUpSheet: View {
     /// (CLAUDE.md). `nil` until you have set a number in Jag, and the button says so.
     private var requestLink: URL? {
         guard let group, let number = profile.swishNumberForPayment else { return nil }
-        return PaymentLinkBuilder.swish(
+        // The `swish://payment?data=` shape, the one a real phone accepts — not the app.swish.nu
+        // link, which it rejects as "felaktigt format". No callback: the recipient is not us.
+        return PaymentLinkBuilder.swishAppSwitch(
             payee: number,
             amount: Money(amountMinor: transfer.amountMinor, currency: transfer.currency),
-            message: group.name
+            message: group.name,
+            callback: nil
         )?.url
     }
 

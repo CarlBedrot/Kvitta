@@ -64,6 +64,11 @@ public enum SwishNumber {
 /// That needs a real phone with Swish installed.
 public enum PaymentLinkBuilder {
 
+    /// The `app.swish.nu` universal-link shape. **Rejected on a real phone as "felaktigt format"**
+    /// (2026-07), so it is no longer what `preferred` leads with — `swishAppSwitch` is. Kept only
+    /// because the debug format tester still offers it, and because deleting a shape we have a test
+    /// pinning is more churn than leaving it.
+    ///
     /// Swish, for SEK. The link Swish's own site hands out for a prefilled payment:
     ///
     ///     https://app.swish.nu/1/p/sw/?sw=46701234567&amt=145.67&cur=SEK&msg=Fjällresan&edit=msg
@@ -100,12 +105,14 @@ public enum PaymentLinkBuilder {
         return PaymentLink(url: url, probe: nil, method: .swish)
     }
 
-    /// The other Swish shape: `swish://payment?data=<url-encoded JSON>`.
+    /// The Swish shape `preferred` leads with: `swish://payment?data=<url-encoded JSON>`.
     ///
-    /// Undocumented, and rejected by the Swish app on the one real phone it has been tried on.
-    /// Kept rather than deleted because it is the only alternative to `swish(payee:amount:message:)`
-    /// if that one also turns out to be wrong, and because the debug format tester offers both —
-    /// throwing it away would mean guessing again from nothing.
+    /// **Confirmed working on a real phone (2026-07)** — it opens Swish with the amount prefilled,
+    /// both with and without a callback. Two things it taught us that no simulator could: the payee
+    /// must be a *quoted* JSON string with country code (`"value":"46701234567"`), and the
+    /// `app.swish.nu` universal link is rejected. An unquoted payee number failed the same way.
+    /// `preferred` calls this with `callback: nil`, because coming back is read from the scene phase
+    /// and the callback is what made Swish ask "open Kvitta?" on the way out.
     public static func swishAppSwitch(
         payee: String,
         amount: Money,
@@ -150,7 +157,9 @@ public enum PaymentLinkBuilder {
         switch amount.currency {
         case .sek:
             guard let payee else { return nil }
-            return swish(payee: payee, amount: amount, message: message)
+            // The `swish://payment?data=` shape, verified on a real phone. No callback: the return
+            // is read from the scene phase, and a callback made Swish prompt "open Kvitta?".
+            return swishAppSwitch(payee: payee, amount: amount, message: message, callback: nil)
         case .dkk:
             return mobilePay(amount: amount)
         default:
