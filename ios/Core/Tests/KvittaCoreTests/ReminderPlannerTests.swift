@@ -88,6 +88,43 @@ struct ReminderPlannerTests {
         #expect(ReminderPlanner.outstanding(in: state, for: somebodyElse).isEmpty)
     }
 
+    @Test("A pending payment does not silence the debt until it counts")
+    func pendingPaymentKeepsTheDebt() throws {
+        let payeeUser = UserID(uuidString: "00000000-0000-0000-00ee-000000000002")!
+        var factory = EventFactory()
+        var events: [EventEnvelope] = [
+            factory.groupCreated(),
+            factory.memberAdded(members[0], name: "Sara", linkedUserId: payeeUser),
+            factory.memberAdded(members[1], name: "Me", linkedUserId: me)
+        ]
+        events.append(factory.expenseCreated(Fixtures.expense(1), try ExpensePayload.make(
+            description: "Middag", categoryId: "restaurang", date: Fixtures.date,
+            total: Money(amountMinor: 30_000, currency: .sek),
+            paidBy: members[0], splitEquallyAmong: [members[0], members[1]]
+        )))
+        // I say I paid Sara. Pending until she answers — so on paper I still owe.
+        events.append(factory.paymentRecorded(Fixtures.payment(1), try PaymentRecordedPayload(
+            fromMemberId: members[1], toMemberId: members[0],
+            currency: .sek, amountMinor: 15_000,
+            date: Fixtures.date, method: .swish
+        )))
+        let state = Projector.replay(events)
+
+        #expect(ReminderPlanner.outstanding(in: state, for: me, asOf: Fixtures.date).count == 1)
+
+        // Aged past the auto-confirm window it counts, and the reminder goes quiet.
+        let aged = CalendarDate(year: 2026, month: 7, day: 28)!
+        #expect(ReminderPlanner.outstanding(in: state, for: me, asOf: aged).isEmpty)
+
+        // The nudge mirrors it exactly: Sara is asked while the question is open, nobody after.
+        #expect(
+            ReminderPlanner.awaitingMyConfirmation(in: state, for: payeeUser, asOf: Fixtures.date)
+                .map(\.paymentId) == [Fixtures.payment(1)]
+        )
+        #expect(ReminderPlanner.awaitingMyConfirmation(in: state, for: me, asOf: Fixtures.date).isEmpty)
+        #expect(ReminderPlanner.awaitingMyConfirmation(in: state, for: payeeUser, asOf: aged).isEmpty)
+    }
+
     @Test("The biggest debt comes first, and ties do not shuffle")
     func orderingIsStable() throws {
         var factory = EventFactory()

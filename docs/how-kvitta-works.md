@@ -269,7 +269,11 @@ backend, several flows also on a physical iPhone):
 - Profile-synced Swish numbers: set in Jag → prefilled on a co-member's settle sheet with no typing; clearing withdraws
 - Two-sided settle-up, live: pending froze the balance, the payee's confirmation moved it exactly 69,75 kr, a mis-targeted confirmation was rejected as forged
 - Payment reminders (local notifications), balance audit trail, edit history, group photos
-- Test suites: Core 119 (incl. four property tests × 1 000 seeded histories), Storage 27, Sync 22, backend 70 — all green as of `24c0680`
+- CSV export reconciling öre for öre with the balances screen; Aktivitet filters; per-line
+  direction words on every mixed-currency line; group descriptions; a fully English UI on an
+  English device
+- Test suites: Core 127 (incl. four property tests × 1 000 seeded histories), Storage 27,
+  Sync 22, backend 70, and an app-target bundle (AppTests, 6) covering the device-local stores
 
 ## 10. What is off, missing, or honestly questionable
 
@@ -281,6 +285,8 @@ Found or re-confirmed while writing this document:
    on the home status card and on group cards, and amounts never wrap mid-number.
 2. The floating + button covers the right edge of a group card mid-scroll. Inherent to a
    mockup-specified floating FAB; cosmetic.
+   *(Overnight sweep: findings 1, and roadmap items CSV export, group descriptions, activity
+   filters and the localization gap all shipped as PRs #25–#30.)*
 3. Swedish hyphenation can break seeded names oddly ("Köpenhamn-shelgen"). Cosmetic, locale-driven.
 
 **Known limitations by design (not bugs)**
@@ -300,9 +306,8 @@ Found or re-confirmed while writing this document:
 
 **Not built yet (roadmap)**
 9. Receipt scanning (the mockups show it; the feature does not exist — the next real milestone).
-10. ~~CSV export~~ *(shipped: per-group toolbar share, semicolon dialect, one section per
-    currency, Saldo row reconciling to the balances screen)*, notification inbox, activity
-    filters, group descriptions, dark mode.
+10. ~~CSV export~~, ~~activity filters~~, ~~group descriptions~~ *(all shipped overnight)* —
+    remaining: receipt scanning, notification inbox, dark mode.
 
 ---
 

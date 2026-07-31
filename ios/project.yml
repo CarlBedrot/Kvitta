@@ -21,6 +21,22 @@ packages:
     path: Sync
 
 targets:
+  AppTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: AppTests
+    dependencies:
+      - target: App
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: se.kvitta.app.tests
+        GENERATE_INFOPLIST_FILE: YES
+        # XcodeGen derives TEST_HOST from the target name, but the app's PRODUCT_NAME is
+        # Kvitta — spell it out or the test host points at an App.app that never exists.
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/Kvitta.app/Kvitta
+        BUNDLE_LOADER: $(TEST_HOST)
+
   App:
     type: application
     platform: iOS
