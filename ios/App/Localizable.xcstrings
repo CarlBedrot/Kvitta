@@ -1,7 +1,9 @@
 {
   "sourceLanguage" : "sv",
   "strings" : {
-    "%@" : {},
+    "%@" : {
+
+    },
     "%@ är kvitt" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -87,6 +89,7 @@
       }
     },
     "%@ per €" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -151,6 +154,32 @@
         }
       }
     },
+    "≈" : {
+
+    },
+    "≈ %@ totalt" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "≈ %@ in total"
+          }
+        }
+      }
+    },
+    "≈ i %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "≈ in %@"
+          }
+        }
+      }
+    },
+    "🙌" : {
+
+    },
     "Aktivitet" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -174,6 +203,7 @@
       }
     },
     "Alla" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -682,6 +712,7 @@
       }
     },
     "Efter betalningen: 0 kr · ni är kvitt 🎉" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1412,6 +1443,7 @@
       }
     },
     "Registrera betalning" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1671,6 +1703,7 @@
       }
     },
     "Välj gruppbild" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1745,6 +1778,7 @@
       }
     },
     "Visa" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1771,26 +1805,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Shown as you in new groups."
-          }
-        }
-      }
-    },
-    "≈ %@ totalt" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "≈ %@ in total"
-          }
-        }
-      }
-    },
-    "≈ i %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "≈ in %@"
           }
         }
       }
