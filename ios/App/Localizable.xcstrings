@@ -217,6 +217,16 @@
         }
       }
     },
+    "Alla grupper" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All groups"
+          }
+        }
+      }
+    },
     "Alla valutor" : {
       "localizations" : {
         "en" : {
@@ -233,6 +243,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "All settled 🎉"
+          }
+        }
+      }
+    },
+    "Allt" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All"
           }
         }
       }
@@ -328,6 +348,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Payment"
+          }
+        }
+      }
+    },
+    "Betalningar" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Payments"
           }
         }
       }
@@ -916,6 +946,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nobody in the group owes anyone anything."
+          }
+        }
+      }
+    },
+    "Inget matchar filtret." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing matches the filter."
           }
         }
       }
@@ -1768,6 +1808,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This expense no longer exists"
+          }
+        }
+      }
+    },
+    "Utgifter" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expenses"
           }
         }
       }
