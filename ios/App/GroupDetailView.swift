@@ -117,6 +117,16 @@ struct GroupDetailView: View {
         .navigationTitle(GroupBadge.title(of: group.name))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
+                // The audit trail that leaves the app (product principles: CSV export early).
+                // Generated lazily — the file only exists once somebody picks a destination.
+                ShareLink(
+                    item: CSVExportFile(group: group),
+                    preview: SharePreview(CSVExportFile.filename(for: group))
+                ) {
+                    Label("Exportera CSV", systemImage: "square.and.arrow.up")
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     showingMembers = true
                 } label: {

@@ -300,7 +300,9 @@ Found or re-confirmed while writing this document:
 
 **Not built yet (roadmap)**
 9. Receipt scanning (the mockups show it; the feature does not exist — the next real milestone).
-10. CSV export, notification inbox, activity filters, group descriptions, dark mode.
+10. ~~CSV export~~ *(shipped: per-group toolbar share, semicolon dialect, one section per
+    currency, Saldo row reconciling to the balances screen)*, notification inbox, activity
+    filters, group descriptions, dark mode.
 
 ---
 
