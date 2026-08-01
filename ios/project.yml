@@ -104,3 +104,8 @@ targets:
         # app flashing white on every open.
         UILaunchScreen:
           UIColorName: LaunchBackground
+        # Local networking only — NOT arbitrary loads. Lets a sideloaded build on a friend's
+        # phone reach the dev backend over http://<mac-ip>:5142 on the same Wi-Fi (ATS blocks
+        # plain http to anything but localhost otherwise). A real deploy is https and unaffected.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true

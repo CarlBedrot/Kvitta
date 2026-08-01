@@ -24,6 +24,9 @@ struct JagView: View {
     @State private var photoItem: PhotosPickerItem?
     @State private var failure: String?
     @State private var inviteCode = ""
+    #if DEBUG
+    @State private var serverAddress = UserDefaults.standard.string(forKey: "se.kvitta.syncBaseURL") ?? ""
+    #endif
 
     var body: some View {
         NavigationStack {
@@ -390,6 +393,28 @@ struct JagView: View {
             Button("Synka nu", systemImage: "arrow.triangle.2.circlepath") {
                 Task { await sync.syncAll() }
             }
+            // For the sideloaded-to-a-friend's-phone trial: their phone must reach the dev
+            // backend on your Mac's LAN address, not its own localhost. Read at launch
+            // (Bootstrap.syncConfiguration), hence the restart note.
+            HStack {
+                Text("Serveradress")
+                TextField("http://192.168.x.x:5142", text: $serverAddress)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .keyboardType(.URL)
+                    .multilineTextAlignment(.trailing)
+                    .onSubmit {
+                        let trimmed = serverAddress.trimmingCharacters(in: .whitespaces)
+                        if trimmed.isEmpty {
+                            UserDefaults.standard.removeObject(forKey: "se.kvitta.syncBaseURL")
+                        } else if URL(string: trimmed) != nil {
+                            UserDefaults.standard.set(trimmed, forKey: "se.kvitta.syncBaseURL")
+                        }
+                    }
+            }
+            Text("Tom = localhost. Kräver omstart av appen.")
+                .font(.caption2)
+                .foregroundStyle(Theme.tertiary)
             LabeledContent("I kö för uppladdning", value: "\((try? ledger.pendingPushCount()) ?? -1)")
             LabeledContent("Överhoppade händelser", value: "\(ledger.state.skipped.count)")
             LabeledContent("Olästa rader", value: "\(ledger.rejected.count)")
