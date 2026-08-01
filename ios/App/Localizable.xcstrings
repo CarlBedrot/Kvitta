@@ -4,34 +4,66 @@
     "%@" : {
       "shouldTranslate" : false
     },
-    "%@ av %@ grupper är kvitt" : {
+    "%@ → %@" : {
       "localizations" : {
         "sv" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%1$@ av %2$@ grupper är kvitt"
+            "value" : "%1$@ → %2$@"
           }
-        },
+        }
+      }
+    },
+    "%@ är kvitt" : {
+      "extractionState" : "stale",
+      "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ of %2$@ groups settled"
+            "value" : "%@ is settled"
+          }
+        }
+      }
+    },
+    "%@ är skyldig" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ owes"
           }
         }
       }
     },
     "%@ av %@ är kvitt" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ of %2$@ settled up"
+          }
+        },
         "sv" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ av %2$@ är kvitt"
           }
-        },
+        }
+      }
+    },
+    "%@ av %@ grupper är kvitt" : {
+      "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ of %2$@ settled up"
+            "value" : "%1$@ of %2$@ groups settled"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ av %2$@ grupper är kvitt"
           }
         }
       }
@@ -68,6 +100,7 @@
       }
     },
     "%@ i %@ väntar på att du bekräftar." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -78,6 +111,7 @@
       }
     },
     "%@ i %@, och i %d grupper till." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -109,6 +143,9 @@
         }
       }
     },
+    "%@ personer" : {
+
+    },
     "%@ ska få" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -120,45 +157,13 @@
         }
       }
     },
-    "%@ är kvitt" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ is settled"
-          }
-        }
-      }
-    },
-    "%@ är skyldig" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ owes"
-          }
-        }
-      }
-    },
     "%d betalningar väntar på att du bekräftar." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%d payments are waiting for you to confirm."
-          }
-        }
-      }
-    },
-    "%lld av %lld grupper är kvitt" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld of %lld groups settled"
           }
         }
       }
@@ -170,6 +175,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld of %lld settled"
+          }
+        }
+      }
+    },
+    "%lld av %lld grupper är kvitt" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld of %lld groups settled"
           }
         }
       }
@@ -195,6 +211,32 @@
           }
         }
       }
+    },
+    "≈" : {
+      "shouldTranslate" : false
+    },
+    "≈ %@ totalt" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "≈ %@ in total"
+          }
+        }
+      }
+    },
+    "≈ i %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "≈ in %@"
+          }
+        }
+      }
+    },
+    "🙌" : {
+      "shouldTranslate" : false
     },
     "Aktivitet" : {
       "extractionState" : "stale",
@@ -229,6 +271,16 @@
         }
       }
     },
+    "Alla är kvitt 🎉" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All settled 🎉"
+          }
+        }
+      }
+    },
     "Alla grupper" : {
       "localizations" : {
         "en" : {
@@ -249,17 +301,8 @@
         }
       }
     },
-    "Alla är kvitt 🎉" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All settled 🎉"
-          }
-        }
-      }
-    },
     "Allt" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -270,6 +313,7 @@
       }
     },
     "Allt är sparat" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -286,6 +330,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Shares"
+          }
+        }
+      }
+    },
+    "Återställ" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore"
           }
         }
       }
@@ -311,6 +366,16 @@
         }
       }
     },
+    "Bara du än — bjud in någon först" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only you so far — invite someone first"
+          }
+        }
+      }
+    },
     "Bara du i gruppen än" : {
       "localizations" : {
         "en" : {
@@ -322,6 +387,7 @@
       }
     },
     "Bara på den här telefonen" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -343,6 +409,7 @@
       }
     },
     "Beloppen gick inte ihop." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -373,6 +440,16 @@
         }
       }
     },
+    "bestriden" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "disputed"
+          }
+        }
+      }
+    },
     "Betalade av" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -385,6 +462,7 @@
       }
     },
     "Betalning" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -395,6 +473,7 @@
       }
     },
     "Betalningar" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -458,6 +537,7 @@
       }
     },
     "Byt bild" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -467,7 +547,19 @@
         }
       }
     },
+    "Byt gruppbild" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change group photo"
+          }
+        }
+      }
+    },
     "Byt namn" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -499,6 +591,7 @@
       }
     },
     "Dela inbjudningslänk" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -519,6 +612,17 @@
         }
       }
     },
+    "delas exakt" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "split exactly"
+          }
+        }
+      }
+    },
     "Delas i %lld delar" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -526,6 +630,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Split into %lld shares"
+          }
+        }
+      }
+    },
+    "delas i andelar" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "split by shares"
+          }
+        }
+      }
+    },
+    "delas i procent" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "split by percent"
+          }
+        }
+      }
+    },
+    "delas lika" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "split equally"
           }
         }
       }
@@ -572,6 +709,7 @@
       }
     },
     "Den här versionen av Slice är för gammal." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -582,6 +720,7 @@
       }
     },
     "Den platsen är redan någon annans." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -602,6 +741,7 @@
       }
     },
     "Det där ser inte ut som en inbjudningskod." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -643,7 +783,18 @@
         }
       }
     },
+    "din del %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "your share %@"
+          }
+        }
+      }
+    },
     "Dina utgifter finns alltid på telefonen. Kopian hos servern gör att de överlever om du byter telefon." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -654,6 +805,7 @@
       }
     },
     "Dina utgifter finns på den här telefonen. Säkerhetskopiering till servern är inte påslagen än." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -670,6 +822,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your name"
+          }
+        }
+      }
+    },
+    "Dölj borttagna" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide deleted"
           }
         }
       }
@@ -696,7 +859,94 @@
         }
       }
     },
+    "Du är ensam i gruppen till att börja med. Dela inbjudningslänken så går de andra med själva — då väljer de sina egna namn." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're on your own in the group to begin with. Share the invite link and the others join themselves — then they pick their own names."
+          }
+        }
+      }
+    },
+    "Du är inte längre med i gruppen." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are no longer in the group."
+          }
+        }
+      }
+    },
+    "Du är inte med i den gruppen." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are not in that group."
+          }
+        }
+      }
+    },
+    "Du är med i gruppen." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're in the group."
+          }
+        }
+      }
+    },
+    "du är skyldig" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "you owe"
+          }
+        }
+      }
+    },
+    "Du är skyldig" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You owe"
+          }
+        }
+      }
+    },
+    "Du är skyldig pengar" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You owe money"
+          }
+        }
+      }
+    },
+    "Du är utloggad. Logga in igen." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are signed out. Sign in again."
+          }
+        }
+      }
+    },
     "Du behöver inget konto för att använda Slice. Ett konto gör bara att dina utgifter finns kvar om telefonen försvinner." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -747,6 +997,17 @@
         }
       }
     },
+    "du ska få" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "you're owed"
+          }
+        }
+      }
+    },
     "Du ska få" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -754,88 +1015,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You're owed"
-          }
-        }
-      }
-    },
-    "Du är ensam i gruppen till att börja med. Dela inbjudningslänken så går de andra med själva — då väljer de sina egna namn." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You're on your own in the group to begin with. Share the invite link and the others join themselves — then they pick their own names."
-          }
-        }
-      }
-    },
-    "Du är inte längre med i gruppen." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You are no longer in the group."
-          }
-        }
-      }
-    },
-    "Du är inte med i den gruppen." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You are not in that group."
-          }
-        }
-      }
-    },
-    "Du är med i gruppen." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You're in the group."
-          }
-        }
-      }
-    },
-    "Du är skyldig" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You owe"
-          }
-        }
-      }
-    },
-    "Du är skyldig pengar" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You owe money"
-          }
-        }
-      }
-    },
-    "Du är utloggad. Logga in igen." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You are signed out. Sign in again."
-          }
-        }
-      }
-    },
-    "Dölj borttagna" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hide deleted"
           }
         }
       }
@@ -913,6 +1092,7 @@
       }
     },
     "Exportera CSV" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -923,6 +1103,7 @@
       }
     },
     "Fel valuta för gruppen." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -950,6 +1131,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Split"
+          }
+        }
+      }
+    },
+    "Gå med i grupp" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join group"
+          }
+        }
+      }
+    },
+    "Gör upp" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settle up"
           }
         }
       }
@@ -998,26 +1199,6 @@
         }
       }
     },
-    "Gå med i grupp" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Join group"
-          }
-        }
-      }
-    },
-    "Gör upp" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Settle up"
-          }
-        }
-      }
-    },
     "Har appen" : {
       "localizations" : {
         "en" : {
@@ -1029,6 +1210,7 @@
       }
     },
     "I kö för uppladdning" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1071,6 +1253,7 @@
       }
     },
     "Inbjudan finns inte." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1081,6 +1264,7 @@
       }
     },
     "Inbjudan har gått ut. Be om en ny." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1163,6 +1347,7 @@
       }
     },
     "Ja, betalt" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1173,6 +1358,7 @@
       }
     },
     "Ja, jag har fått pengarna" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1205,11 +1391,23 @@
       }
     },
     "Klistra in inbjudningskod" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Paste invite code"
+          }
+        }
+      }
+    },
+    "komma" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "comma"
           }
         }
       }
@@ -1236,6 +1434,7 @@
       }
     },
     "Kunde inte nå servern." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1246,11 +1445,23 @@
       }
     },
     "Kunde inte nå servern. Dina utgifter finns kvar på telefonen." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Could not reach the server. Your expenses are still on the phone."
+          }
+        }
+      }
+    },
+    "Kunde inte öppna databasen" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't open the database"
           }
         }
       }
@@ -1267,6 +1478,7 @@
       }
     },
     "Kunde inte sparas" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1282,17 +1494,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't be saved to the server"
-          }
-        }
-      }
-    },
-    "Kunde inte öppna databasen" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Couldn't open the database"
           }
         }
       }
@@ -1317,53 +1518,23 @@
         }
       }
     },
+    "kvitt" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "settled"
+          }
+        }
+      }
+    },
     "Kvitt" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Settled"
-          }
-        }
-      }
-    },
-    "Lika" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Equal"
-          }
-        }
-      }
-    },
-    "Logga in" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sign in"
-          }
-        }
-      }
-    },
-    "Logga in först — en inbjudan behöver ett konto." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sign in first — an invite needs an account."
-          }
-        }
-      }
-    },
-    "Logga ut" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sign out"
           }
         }
       }
@@ -1423,6 +1594,7 @@
       }
     },
     "Lägg till namn" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1461,6 +1633,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add expense"
+          }
+        }
+      }
+    },
+    "Lika" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Equal"
+          }
+        }
+      }
+    },
+    "Logga in" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in"
+          }
+        }
+      }
+    },
+    "Logga in först — en inbjudan behöver ett konto." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in first — an invite needs an account."
+          }
+        }
+      }
+    },
+    "Logga ut" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign out"
+          }
+        }
+      }
+    },
+    "löpande: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "running: %@"
           }
         }
       }
@@ -1520,11 +1745,34 @@
       }
     },
     "MobilePay verkar inte finnas på den här telefonen." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "MobilePay does not seem to be installed on this phone."
+          }
+        }
+      }
+    },
+    "Någon i utgiften finns inte i gruppen." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Someone in the expense is not in the group."
+          }
+        }
+      }
+    },
+    "Något gick fel med inbjudan." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something went wrong with the invite."
           }
         }
       }
@@ -1552,6 +1800,7 @@
       }
     },
     "Nej" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1562,6 +1811,7 @@
       }
     },
     "Nej, inte än" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1592,6 +1842,17 @@
         }
       }
     },
+    "Nöje" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fun"
+          }
+        }
+      }
+    },
     "Notiser är avstängda för Slice i Inställningar." : {
       "localizations" : {
         "en" : {
@@ -1603,6 +1864,7 @@
       }
     },
     "Nummer" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1635,42 +1897,12 @@
       }
     },
     "Nya utgifter sparas hos servern så att de överlever om du byter telefon." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "New expenses are saved to the server so they survive a phone switch."
-          }
-        }
-      }
-    },
-    "Någon i utgiften finns inte i gruppen." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Someone in the expense is not in the group."
-          }
-        }
-      }
-    },
-    "Något gick fel med inbjudan." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Something went wrong with the invite."
-          }
-        }
-      }
-    },
-    "Nöje" : {
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Fun"
+            "value" : "New expenses are saved to the server so they survive a phone switch."
           }
         }
       }
@@ -1686,7 +1918,19 @@
         }
       }
     },
+    "Om gruppen" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About the group"
+          }
+        }
+      }
+    },
     "Om Slice" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1696,12 +1940,79 @@
         }
       }
     },
-    "Om gruppen" : {
+    "Öppna" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "About the group"
+            "value" : "Open"
+          }
+        }
+      }
+    },
+    "Öppna MobilePay" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open MobilePay"
+          }
+        }
+      }
+    },
+    "Öppna Swish" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Swish"
+          }
+        }
+      }
+    },
+    "överhoppade händelser" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "skipped events"
+          }
+        }
+      }
+    },
+    "Överhoppade händelser" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skipped events"
+          }
+        }
+      }
+    },
+    "Övrigt" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other"
+          }
+        }
+      }
+    },
+    "Påminn mig om skulder" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remind me about debts"
           }
         }
       }
@@ -1717,12 +2028,34 @@
         }
       }
     },
-    "Påminn mig om skulder" : {
+    "radera" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Remind me about debts"
+            "value" : "delete"
+          }
+        }
+      }
+    },
+    "Räknas när %@ bekräftar. Utan svar räknas den efter %@ dagar." : {
+      "localizations" : {
+        "sv" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Räknas när %1$@ bekräftar. Utan svar räknas den efter %2$@ dagar."
+          }
+        }
+      }
+    },
+    "Räknas när %@ bekräftar. Utan svar räknas den efter %lld dagar." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Counts once %1$@ confirms. With no answer it counts after %2$lld days."
           }
         }
       }
@@ -1734,6 +2067,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edit"
+          }
+        }
+      }
+    },
+    "redigerad" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "edited"
           }
         }
       }
@@ -1787,17 +2130,18 @@
         }
       }
     },
-    "Räknas när %@ bekräftar. Utan svar räknas den efter %lld dagar." : {
+    "Säkerhetskopiering" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Counts once %1$@ confirms. With no answer it counts after %2$lld days."
+            "value" : "Backup"
           }
         }
       }
     },
     "Servern kunde inte ta emot den här posten." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1808,6 +2152,7 @@
       }
     },
     "Servern tillåter inte utvecklarinloggning." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1839,6 +2184,7 @@
       }
     },
     "Skapa inbjudningslänk" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1907,6 +2253,7 @@
       }
     },
     "Sparas bara på den här telefonen. Används när du skickar en betalningslänk till någon som är skyldig dig pengar." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1923,6 +2270,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sport"
+          }
+        }
+      }
+    },
+    "Stämmer betalningen?" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Is this payment right?"
+          }
+        }
+      }
+    },
+    "Stäng" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
           }
         }
       }
@@ -1948,28 +2317,8 @@
         }
       }
     },
-    "Stämmer betalningen?" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Is this payment right?"
-          }
-        }
-      }
-    },
-    "Stäng" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Close"
-          }
-        }
-      }
-    },
     "Swish verkar inte finnas på den här telefonen." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1990,6 +2339,7 @@
       }
     },
     "Synka med servern" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2000,21 +2350,12 @@
       }
     },
     "Synka nu" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sync now"
-          }
-        }
-      }
-    },
-    "Säkerhetskopiering" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Backup"
           }
         }
       }
@@ -2030,6 +2371,7 @@
       }
     },
     "Ta bort bild" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2073,6 +2415,7 @@
       }
     },
     "Utgift" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2094,6 +2437,7 @@
       }
     },
     "Utgifter" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2125,11 +2469,23 @@
       }
     },
     "Vad är det här för grupp?" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "What is this group for?"
+          }
+        }
+      }
+    },
+    "Välj gruppbild" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose group photo"
           }
         }
       }
@@ -2151,6 +2507,49 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Exchange rates"
+          }
+        }
+      }
+    },
+    "väntar" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pending"
+          }
+        }
+      }
+    },
+    "Väntar på anslutning" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for a connection"
+          }
+        }
+      }
+    },
+    "Väntar på bekräftelse" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Awaiting confirmation"
+          }
+        }
+      }
+    },
+    "Väntar på push" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Awaiting push"
           }
         }
       }
@@ -2187,6 +2586,17 @@
         }
       }
     },
+    "Vilken grupp?" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Which group?"
+          }
+        }
+      }
+    },
     "Visa" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2209,17 +2619,8 @@
         }
       }
     },
-    "Visas som du i nya grupper." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shown as you in new groups."
-          }
-        }
-      }
-    },
     "Visa gruppbilden" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2229,323 +2630,12 @@
         }
       }
     },
-    "Välj gruppbild" : {
-      "extractionState" : "stale",
+    "Visas som du i nya grupper." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choose group photo"
-          }
-        }
-      }
-    },
-    "Väntar på anslutning" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Waiting for a connection"
-          }
-        }
-      }
-    },
-    "Väntar på bekräftelse" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Awaiting confirmation"
-          }
-        }
-      }
-    },
-    "Väntar på push" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Awaiting push"
-          }
-        }
-      }
-    },
-    "bestriden" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "disputed"
-          }
-        }
-      }
-    },
-    "delas exakt" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "split exactly"
-          }
-        }
-      }
-    },
-    "delas i andelar" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "split by shares"
-          }
-        }
-      }
-    },
-    "delas i procent" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "split by percent"
-          }
-        }
-      }
-    },
-    "delas lika" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "split equally"
-          }
-        }
-      }
-    },
-    "din del %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "your share %@"
-          }
-        }
-      }
-    },
-    "du ska få" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "you're owed"
-          }
-        }
-      }
-    },
-    "du är skyldig" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "you owe"
-          }
-        }
-      }
-    },
-    "komma" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "comma"
-          }
-        }
-      }
-    },
-    "kvitt" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "settled"
-          }
-        }
-      }
-    },
-    "löpande: %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "running: %@"
-          }
-        }
-      }
-    },
-    "radera" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "delete"
-          }
-        }
-      }
-    },
-    "redigerad" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "edited"
-          }
-        }
-      }
-    },
-    "väntar" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "pending"
-          }
-        }
-      }
-    },
-    "Återställ" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restore"
-          }
-        }
-      }
-    },
-    "Öppna" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open"
-          }
-        }
-      }
-    },
-    "Öppna MobilePay" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open MobilePay"
-          }
-        }
-      }
-    },
-    "Öppna Swish" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open Swish"
-          }
-        }
-      }
-    },
-    "Överhoppade händelser" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Skipped events"
-          }
-        }
-      }
-    },
-    "Övrigt" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Other"
-          }
-        }
-      }
-    },
-    "överhoppade händelser" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "skipped events"
-          }
-        }
-      }
-    },
-    "≈" : {
-      "shouldTranslate" : false
-    },
-    "≈ %@ totalt" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "≈ %@ in total"
-          }
-        }
-      }
-    },
-    "≈ i %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "≈ in %@"
-          }
-        }
-      }
-    },
-    "🙌" : {
-      "shouldTranslate" : false
-    },
-    "Vilken grupp?" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Which group?"
-          }
-        }
-      }
-    },
-    "Bara du än — bjud in någon först" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Only you so far — invite someone first"
-          }
-        }
-      }
-    },
-    "Byt gruppbild" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Change group photo"
+            "value" : "Shown as you in new groups."
           }
         }
       }
