@@ -25,13 +25,33 @@ public struct SyncConfiguration: Hashable, Sendable {
     ///
     /// The base URL is overridable at runtime through the `se.kvitta.syncBaseURL` default, which
     /// was harmless while requests only carried a user id. Now that every request carries a token,
-    /// a plaintext host is somewhere to mail the token to. Localhost is exempted because the whole
-    /// development loop runs against `http://localhost:5142`.
+    /// a plaintext host is somewhere to mail the token to. Localhost is exempted for the
+    /// development loop, and private home-network addresses are exempted for the sideload trial:
+    /// a friend's phone reaching the dev backend on the same Wi-Fi is `http://192.168.x.x:5142`,
+    /// and refusing that silently was a working app that mysteriously never synced. A token on a
+    /// LAN you are standing in is a different risk from a token on the open internet; anything
+    /// routable stays https-only.
     public var isTrustworthy: Bool {
         if baseURL.scheme?.lowercased() == "https" { return true }
 
-        let host = baseURL.host()?.lowercased()
-        return host == "localhost" || host == "127.0.0.1" || host == "::1"
+        guard let host = baseURL.host()?.lowercased() else { return false }
+        if host == "localhost" || host == "127.0.0.1" || host == "::1" { return true }
+        return Self.isPrivateLANAddress(host)
+    }
+
+    /// RFC 1918 (10/8, 172.16/12, 192.168/16) plus link-local 169.254/16 — the addresses a home
+    /// router hands out, unreachable from outside the network.
+    static func isPrivateLANAddress(_ host: String) -> Bool {
+        let parts = host.split(separator: ".").compactMap { UInt8($0) }
+        guard parts.count == 4 else { return false }
+
+        switch (parts[0], parts[1]) {
+        case (10, _): return true
+        case (172, 16...31): return true
+        case (192, 168): return true
+        case (169, 254): return true
+        default: return false
+        }
     }
 }
 
