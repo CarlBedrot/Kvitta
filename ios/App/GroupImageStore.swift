@@ -25,7 +25,7 @@ final class GroupImageStore {
     }
 
     /// Stores a downscaled square, or clears the photo when `nil`. Full camera images are several
-    /// megabytes; a 256-point square is what a 48-point circle actually needs.
+    /// megabytes; an 800-point square covers the full-width card banner it is drawn as.
     func set(_ data: Data?, for groupId: GroupID) {
         if let data {
             defaults.set(data, forKey: key(groupId))

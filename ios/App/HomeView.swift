@@ -230,11 +230,25 @@ private struct GroupCard: View {
     let photo: Data?
 
     var body: some View {
+        // The group's photo spans the card as a banner; the small circle then falls back to the
+        // emoji so the same picture is not shown twice on one card.
+        VStack(spacing: 0) {
+            if let photo {
+                GroupPhotoBanner(photo: photo)
+            }
+            row
+                .padding(18)
+        }
+        .flushCardSurface()
+        .accessibilityElement(children: .combine)
+    }
+
+    private var row: some View {
         let nets = group.nets(for: userId).filter { $0.amountMinor != 0 }
         let net = nets.first ?? group.net(for: userId)
         let direction: BalanceDirection = nets.isEmpty ? .settled : BalanceDirection(net.amountMinor)
-        HStack(spacing: 14) {
-            GroupBadge(name: group.name, photo: photo, size: 48)
+        return HStack(spacing: 14) {
+            GroupBadge(name: group.name, size: 48)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(GroupBadge.title(of: group.name))
@@ -292,15 +306,31 @@ private struct GroupCard: View {
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Theme.tertiary)
         }
-        .padding(.vertical, 2)
-        .cardSurface(padding: 18)
-        .accessibilityElement(children: .combine)
     }
 
     private var subtitle: String {
         let count = String(localized: "\(group.activeMembers.count) personer")
         guard let last = group.lastActivity else { return count }
         return "\(count) · \(last.date.formatted(.relative(presentation: .named)))"
+    }
+}
+
+/// The group's photo across the full width of a card — how a picked picture actually gets seen,
+/// on the Grupper list and atop the group screen's hero. Pair with `flushCardSurface` so the
+/// image bleeds to the rounded edge.
+struct GroupPhotoBanner: View {
+    let photo: Data
+    var height: CGFloat = 84
+
+    var body: some View {
+        if let image = UIImage(data: photo) {
+            // Clear frame + overlay, so scaledToFill cannot push the card wider than the screen.
+            Color.clear
+                .frame(height: height)
+                .overlay { Image(uiImage: image).resizable().scaledToFill() }
+                .clipped()
+                .accessibilityHidden(true)
+        }
     }
 }
 

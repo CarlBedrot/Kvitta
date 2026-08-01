@@ -24,6 +24,11 @@ struct RootView: View {
     @State private var showingNewGroup = false
     @State private var expenseModel: NewExpenseModel?
     @State private var showingActions = false
+    @State private var choosingGroup = false
+    /// What the group chooser decided, applied in its `onDismiss` — presenting the next sheet
+    /// while the chooser is still animating away would silently swallow it.
+    @State private var chosenGroup: GroupID?
+    @State private var chooserWantsNewGroup = false
     @State private var images = GroupImageStore()
     /// Held here so creating a group can push straight into it. A new group has nobody in it yet,
     /// so landing back on the list would leave you looking at a row you cannot do anything with.
@@ -65,6 +70,15 @@ struct RootView: View {
         .sheet(item: $expenseModel) { model in
             NewExpenseSheet(model: model)
                 .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $choosingGroup, onDismiss: applyChooserChoice) {
+            GroupPickerSheet(
+                ledger: ledger,
+                userId: userId,
+                images: images,
+                onPick: { chosenGroup = $0 },
+                onNewGroup: { chooserWantsNewGroup = true }
+            )
         }
         // Your Swish number up to your server profile, debounced past the keystrokes. The id
         // includes the sign-in state so the first push after signing in is not missed.
@@ -117,17 +131,28 @@ struct RootView: View {
         ]
     }
 
-    /// The most recently active group you can actually split in.
-    private var splittableGroupId: GroupID? {
-        ledger.state.groupsByLastActivity.first { $0.activeMembers.count >= 2 }?.id
+    /// Opens Ny utgift. One group with someone to split with goes straight in; anything else —
+    /// several groups, or only solo ones — opens the chooser, where the situation is visible.
+    /// The old behaviour guessed the most recent group or bounced to "Ny grupp", both of which
+    /// read as being redirected somewhere you did not ask to go.
+    private func startAddExpense() {
+        let groups = ledger.state.groupsByLastActivity
+        if groups.isEmpty {
+            showingNewGroup = true
+        } else if groups.count == 1, let only = groups.first, only.activeMembers.count >= 2 {
+            expenseModel = NewExpenseModel(ledger: ledger, userId: userId, groupId: only.id)
+        } else {
+            choosingGroup = true
+        }
     }
 
-    /// Opens Ny utgift on the most recently active group that has someone to split with. With no
-    /// such group yet, routes to group creation instead — adding an expense is never a dead end.
-    private func startAddExpense() {
-        if let groupId = splittableGroupId {
+    /// Runs when the group chooser has fully left the screen; see `chosenGroup`.
+    private func applyChooserChoice() {
+        if let groupId = chosenGroup {
+            chosenGroup = nil
             expenseModel = NewExpenseModel(ledger: ledger, userId: userId, groupId: groupId)
-        } else {
+        } else if chooserWantsNewGroup {
+            chooserWantsNewGroup = false
             showingNewGroup = true
         }
     }

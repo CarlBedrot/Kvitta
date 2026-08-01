@@ -106,7 +106,8 @@ struct GroupDetailView: View {
                     onAudit: { auditingMember = $0 }
                 )
 
-                MembersCard(group: group, meId: meId, mode: mode, rates: rates.rates) {
+                MembersCard(group: group, meId: meId, mode: mode, rates: rates.rates,
+                            myPhoto: profile.avatarData) {
                     auditingMember = $0
                 }
 
@@ -123,6 +124,19 @@ struct GroupDetailView: View {
             .padding(.top, 4)
         }
         .background(AmbientBackground())
+        // The same + as on Grupper, but here the group is the screen you stand on, so it goes
+        // straight to Ny utgift — no menu, no chooser. Hidden while you are alone in the group;
+        // SoloGroupCard is already pointing at the way forward.
+        .overlay(alignment: .bottomTrailing) {
+            if canSplit {
+                FAB {
+                    expenseModel = NewExpenseModel(ledger: ledger, userId: userId, groupId: groupId)
+                }
+                .accessibilityLabel("Lägg till utgift")
+                .padding(.trailing, 20)
+                .padding(.bottom, 80)
+            }
+        }
         .navigationTitle(GroupBadge.title(of: group.name))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -144,7 +158,8 @@ struct GroupDetailView: View {
             }
         }
         .sheet(isPresented: $showingMembers) {
-            MembersSheet(ledger: ledger, userId: userId, groupId: groupId, invites: invites)
+            MembersSheet(ledger: ledger, userId: userId, groupId: groupId, invites: invites,
+                         profile: profile)
         }
         .navigationBarTitleDisplayMode(.large)
         .sheet(item: $settlingTransfer) { presentation in
@@ -310,19 +325,33 @@ private struct GroupHeroCard: View {
     @State private var photoItem: PhotosPickerItem?
 
     var body: some View {
-        Group {
-            if group.balances().isSettled {
-                settled
-            } else {
-                open
+        let isSettled = group.balances().isSettled
+        VStack(spacing: 0) {
+            // The photo as the card's crown — tapping it swaps it. The small badge below stays
+            // the picker for a group that has no picture yet.
+            if let photo {
+                PhotosPicker(selection: $photoItem, matching: .images) {
+                    GroupPhotoBanner(photo: photo, height: 120)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Byt gruppbild")
             }
+            Group {
+                if isSettled {
+                    settled
+                } else {
+                    open
+                }
+            }
+            .padding(24)
         }
+        .flushCardSurface(fill: isSettled ? Theme.positiveWash : Theme.card)
         .task(id: photoItem) { await loadPhoto() }
     }
 
     private var badge: some View {
         PhotosPicker(selection: $photoItem, matching: .images) {
-            GroupBadge(name: group.name, photo: photo, size: 48)
+            GroupBadge(name: group.name, size: 48)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Välj gruppbild")
@@ -330,11 +359,12 @@ private struct GroupHeroCard: View {
 
     private func loadPhoto() async {
         guard let photoItem else { return }
-        // Downscaled before storing, same as the profile photo — UserDefaults is read back on
-        // every launch and a camera-size image there would be megabytes.
+        // Downscaled before storing — UserDefaults is read back on every launch and a
+        // camera-size image there would be megabytes. 800 because the photo is a full-width
+        // banner now, not the 48-point circle the first version stored 256 for.
         if let data = try? await photoItem.loadTransferable(type: Data.self),
-           let square = UIImage(data: data)?.squareThumbnail(side: 256),
-           let jpeg = square.jpegData(compressionQuality: 0.85) {
+           let square = UIImage(data: data)?.squareThumbnail(side: 800),
+           let jpeg = square.jpegData(compressionQuality: 0.8) {
             onPhotoPicked(jpeg)
         }
     }
@@ -350,11 +380,11 @@ private struct GroupHeroCard: View {
                     .foregroundStyle(Theme.secondary)
             }
             Spacer()
-            badge
+            if photo == nil {
+                badge
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(24)
-        .background(Theme.positiveWash, in: .rect(cornerRadius: 28))
     }
 
     /// The nets to draw, shaped by the viewing mode. Exact by default; ≈ on request.
@@ -449,12 +479,15 @@ private struct GroupHeroCard: View {
                 .buttonStyle(ScaleButtonStyle())
 
                 VStack(alignment: .trailing, spacing: 10) {
-                    badge
+                    // With a banner above, the badge would repeat the photo — the emoji identity
+                    // is enough, and the banner itself is the picker.
+                    if photo == nil {
+                        badge
+                    }
                     currencyMenu
                 }
             }
         }
-        .cardSurface(padding: 24)
     }
 
     /// The mode switch, only shown once there is more than one currency to have an opinion about.
@@ -684,6 +717,9 @@ private struct MembersCard: View {
     let meId: MemberID?
     let mode: CurrencyDisplay
     let rates: ExchangeRates?
+    /// Your profile picture from Jag — the one picture you have, shown on your own row here the
+    /// same as everywhere else. Other members render as initials until profile photos sync.
+    let myPhoto: Data?
     let onAudit: (MemberID) -> Void
 
     var body: some View {
@@ -703,7 +739,11 @@ private struct MembersCard: View {
                     onAudit(member.id)
                 } label: {
                     HStack(spacing: 14) {
-                        Avatar(name: member.displayName, size: 36)
+                        Avatar(
+                            name: member.displayName,
+                            photo: member.id == meId ? myPhoto : nil,
+                            size: 36
+                        )
                         Text(member.id == meId ? String(localized: "Du") : member.displayName)
                             .font(.body.weight(.medium))
                             .foregroundStyle(Theme.ink)
