@@ -5,14 +5,7 @@
       "shouldTranslate" : false
     },
     "%@ → %@" : {
-      "localizations" : {
-        "sv" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ → %2$@"
-          }
-        }
-      }
+      "shouldTranslate" : false
     },
     "%@ är kvitt" : {
       "extractionState" : "stale",
@@ -143,9 +136,7 @@
         }
       }
     },
-    "%@ personer" : {
-
-    },
+    "%@ personer" : {},
     "%@ ska få" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2045,6 +2036,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Räknas när %1$@ bekräftar. Utan svar räknas den efter %2$@ dagar."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Counts when %1$@ confirms. Without an answer it counts after %2$@ days."
           }
         }
       }
