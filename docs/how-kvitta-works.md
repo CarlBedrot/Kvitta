@@ -309,9 +309,11 @@ Found or re-confirmed while writing this document:
    log output is structured JSON so whichever host is chosen can search it.
 
 **Not built yet (roadmap)**
-9. Receipt scanning (the mockups show it; the feature does not exist — the next real milestone).
+9. Receipt scanning — **parked by decision (2026-08-01)**: uncertain anyone would use it when
+   typing an amount takes five seconds. The mockups show it; nothing in the app pretends it
+   exists. Revisit only if real usage asks for it.
 10. ~~CSV export~~, ~~activity filters~~, ~~group descriptions~~ *(all shipped overnight)* —
-    remaining: receipt scanning, notification inbox, dark mode.
+    remaining: notification inbox, dark mode; receipt scanning parked (see 9).
 
 ---
 
