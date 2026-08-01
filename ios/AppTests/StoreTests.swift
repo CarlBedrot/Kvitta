@@ -87,4 +87,42 @@ struct StoreTests {
 
         #expect(store.mode(for: group) == .native)
     }
+
+    // MARK: - GroupImageStore sync bookkeeping
+
+    @Test("Photo, etag and dirty flag round-trip and clear independently")
+    func groupImageBookkeepingRoundTrips() {
+        let store = GroupImageStore(defaults: freshDefaults())
+        let group = GroupID()
+        let photo = Data([0xFF, 0xD8, 0x01])
+
+        // A local pick that has not reached the server: photo + dirty, no etag yet.
+        store.set(photo, for: group)
+        store.setDirty(true, for: group)
+        #expect(store.image(for: group) == photo)
+        #expect(store.isDirty(group))
+        #expect(store.etag(for: group) == nil)
+
+        // The push succeeded: etag lands, dirty clears, the photo itself is untouched.
+        store.setEtag("\"abc\"", for: group)
+        store.setDirty(false, for: group)
+        #expect(store.etag(for: group) == "\"abc\"")
+        #expect(!store.isDirty(group))
+        #expect(store.image(for: group) == photo)
+
+        // Someone took the photo back: everything about it goes.
+        store.set(nil, for: group)
+        store.setEtag(nil, for: group)
+        #expect(store.image(for: group) == nil)
+        #expect(store.etag(for: group) == nil)
+    }
+
+    @Test("The client-side etag matches the server's content addressing")
+    func etagMatchesServerShape() {
+        // The server tags a photo with quoted lowercase SHA-256 hex. The client computes the
+        // same tag for bytes it uploads, so this shape is a contract, not a convention.
+        let etag = GroupPhotoSyncer.etag(of: Data("slice".utf8))
+        #expect(etag == "\"03fdb065d956f3fb9ccd85da1b15398f00a9958b715145ebf916dd91fd7b6361\"")
+        #expect(etag.hasPrefix("\"") && etag.hasSuffix("\""))
+    }
 }

@@ -15,7 +15,7 @@ struct GroupDetailView: View {
     var payees = PayeeDirectory()
     let invites: InviteModel
     let profile: UserProfile
-    let images: GroupImageStore
+    let photos: GroupPhotoSyncer
     let rates: RateStore
     let profiles: ProfileSyncer
     var displayModes = CurrencyDisplayStore()
@@ -27,6 +27,7 @@ struct GroupDetailView: View {
     @State private var restoreFailure: String?
     @State private var confirmFailure: String?
     @State private var showingMembers = false
+    @State private var showingPhoto = false
     /// Adding an expense from inside the group it belongs to — the group is the screen you are
     /// standing on, so there is nothing to guess.
     @State private var expenseModel: NewExpenseModel?
@@ -40,8 +41,14 @@ struct GroupDetailView: View {
             content(for: group)
                 // Co-members' Swish numbers from their own profiles, into the same directory the
                 // settle-up sheet reads — so the number is usually just there, and the ask-for-it
-                // alert is the offline-or-unlinked fallback.
-                .task { await profiles.refreshPayees(in: groupId, into: payees) }
+                // alert is the offline-or-unlinked fallback. The group photo rides the same
+                // moment: opening a group is when its shared picture comes down (or a pending
+                // local pick goes up).
+                .task {
+                    async let payeeRefresh: Void = profiles.refreshPayees(in: groupId, into: payees)
+                    async let photoRefresh: Void = photos.refresh(groupId)
+                    _ = await (payeeRefresh, photoRefresh)
+                }
         } else {
             ContentUnavailableView("Gruppen finns inte längre", systemImage: "person.2.slash")
                 .background(AmbientBackground())
@@ -61,8 +68,9 @@ struct GroupDetailView: View {
                     userId: userId,
                     mode: mode,
                     rates: rates.rates,
-                    photo: images.image(for: groupId),
-                    onPhotoPicked: { images.set($0, for: groupId) },
+                    photo: photos.images.image(for: groupId),
+                    onPhotoPicked: { jpeg in Task { await photos.stage(jpeg, for: groupId) } },
+                    onShowPhoto: { showingPhoto = true },
                     onMode: { displayModes.set($0, for: groupId) },
                     onAudit: { if let meId { auditingMember = meId } }
                 )
@@ -178,6 +186,9 @@ struct GroupDetailView: View {
         .sheet(item: $expenseModel) { model in
             NewExpenseSheet(model: model)
                 .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showingPhoto) {
+            GroupPhotoViewer(groupName: group.name, groupId: groupId, photos: photos)
         }
     }
 
@@ -319,6 +330,8 @@ private struct GroupHeroCard: View {
     let rates: ExchangeRates?
     let photo: Data?
     let onPhotoPicked: (Data?) -> Void
+    /// Opens the full-image viewer — the banner is a crop, and the whole picture lives one tap in.
+    let onShowPhoto: () -> Void
     let onMode: (CurrencyDisplay) -> Void
     let onAudit: () -> Void
 
@@ -327,14 +340,14 @@ private struct GroupHeroCard: View {
     var body: some View {
         let isSettled = group.balances().isSettled
         VStack(spacing: 0) {
-            // The photo as the card's crown — tapping it swaps it. The small badge below stays
-            // the picker for a group that has no picture yet.
+            // The photo as the card's crown — tapping it opens the whole image. The small badge
+            // below stays the picker for a group that has no picture yet.
             if let photo {
-                PhotosPicker(selection: $photoItem, matching: .images) {
+                Button(action: onShowPhoto) {
                     GroupPhotoBanner(photo: photo, height: 120)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Byt gruppbild")
+                .accessibilityLabel("Visa gruppbilden")
             }
             Group {
                 if isSettled {
@@ -359,12 +372,11 @@ private struct GroupHeroCard: View {
 
     private func loadPhoto() async {
         guard let photoItem else { return }
-        // Downscaled before storing — UserDefaults is read back on every launch and a
-        // camera-size image there would be megabytes. 800 because the photo is a full-width
-        // banner now, not the 48-point circle the first version stored 256 for.
+        // Downscaled but *not* cropped — the viewer shows the whole picture, and a crop here
+        // would be a crop nobody chose. The banner does its own cropping at draw time.
         if let data = try? await photoItem.loadTransferable(type: Data.self),
-           let square = UIImage(data: data)?.squareThumbnail(side: 800),
-           let jpeg = square.jpegData(compressionQuality: 0.8) {
+           let scaled = UIImage(data: data)?.downscaled(maxSide: 1200),
+           let jpeg = scaled.jpegData(compressionQuality: 0.8) {
             onPhotoPicked(jpeg)
         }
     }

@@ -123,8 +123,24 @@ extension UserDefaults {
 }
 
 extension UIImage {
-    /// Centre-cropped to a square and scaled down, so avatars and group photos are cheap to
-    /// store and to draw. Shared by the profile photo and `GroupImageStore`.
+    /// Scaled down keeping its shape, so the whole picture survives — the group photo is shown
+    /// entire in `GroupPhotoViewer`, and a crop here would be a crop nobody chose.
+    func downscaled(maxSide: CGFloat) -> UIImage? {
+        let longest = max(size.width, size.height)
+        guard longest > maxSide else { return self }
+
+        let scaleFactor = maxSide / longest
+        let target = CGSize(width: size.width * scaleFactor, height: size.height * scaleFactor)
+        // Scale 1, not the screen's: the default renders at 3× on modern phones, which turns
+        // "1200 px" into 3600 px and a ~2 MB JPEG the server's size cap rightly refuses.
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: target, format: format).image { _ in
+            draw(in: CGRect(origin: .zero, size: target))
+        }
+    }
+
+    /// Centre-cropped to a square and scaled down, so avatars are cheap to store and to draw.
     func squareThumbnail(side: CGFloat) -> UIImage? {
         let shortest = min(size.width, size.height)
         let crop = CGRect(
@@ -136,7 +152,11 @@ extension UIImage {
         guard let cropped = cgImage?.cropping(to: crop) else { return nil }
 
         let target = CGSize(width: side, height: side)
-        return UIGraphicsImageRenderer(size: target).image { _ in
+        // Same scale-1 story as `downscaled`: the avatar is stored at the size asked for, not
+        // three times it.
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: target, format: format).image { _ in
             UIImage(cgImage: cropped, scale: scale, orientation: imageOrientation)
                 .draw(in: CGRect(origin: .zero, size: target))
         }

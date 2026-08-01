@@ -138,6 +138,14 @@ public struct HTTPSyncTransport: SyncTransport {
     /// Once, not in a loop: if the second attempt is also refused then the token we just obtained
     /// is being rejected, and trying harder would only spin.
     func performAuthorised(_ request: URLRequest) async throws -> Data {
+        try await performAuthorisedReadingHeaders(request).0
+    }
+
+    /// Like `performAuthorised`, for the callers that need a response header — the photo fetch
+    /// reads its ETag. Header names come back exactly as the server capitalised them.
+    func performAuthorisedReadingHeaders(
+        _ request: URLRequest
+    ) async throws -> (Data, [String: String]) {
         guard configuration.isTrustworthy else {
             throw SyncError.malformedResponse(
                 "Refusing to send credentials to \(configuration.baseURL.absoluteString) over plaintext."
@@ -155,7 +163,7 @@ public struct HTTPSyncTransport: SyncTransport {
         }
     }
 
-    private func send(_ request: URLRequest, token: String) async throws -> Data {
+    private func send(_ request: URLRequest, token: String) async throws -> (Data, [String: String]) {
         var authorised = request
         authorised.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
@@ -176,7 +184,13 @@ public struct HTTPSyncTransport: SyncTransport {
 
         switch http.statusCode {
         case 200..<300:
-            return data
+            var headers: [String: String] = [:]
+            for (name, value) in http.allHeaderFields {
+                if let name = name as? String, let value = value as? String {
+                    headers[name] = value
+                }
+            }
+            return (data, headers)
         case 401:
             throw SyncError.unauthorized
         case 403:

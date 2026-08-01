@@ -46,6 +46,15 @@ public sealed class GroupRecord
     /// practice never changes. Same justification as §8 keeping a <c>members</c> table.
     /// </summary>
     public string? Currency { get; set; }
+
+    /// <summary>
+    /// The group's shared picture, as JPEG bytes. A mutable column and deliberately not an event,
+    /// for the same reason a Swish number is not one (see <see cref="UserRecord.SwishNumber"/>):
+    /// a photo in the immutable log would reach every member forever with no way to take it back,
+    /// and would bloat a log that replays on every launch. Any member may set, replace or clear
+    /// it; only members are ever served it.
+    /// </summary>
+    public byte[]? PhotoJpeg { get; set; }
 }
 
 /// <summary>

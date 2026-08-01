@@ -24,7 +24,7 @@ struct KvittaApp: App {
             // A switch over an enum returning concrete views, not AnyView (CLAUDE.md) — the
             // WindowGroup body is already a @ViewBuilder, so this costs nothing.
             switch startup {
-            case .ready(let ledger, let sync, let session, let invites, let profiles):
+            case .ready(let ledger, let sync, let session, let invites, let profiles, let photos):
                 RootView(
                     ledger: ledger,
                     userId: session.userId ?? DeviceIdentity.userId,
@@ -34,7 +34,8 @@ struct KvittaApp: App {
                     invites: invites,
                     reminders: reminders,
                     rates: rates,
-                    profiles: profiles
+                    profiles: profiles,
+                    photos: photos
                 )
                 // The palette is light-only by design (`Theme`), and the plist says so too. This
                 // is the SwiftUI half of the same statement, so Previews and any future scene
@@ -74,7 +75,7 @@ struct KvittaApp: App {
 }
 
 enum Startup {
-    case ready(LedgerStore, SyncEngine, SessionModel, InviteModel, ProfileSyncer)
+    case ready(LedgerStore, SyncEngine, SessionModel, InviteModel, ProfileSyncer, GroupPhotoSyncer)
     case failed(String)
 }
 
@@ -125,8 +126,9 @@ enum Bootstrap {
             )
 
             let profiles = ProfileSyncer(transport: transport, session: session)
+            let photos = GroupPhotoSyncer(transport: transport, session: session)
 
-            return .ready(ledger, sync, session, invites, profiles)
+            return .ready(ledger, sync, session, invites, profiles, photos)
         } catch {
             // Deliberately not a silent fallback to an in-memory store: that would look like a
             // working app that quietly forgets everything, which is worse than saying so.
