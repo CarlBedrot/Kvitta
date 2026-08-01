@@ -13,6 +13,21 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Console is the right sink — the host (Docker, journald, a PaaS) owns capture, rotation and
+// retention; an app writing its own log files is the pattern that ages badly. But *searchable*
+// beats *readable* once nobody is watching live, so production emits one JSON object per line.
+// Development keeps the human format.
+if (!builder.Environment.IsDevelopment())
+{
+    builder.Logging.ClearProviders();
+    builder.Logging.AddJsonConsole(options =>
+    {
+        options.IncludeScopes = true;
+        options.UseUtcTimestamp = true;
+        options.TimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffZ ";
+    });
+}
+
 // Configuration through IOptions only. CLAUDE.md forbids Environment.GetEnvironmentVariable —
 // this is the one place the app learns anything about its surroundings.
 builder.Services

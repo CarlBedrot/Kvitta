@@ -52,7 +52,10 @@ public enum PushAuthorisation
 /// failed the whole batch it would sit at the head of that outbox forever, blocking every good
 /// event behind it.
 /// </remarks>
-public sealed class EventWriter(KvittaDbContext db, IOptions<SyncOptions> syncOptions)
+public sealed class EventWriter(
+    KvittaDbContext db,
+    IOptions<SyncOptions> syncOptions,
+    ILogger<EventWriter> logger)
 {
     private readonly SyncOptions _sync = syncOptions.Value;
 
@@ -171,6 +174,19 @@ public sealed class EventWriter(KvittaDbContext db, IOptions<SyncOptions> syncOp
 
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+
+        if (rejected.Count > 0)
+        {
+            // Codes and ids only — payloads are the group's money history and do not belong in
+            // logs. This is the server-side half of "never drop events silently": the client
+            // shows each rejection to its user, and this line shows the pattern to the operator.
+            logger.LogWarning(
+                "Rejected {Count} of {Total} events in group {GroupId}: {Codes}",
+                rejected.Count,
+                events.Count,
+                groupId,
+                string.Join(", ", rejected.Select(r => $"{r.EventId}:{r.Code}")));
+        }
 
         return new PushOutcome(accepted, rejected);
     }

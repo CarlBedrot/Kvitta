@@ -478,6 +478,16 @@
         }
       }
     },
+    "Dela felrapport" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share diagnostic report"
+          }
+        }
+      }
+    },
     "Dela inbjudningslänk" : {
       "localizations" : {
         "en" : {
@@ -867,6 +877,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "One reminder a week, only when you owe someone money. Never when someone owes you."
+          }
+        }
+      }
+    },
+    "En textrapport om appens tillstånd — inga namn, belopp eller nummer. Skicka den till den som hjälper dig." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A text report about the app's state — no names, amounts or numbers. Send it to whoever is helping you."
           }
         }
       }

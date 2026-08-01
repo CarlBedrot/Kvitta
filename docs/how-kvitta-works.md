@@ -302,7 +302,11 @@ Found or re-confirmed while writing this document:
 7. Sign in with Apple, APNs push, TestFlight — all need the paid Apple Developer team.
    Reminders and settle-up nudges work today because they are local notifications.
 8. The backend is not deployed anywhere; Dockerfile exists, host undecided. Sentry and uptime
-   monitoring likewise waiting on account decisions.
+   monitoring likewise waiting on account decisions. Until then, the support tooling that needs
+   no accounts exists: **"Dela felrapport"** in Jag produces a shareable, privacy-safe state
+   report (versions, sync state, queue depths, skip/rejection codes — no names, no amounts,
+   enforced by test), the server logs every rejection with codes and ids only, and production
+   log output is structured JSON so whichever host is chosen can search it.
 
 **Not built yet (roadmap)**
 9. Receipt scanning (the mockups show it; the feature does not exist — the next real milestone).

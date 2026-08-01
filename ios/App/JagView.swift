@@ -35,6 +35,7 @@ struct JagView: View {
                 backupSection
                 ratesSection
                 aboutSection
+                helpSection
                 #if DEBUG
                 developerSection
                 #endif
@@ -350,6 +351,25 @@ struct JagView: View {
                     value: "\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?") (\(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"))"
                 )
             }
+        }
+    }
+
+    // MARK: - Help
+
+    /// The escape hatch for "something looks wrong on my phone": a shareable state report.
+    /// Not debug-gated — the whole point is that a friend on a release build can send one.
+    private var helpSection: some View {
+        Section {
+            ShareLink(item: DiagnosticReport.text(
+                ledger: ledger, sync: sync, rates: rates, signedIn: session.isSignedIn
+            )) {
+                HStack {
+                    SettingsIcon(systemImage: "ladybug.fill", fill: Color(hex: 0x6E7F5C))
+                    Text("Dela felrapport").foregroundStyle(Theme.ink)
+                }
+            }
+        } footer: {
+            Text("En textrapport om appens tillstånd — inga namn, belopp eller nummer. Skicka den till den som hjälper dig.")
         }
     }
 
