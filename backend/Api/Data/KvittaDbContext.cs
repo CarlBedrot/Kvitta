@@ -31,6 +31,10 @@ public sealed class KvittaDbContext(DbContextOptions<KvittaDbContext> options) :
             entity.ToTable("members");
             entity.HasKey(member => member.Id);
             entity.HasIndex(member => member.GroupId);
+            // Group discovery (GET /groups) filters by LinkedUserId across *all* members. Without
+            // this it is a sequential scan that grows with every group anyone ever creates — the
+            // classic quietly-degrading query behind "the app got slower".
+            entity.HasIndex(member => member.LinkedUserId);
             entity.HasOne<GroupRecord>()
                 .WithMany()
                 .HasForeignKey(member => member.GroupId)

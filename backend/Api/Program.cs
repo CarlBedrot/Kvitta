@@ -92,6 +92,16 @@ builder.Services.AddDbContext<KvittaDbContext>((provider, options) =>
     options.UseNpgsql(database.ConnectionString);
 });
 
+// Event JSON compresses roughly 5–10×, and the pull payload is the biggest thing this API ever
+// sends — on a phone on cellular that is the difference between a sync you notice and one you
+// don't. HTTPS is safe here because no response reflects attacker-controlled content next to a
+// secret (the BREACH precondition): tokens only appear in auth responses, which echo nothing.
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.MimeTypes = ["application/json", "application/problem+json"];
+});
+
 builder.Services.AddScoped<EventWriter>();
 builder.Services.AddScoped<RefreshTokenService>();
 builder.Services.AddScoped<AppleIdentityVerifier>();
@@ -135,6 +145,7 @@ builder.Services.AddRateLimiter(limiter =>
 
 var app = builder.Build();
 
+app.UseResponseCompression();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseRateLimiter();

@@ -1,5 +1,6 @@
 import Foundation
 import KvittaCore
+import UIKit
 
 /// The group's photo as this device knows it — the local half of the *shared* group picture.
 ///
@@ -21,9 +22,26 @@ final class GroupImageStore {
         self.defaults = defaults
     }
 
+    /// Decoded and decompressed once, drawn many times. `UIImage(data:)` inside a view body
+    /// re-decodes a ~200 kB JPEG on every render — during a scroll that is jank you can feel,
+    /// which is exactly the "smooth and fast" promise this app is built on.
+    @ObservationIgnored
+    private var decoded: [GroupID: UIImage] = [:]
+
     func image(for groupId: GroupID) -> Data? {
         _ = generation
         return defaults.data(forKey: key(groupId))
+    }
+
+    /// The photo ready to draw: decoded, decompressed off the JPEG, and cached until `set`.
+    func uiImage(for groupId: GroupID) -> UIImage? {
+        _ = generation
+        if let cached = decoded[groupId] { return cached }
+        guard let data = image(for: groupId), let raw = UIImage(data: data) else { return nil }
+        // preparingForDisplay does the JPEG decompression now instead of at first draw.
+        let ready = raw.preparingForDisplay() ?? raw
+        decoded[groupId] = ready
+        return ready
     }
 
     /// Stores a downscaled photo, or clears it when `nil`. Full camera images are several
@@ -34,6 +52,7 @@ final class GroupImageStore {
         } else {
             defaults.removeObject(forKey: key(groupId))
         }
+        decoded[groupId] = nil
         generation += 1
     }
 

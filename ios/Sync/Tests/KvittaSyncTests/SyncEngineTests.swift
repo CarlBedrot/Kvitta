@@ -252,7 +252,7 @@ struct SyncEngineTests {
         )
         _ = factory
 
-        await transport.enqueuePull(PullResult(events: [theirs], nextCursor: 6))
+        await transport.enqueuePull(PullResult(events: [theirs], nextCursor: 6), for: groupId)
         await engine.syncAll()
 
         let group = try #require(ledger.state.groups[groupId])
@@ -279,11 +279,11 @@ struct SyncEngineTests {
             payload: .memberAdded(MemberAddedPayload(displayName: "Sent joiner"))
         )
 
-        await transport.enqueuePull(PullResult(events: [theirs], nextCursor: 6))
+        await transport.enqueuePull(PullResult(events: [theirs], nextCursor: 6), for: groupId)
         await engine.syncAll()
         let afterFirst = ledger.state
 
-        await transport.enqueuePull(PullResult(events: [theirs], nextCursor: 6))
+        await transport.enqueuePull(PullResult(events: [theirs], nextCursor: 6), for: groupId)
         await engine.syncAll()
 
         #expect(ledger.state == afterFirst)
@@ -320,13 +320,81 @@ struct SyncEngineTests {
             )
         ]
 
-        await transport.enqueuePull(PullResult(events: history, nextCursor: 2))
+        await transport.enqueuePull(PullResult(events: history, nextCursor: 2), for: groupId)
 
         let engine = makeEngine(ledger: ledger, transport: transport)
         await engine.syncAll()
 
         #expect(ledger.state.groups[groupId]?.name == "Fjällresan")
         #expect(try ledger.cursor(forGroup: groupId) == 2)
+    }
+
+    @Test("Ten groups pull concurrently and each ends up with its own history")
+    func manyGroupsAllArrive() async throws {
+        // The Steven complaint this design answers: retrieving groups must not be a serial
+        // wait-per-group. Correctness under the concurrent pull is what this asserts — every
+        // group's own events land against its own cursor, none swapped, none skipped.
+        let ledger = try makeLedger()
+        let groupIds = (1...10).map { _ in GroupID() }
+
+        let transport = StubTransport()
+        await transport.setKnownGroups(groupIds)
+
+        for (index, groupId) in groupIds.enumerated() {
+            let created = EventEnvelope(
+                groupId: groupId,
+                entityId: groupId.rawValue,
+                authorId: Fixtures.authorId,
+                clientTimestamp: Fixtures.timestamp,
+                serverSeq: 1,
+                payload: .groupCreated(GroupCreatedPayload(name: "Grupp \(index + 1)", currency: .sek))
+            )
+            await transport.enqueuePull(PullResult(events: [created], nextCursor: 1), for: groupId)
+        }
+
+        let engine = makeEngine(ledger: ledger, transport: transport)
+        await engine.syncAll()
+
+        #expect(ledger.state.groups.count == 10)
+        for (index, groupId) in groupIds.enumerated() {
+            #expect(ledger.state.groups[groupId]?.name == "Grupp \(index + 1)")
+            #expect(try ledger.cursor(forGroup: groupId) == 1)
+        }
+        #expect(engine.status == .idle)
+    }
+
+    @Test("One group failing to pull never blocks the others")
+    func oneBadGroupDoesNotBlockTheRest() async throws {
+        let ledger = try makeLedger()
+        let healthy = GroupID()
+        let broken = GroupID()
+
+        let transport = StubTransport()
+        await transport.setKnownGroups([healthy, broken])
+        await transport.setFailingPulls([broken])
+        await transport.enqueuePull(
+            PullResult(
+                events: [EventEnvelope(
+                    groupId: healthy,
+                    entityId: healthy.rawValue,
+                    authorId: Fixtures.authorId,
+                    clientTimestamp: Fixtures.timestamp,
+                    serverSeq: 1,
+                    payload: .groupCreated(GroupCreatedPayload(name: "Frisk", currency: .sek))
+                )],
+                nextCursor: 1
+            ),
+            for: healthy
+        )
+
+        let engine = makeEngine(ledger: ledger, transport: transport)
+        await engine.syncAll()
+
+        // The healthy group arrived in full; the broken one is reported, not fatal.
+        #expect(ledger.state.groups[healthy]?.name == "Frisk")
+        if case .offline = engine.status {} else {
+            Issue.record("Expected an offline status, got \(engine.status)")
+        }
     }
 
     @Test("Scheduling a sync coalesces a burst of saves into one push")

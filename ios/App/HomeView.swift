@@ -40,7 +40,7 @@ struct HomeView: View {
                 ForEach(groups) { group in
                     NavigationLink(value: group.id) {
                         GroupCard(group: group, userId: userId,
-                                  photo: photos.images.image(for: group.id))
+                                  photo: photos.images.uiImage(for: group.id))
                     }
                     .buttonStyle(ScaleButtonStyle())
                 }
@@ -228,14 +228,14 @@ private struct StatusCard: View {
 private struct GroupCard: View {
     let group: GroupState
     let userId: UserID
-    let photo: Data?
+    let photo: UIImage?
 
     var body: some View {
         // The group's photo spans the card as a banner; the small circle then falls back to the
         // emoji so the same picture is not shown twice on one card.
         VStack(spacing: 0) {
             if let photo {
-                GroupPhotoBanner(photo: photo)
+                GroupPhotoBanner(image: photo)
             }
             row
                 .padding(18)
@@ -318,20 +318,19 @@ private struct GroupCard: View {
 
 /// The group's photo across the full width of a card — how a picked picture actually gets seen,
 /// on the Grupper list and atop the group screen's hero. Pair with `flushCardSurface` so the
-/// image bleeds to the rounded edge.
+/// image bleeds to the rounded edge. Takes the already-decoded image (`GroupImageStore.uiImage`)
+/// so scrolling never re-decodes a JPEG mid-frame.
 struct GroupPhotoBanner: View {
-    let photo: Data
+    let image: UIImage
     var height: CGFloat = 84
 
     var body: some View {
-        if let image = UIImage(data: photo) {
-            // Clear frame + overlay, so scaledToFill cannot push the card wider than the screen.
-            Color.clear
-                .frame(height: height)
-                .overlay { Image(uiImage: image).resizable().scaledToFill() }
-                .clipped()
-                .accessibilityHidden(true)
-        }
+        // Clear frame + overlay, so scaledToFill cannot push the card wider than the screen.
+        Color.clear
+            .frame(height: height)
+            .overlay { Image(uiImage: image).resizable().scaledToFill() }
+            .clipped()
+            .accessibilityHidden(true)
     }
 }
 
@@ -342,12 +341,12 @@ struct GroupPhotoBanner: View {
 /// every member forever, so instead everyone decorates their own list, like contacts.
 struct GroupBadge: View {
     let name: String
-    var photo: Data? = nil
+    var photo: UIImage? = nil
     var size: CGFloat = 44
 
     var body: some View {
         Group {
-            if let photo, let image = UIImage(data: photo) {
+            if let image = photo {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()

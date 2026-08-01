@@ -68,7 +68,7 @@ struct GroupDetailView: View {
                     userId: userId,
                     mode: mode,
                     rates: rates.rates,
-                    photo: photos.images.image(for: groupId),
+                    photo: photos.images.uiImage(for: groupId),
                     onPhotoPicked: { jpeg in Task { await photos.stage(jpeg, for: groupId) } },
                     onShowPhoto: { showingPhoto = true },
                     onMode: { displayModes.set($0, for: groupId) },
@@ -328,7 +328,7 @@ private struct GroupHeroCard: View {
     let userId: UserID
     let mode: CurrencyDisplay
     let rates: ExchangeRates?
-    let photo: Data?
+    let photo: UIImage?
     let onPhotoPicked: (Data?) -> Void
     /// Opens the full-image viewer — the banner is a crop, and the whole picture lives one tap in.
     let onShowPhoto: () -> Void
@@ -344,7 +344,7 @@ private struct GroupHeroCard: View {
             // below stays the picker for a group that has no picture yet.
             if let photo {
                 Button(action: onShowPhoto) {
-                    GroupPhotoBanner(photo: photo, height: 120)
+                    GroupPhotoBanner(image: photo, height: 120)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Visa gruppbilden")
