@@ -82,10 +82,29 @@ private struct CardSurface: ViewModifier {
     }
 }
 
+/// The same floating card as `CardSurface`, but the content owns its own padding — for cards
+/// where an image must bleed all the way to the rounded edge.
+private struct FlushCardSurface: ViewModifier {
+    var fill: Color
+
+    func body(content: Content) -> some View {
+        content
+            .background(fill)
+            .clipShape(.rect(cornerRadius: 28))
+            .shadow(color: .black.opacity(0.04), radius: 1, y: 1)
+            .shadow(color: .black.opacity(0.05), radius: 14, y: 6)
+    }
+}
+
 extension View {
     /// Default inner padding 20 (the brief's "inside cards 20–24").
     func cardSurface(padding: CGFloat = 20) -> some View {
         modifier(CardSurface(padding: padding))
+    }
+
+    /// A card with edge-to-edge content — the group-photo banners. Pad inside yourself.
+    func flushCardSurface(fill: Color = Theme.card) -> some View {
+        modifier(FlushCardSurface(fill: fill))
     }
 }
 

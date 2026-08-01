@@ -12,6 +12,8 @@ struct MembersSheet: View {
     let userId: UserID
     let groupId: GroupID
     let invites: InviteModel
+    /// For your own row's avatar — the one profile picture, same as Jag and everywhere else.
+    let profile: UserProfile
 
     @Environment(\.dismiss) private var dismiss
 
@@ -99,7 +101,11 @@ struct MembersSheet: View {
         Section {
             ForEach(group?.activeMembers.sorted { $0.displayName < $1.displayName } ?? [], id: \.id) { member in
                 HStack(spacing: 12) {
-                    Avatar(name: member.displayName, size: 34)
+                    Avatar(
+                        name: member.displayName,
+                        photo: member.linkedUserId == userId ? profile.avatarData : nil,
+                        size: 34
+                    )
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(member.displayName).foregroundStyle(Theme.ink)

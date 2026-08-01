@@ -2499,6 +2499,36 @@
     },
     "🙌" : {
       "shouldTranslate" : false
+    },
+    "Vilken grupp?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Which group?"
+          }
+        }
+      }
+    },
+    "Bara du än — bjud in någon först" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only you so far — invite someone first"
+          }
+        }
+      }
+    },
+    "Byt gruppbild" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change group photo"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
