@@ -33,6 +33,6 @@ struct CSVExportFile: Transferable {
         let safe = GroupBadge.title(of: group.name)
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
-        return "Kvitta – \(safe).csv"
+        return "Slice – \(safe).csv"
     }
 }

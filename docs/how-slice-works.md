@@ -1,4 +1,4 @@
-# How Kvitta works
+# How Slice works
 
 A guided tour of the whole system — the stack, the data flow, the design decisions and why they
 were made, what is verified working, and what is honestly off. Written for the person who owns
@@ -66,7 +66,7 @@ or URLSession even by accident.
 
 ## 3. The core idea: an event log, not a database of balances
 
-Kvitta never stores a balance. It stores **what happened** — an append-only log of immutable
+Slice never stores a balance. It stores **what happened** — an append-only log of immutable
 events per group — and computes everything else from it, every launch, in about 20 ms.
 
 - **Events are immutable.** An edit is a new `ExpenseUpdated` event with the full payload; the
@@ -148,7 +148,7 @@ in SEK, a DKK debt in DKK. The only place currencies are ever combined is the "�
 which is explicitly approximate:
 
 - Rates are the **ECB's daily fixing**, fetched from `eurofxref-daily.xml` — chosen over any
-  JSON API precisely because that document carries rates as *strings*, which Kvitta parses with
+  JSON API precisely because that document carries rates as *strings*, which Slice parses with
   string/integer math into millionths (`11.2345` → `11_234_500`). A JSON number would arrive
   through a decoder as a `Double` and violate the no-floats rule before we ever saw it.
 - Conversion is **display-only and never stored**, always marked ≈. If the fetch fails, the ≈

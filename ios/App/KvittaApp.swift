@@ -47,7 +47,7 @@ struct KvittaApp: App {
                     await reminders.reschedule(ledger: ledger, userId: session.userId ?? DeviceIdentity.userId)
                 }
                 .onOpenURL { url in
-                    // kvitta://invite/<token>. A custom scheme rather than a universal link,
+                    // slice://invite/<token> (kvitta:// still accepted). A custom scheme rather than a universal link,
                     // because an https link needs an apple-app-site-association file on a host
                     // that does not exist until the deploy. Adding universal links later is
                     // additive — the token and the endpoint do not change.

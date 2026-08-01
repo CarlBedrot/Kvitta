@@ -23,7 +23,7 @@ enum DiagnosticReport {
         let bundle = Bundle.main
         let version = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
         let build = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
-        lines.append("Kvitta \(version) (\(build)) · iOS \(UIDevice.current.systemVersion)")
+        lines.append("Slice \(version) (\(build)) · iOS \(UIDevice.current.systemVersion)")
         lines.append("Konto: \(signedIn ? "inloggad" : "utloggad") · Synk: \(label(for: sync.status))")
         if let last = sync.lastSyncedAt {
             lines.append("Senast synkad: \(last.date.formatted(.iso8601))")

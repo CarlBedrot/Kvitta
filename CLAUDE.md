@@ -2,7 +2,10 @@
 
 ## What this is
 
-Offline-first expense splitting app (Splitwise/Steven replacement). iOS native + .NET sync backend.
+**Slice** — offline-first expense splitting app (Splitwise/Steven replacement). iOS native + .NET sync backend.
+Renamed from Kvitta 2026-08-01: the *display* name, strings, icon and invite scheme say Slice; machine
+identifiers (bundle id se.kvitta.app, defaults keys, package/module names, repo name) deliberately still
+say kvitta — changing those wipes installed identities and belongs right before public release, if ever.
 Full architecture: docs/expense-app-sync-design.md. Read it before touching sync, money, or event code.
 
 ## Repo layout
@@ -21,9 +24,9 @@ Full architecture: docs/expense-app-sync-design.md. Read it before touching sync
 - iOS build: xcodebuild build -scheme App -destination "platform=iOS Simulator,name=iPhone 17 Pro"
   (iPhone 17 Pro is on the iOS 26.5 runtime. Older sim names on this machine are iOS 18.2 and cannot install an iOS 26 app — the error you get is opaque.)
 - Xcode tooling via MCP: prefer Apple's official bridge (xcrun mcpbridge, Xcode 26.3+); XcodeBuildMCP as fallback for simulator automation it does not cover
-- App icon: the source of truth is docs/brand/kvitta-app-icon.svg. Never edit AppIcon.png; edit the SVG and regenerate:
+- App icon: the source of truth is docs/brand/slice-app-icon.svg. Never edit AppIcon.png; edit the SVG and regenerate:
   swiftc -O tools/rasterize-icon.swift -o /tmp/rasterize-icon &&
-  /tmp/rasterize-icon docs/brand/kvitta-app-icon.svg ios/App/Assets.xcassets/AppIcon.appiconset/AppIcon.png 1024
+  /tmp/rasterize-icon docs/brand/slice-app-icon.svg ios/App/Assets.xcassets/AppIcon.appiconset/AppIcon.png 1024
   (compile it — `swift tools/rasterize-icon.swift` runs the interpreter, which takes minutes to load AppKit and looks like a hang)
 - Core package tests: swift test (from ios/Core/)
 - Storage package tests: swift test (from ios/Storage/)
@@ -74,7 +77,7 @@ Invites (M4b):
 - `MemberUpdated` attaches a user to a member who already exists (§5). Absent fields mean unchanged; there is deliberately no way to unlink, because detaching an account from a member with history would strand money against nobody.
 - Linking never moves money. Expenses reference members, never users, which is what lets someone join months late and inherit a history that already balances. The property generator emits MemberUpdated so the zero-sum property covers it.
 - `POST /api/v1/invites/{token}/accept` writes its event server-side. That is a deliberate exception to "clients author events" and the only way out of a chicken-and-egg: membership is derived from the log, so the event that makes you a member cannot be written by a member. `PushAuthorisation.AcceptedInvite` is the only way to skip the membership guard and the accept endpoint is its only caller.
-- Invite links are `kvitta://invite/<token>`, a custom scheme rather than a universal link, because an https link needs an apple-app-site-association file on a host that does not exist until M6. Universal links are additive: the token format and the accept endpoint do not change.
+- Invite links are `slice://invite/<token>` (old `kvitta://` links still open), a custom scheme rather than a universal link, because an https link needs an apple-app-site-association file on a host that does not exist until M6. Universal links are additive: the token format and the accept endpoint do not change.
 
 Payments and reminders (M5):
 - The app never moves money. Swish/MobilePay get a prefilled deep link; PaymentRecorded says the money moved elsewhere.

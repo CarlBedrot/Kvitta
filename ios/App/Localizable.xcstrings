@@ -561,12 +561,12 @@
         }
       }
     },
-    "Den här versionen av Kvitta är för gammal." : {
+    "Den här versionen av Slice är för gammal." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This version of Kvitta is too old."
+            "value" : "This version of Slice is too old."
           }
         }
       }
@@ -686,12 +686,12 @@
         }
       }
     },
-    "Du behöver inget konto för att använda Kvitta. Ett konto gör bara att dina utgifter finns kvar om telefonen försvinner." : {
+    "Du behöver inget konto för att använda Slice. Ett konto gör bara att dina utgifter finns kvar om telefonen försvinner." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You don't need an account to use Kvitta. An account just means your expenses are still there if the phone is lost."
+            "value" : "You don't need an account to use Slice. An account just means your expenses are still there if the phone is lost."
           }
         }
       }
@@ -1582,12 +1582,12 @@
         }
       }
     },
-    "Notiser är avstängda för Kvitta i Inställningar." : {
+    "Notiser är avstängda för Slice i Inställningar." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Notifications are turned off for Kvitta in Settings."
+            "value" : "Notifications are turned off for Slice in Settings."
           }
         }
       }
@@ -1676,13 +1676,12 @@
         }
       }
     },
-    "Om Kvitta" : {
-      "extractionState" : "stale",
+    "Om Slice" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "About Kvitta"
+            "value" : "About Slice"
           }
         }
       }
