@@ -22,8 +22,13 @@ actor StubTransport: SyncTransport {
     private(set) var pushedEvents: [EventEnvelope] = []
     private var nextSeq: Int64 = 1
 
-    /// Pages the stub will hand back on pull, in order.
-    private var pullPages: [PullResult] = []
+    /// Pages the stub will hand back on pull, in order, per group — pulls run concurrently now,
+    /// so a single shared queue would hand group A's history to whichever pull asked first.
+    private var pullPages: [GroupID: [PullResult]] = [:]
+
+    /// Groups whose pulls fail with a 500 while everything else works — for asserting that one
+    /// bad group never blocks the rest.
+    private var failingPulls: Set<GroupID> = []
 
     /// Groups the "server" believes this user is in, for the reinstall case.
     private var knownGroups: [GroupID] = []
@@ -37,8 +42,12 @@ actor StubTransport: SyncTransport {
         self.behaviour = behaviour
     }
 
-    func enqueuePull(_ page: PullResult) {
-        pullPages.append(page)
+    func enqueuePull(_ page: PullResult, for groupId: GroupID) {
+        pullPages[groupId, default: []].append(page)
+    }
+
+    func setFailingPulls(_ groups: Set<GroupID>) {
+        failingPulls = groups
     }
 
     func setKnownGroups(_ groups: [GroupID]) {
@@ -100,10 +109,16 @@ actor StubTransport: SyncTransport {
             throw error
         }
 
-        guard !pullPages.isEmpty else {
+        if failingPulls.contains(groupId) {
+            throw SyncError.server(status: 500, detail: "stubbed pull failure")
+        }
+
+        guard var pages = pullPages[groupId], !pages.isEmpty else {
             return PullResult(events: [], nextCursor: cursor)
         }
 
-        return pullPages.removeFirst()
+        let page = pages.removeFirst()
+        pullPages[groupId] = pages
+        return page
     }
 }

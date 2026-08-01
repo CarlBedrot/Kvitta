@@ -81,10 +81,23 @@ public final class SyncEngine {
             outcome = .offline(String(describing: error))
         }
 
-        for groupId in groupIds.sorted() {
-            if let failure = await pull(groupId: groupId) {
-                outcome = failure
+        // All groups at once, not one after another. The pulls are almost always "anything new?
+        // no" round-trips, and serially each one added a full network latency — ten groups on a
+        // slow connection was ten waits. Concurrently the wall time is the slowest single group.
+        // Within a group, order is untouched: each task walks its own pages sequentially, and
+        // cursors are per group.
+        outcome = await withTaskGroup(of: SyncStatus?.self, returning: SyncStatus.self) { tasks in
+            for groupId in groupIds.sorted() {
+                tasks.addTask { await self.pull(groupId: groupId) }
             }
+
+            var merged = outcome
+            for await failure in tasks {
+                if let failure {
+                    merged = Self.worse(of: merged, and: failure)
+                }
+            }
+            return merged
         }
 
         if case .idle = outcome {
@@ -92,6 +105,20 @@ public final class SyncEngine {
         }
 
         status = outcome
+    }
+
+    /// With concurrent pulls several can fail at once; the one status shown is the most serious.
+    /// Blocked (needs a human) outranks offline (retryable), which outranks anything calmer.
+    private static func worse(of first: SyncStatus, and second: SyncStatus) -> SyncStatus {
+        func rank(_ status: SyncStatus) -> Int {
+            switch status {
+            case .blocked: return 3
+            case .offline: return 2
+            case .syncing: return 1
+            case .idle, .disabled: return 0
+            }
+        }
+        return rank(second) > rank(first) ? second : first
     }
 
     /// Called after a local mutation. Debounced, because saving four expenses in a row should be

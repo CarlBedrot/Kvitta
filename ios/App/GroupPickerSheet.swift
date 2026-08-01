@@ -68,7 +68,7 @@ struct GroupPickerSheet: View {
             onPick(group.id)
         } label: {
             HStack(spacing: 14) {
-                GroupBadge(name: group.name, photo: images.image(for: group.id), size: 44)
+                GroupBadge(name: group.name, photo: images.uiImage(for: group.id), size: 44)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(GroupBadge.title(of: group.name))

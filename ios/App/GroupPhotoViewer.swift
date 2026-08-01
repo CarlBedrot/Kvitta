@@ -16,8 +16,7 @@ struct GroupPhotoViewer: View {
         NavigationStack {
             ZStack {
                 AmbientBackground()
-                if let data = photos.images.image(for: groupId),
-                   let image = UIImage(data: data) {
+                if let image = photos.images.uiImage(for: groupId) {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFit()
