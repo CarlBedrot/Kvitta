@@ -81,7 +81,7 @@ final class SessionModel {
         case .unauthorized:
             return "Inloggningen avvisades."
         case .upgradeRequired:
-            return String(localized: "Den här versionen av Kvitta är för gammal.")
+            return String(localized: "Den här versionen av Slice är för gammal.")
         case .server(let status, _):
             return status == 404
                 ? "Servern tillåter inte utvecklarinloggning."

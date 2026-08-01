@@ -72,7 +72,7 @@ public static class InviteEndpoints
         return Results.Ok(new CreateInviteResponse(
             invite.Token,
             invite.ExpiresAt,
-            $"kvitta://invite/{invite.Token}"));
+            $"slice://invite/{invite.Token}"));
     }
 
     /// <summary>

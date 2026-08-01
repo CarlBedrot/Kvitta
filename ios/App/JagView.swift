@@ -170,7 +170,7 @@ struct JagView: View {
         } footer: {
             Text(session.isSignedIn
                  ? "Nya utgifter sparas hos servern så att de överlever om du byter telefon."
-                 : "Du behöver inget konto för att använda Kvitta. Ett konto gör bara att dina utgifter finns kvar om telefonen försvinner.")
+                 : "Du behöver inget konto för att använda Slice. Ett konto gör bara att dina utgifter finns kvar om telefonen försvinner.")
         }
     }
 
@@ -237,7 +237,7 @@ struct JagView: View {
             }
 
             if reminders.wasDenied {
-                Text("Notiser är avstängda för Kvitta i Inställningar.")
+                Text("Notiser är avstängda för Slice i Inställningar.")
                     .font(.footnote)
                     .foregroundStyle(Theme.clay)
             }
@@ -346,7 +346,7 @@ struct JagView: View {
 
     /// Version and build straight from the bundle — no hand-maintained copy to go stale.
     private var aboutSection: some View {
-        Section("Om Kvitta") {
+        Section("Om Slice") {
             HStack {
                 SettingsIcon(systemImage: "info.circle.fill", fill: Color(hex: 0xA5A099))
                 LabeledContent(
@@ -490,7 +490,7 @@ private struct SwishFormatTester: View {
 
     /// One krona, so an accidental tap-through in Swish is a rounding error and not a problem.
     private var amount: Money { Money(amountMinor: 100, currency: .sek) }
-    private let message = "Kvitta test"
+    private let message = "Slice test"
 
     private var candidates: [(name: String, url: URL)] {
         var found: [(String, URL)] = []

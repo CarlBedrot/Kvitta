@@ -80,7 +80,7 @@ final class InviteModel {
         }
     }
 
-    /// Accepts from a pasted code or a full `kvitta://invite/<token>` link.
+    /// Accepts from a pasted code or a full `slice://invite/<token>` link.
     func accept(rawCode: String) async {
         guard let token = Self.token(in: rawCode) else {
             outcome = .failed("Det där ser inte ut som en inbjudningskod.")
@@ -98,11 +98,14 @@ final class InviteModel {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         if let direct = UUID(uuidString: trimmed) { return direct }
 
-        guard let url = URL(string: trimmed), url.scheme?.lowercased() == "kvitta" else {
+        // slice:// is the scheme since the rebrand; kvitta:// links from before it still open.
+        guard let url = URL(string: trimmed),
+              let scheme = url.scheme?.lowercased(),
+              scheme == "slice" || scheme == "kvitta" else {
             return nil
         }
 
-        // kvitta://invite/<token> — host is "invite", the token is the single path component.
+        // slice://invite/<token> — host is "invite", the token is the single path component.
         let parts = ([url.host()] + url.pathComponents).compactMap { $0 }
         guard let last = parts.last(where: { $0 != "/" }) else { return nil }
         return UUID(uuidString: last)
@@ -127,7 +130,7 @@ final class InviteModel {
         case .notAMember:
             return String(localized: "Du är inte med i den gruppen.")
         case .upgradeRequired:
-            return String(localized: "Den här versionen av Kvitta är för gammal.")
+            return String(localized: "Den här versionen av Slice är för gammal.")
         case .server(let status, _):
             switch status {
             case 404: return String(localized: "Inbjudan finns inte.")
