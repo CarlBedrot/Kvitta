@@ -155,6 +155,7 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.MapAuthEndpoints(app.Environment);
 app.MapInviteEndpoints();
 app.MapProfileEndpoints();
+app.MapGroupPhotoEndpoints();
 app.MapEventEndpoints();
 
 app.Run();

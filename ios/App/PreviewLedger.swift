@@ -49,6 +49,15 @@ enum PreviewLedger {
         )
     }
 
+    /// Same signed-out silence as `profiles`, and a throwaway image store.
+    static func photos(_ ledger: LedgerStore) -> GroupPhotoSyncer {
+        GroupPhotoSyncer(
+            transport: HTTPSyncTransport(configuration: configuration, tokens: tokens()),
+            session: session(ledger),
+            images: GroupImageStore(defaults: .previewProfile)
+        )
+    }
+
     static func session(_ ledger: LedgerStore) -> SessionModel {
         let provider = AuthTokenProvider(
             store: InMemoryTokenStore(),
@@ -142,7 +151,8 @@ enum PreviewLedger {
     RootView(ledger: ledger, userId: PreviewLedger.userId, sync: PreviewLedger.sync(ledger),
              profile: UserProfile(defaults: .previewProfile), session: PreviewLedger.session(ledger),
              invites: PreviewLedger.invites(ledger), reminders: ReminderScheduler(),
-             rates: RateStore(defaults: .previewProfile), profiles: PreviewLedger.profiles(ledger))
+             rates: RateStore(defaults: .previewProfile), profiles: PreviewLedger.profiles(ledger),
+             photos: PreviewLedger.photos(ledger))
 }
 
 #Preview("Hem – tom") {
@@ -150,7 +160,8 @@ enum PreviewLedger {
     RootView(ledger: ledger, userId: PreviewLedger.userId, sync: PreviewLedger.sync(ledger),
              profile: UserProfile(defaults: .previewProfile), session: PreviewLedger.session(ledger),
              invites: PreviewLedger.invites(ledger), reminders: ReminderScheduler(),
-             rates: RateStore(defaults: .previewProfile), profiles: PreviewLedger.profiles(ledger))
+             rates: RateStore(defaults: .previewProfile), profiles: PreviewLedger.profiles(ledger),
+             photos: PreviewLedger.photos(ledger))
 }
 
 #Preview("Ny utgift") {
@@ -169,7 +180,7 @@ enum PreviewLedger {
         GroupDetailView(ledger: ledger, userId: PreviewLedger.userId, groupId: group.id,
                         invites: PreviewLedger.invites(ledger),
                         profile: UserProfile(defaults: .previewProfile),
-                        images: GroupImageStore(defaults: .previewProfile),
+                        photos: PreviewLedger.photos(ledger),
                         rates: RateStore(defaults: .previewProfile),
                         profiles: PreviewLedger.profiles(ledger))
     }

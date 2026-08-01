@@ -17,6 +17,7 @@ struct RootView: View {
     let reminders: ReminderScheduler
     let rates: RateStore
     let profiles: ProfileSyncer
+    let photos: GroupPhotoSyncer
 
     private enum AppTab: Hashable { case grupper, aktivitet, jag }
 
@@ -25,11 +26,11 @@ struct RootView: View {
     @State private var expenseModel: NewExpenseModel?
     @State private var showingActions = false
     @State private var choosingGroup = false
+    private var images: GroupImageStore { photos.images }
     /// What the group chooser decided, applied in its `onDismiss` — presenting the next sheet
     /// while the chooser is still animating away would silently swallow it.
     @State private var chosenGroup: GroupID?
     @State private var chooserWantsNewGroup = false
-    @State private var images = GroupImageStore()
     /// Held here so creating a group can push straight into it. A new group has nobody in it yet,
     /// so landing back on the list would leave you looking at a row you cannot do anything with.
     @State private var grupperPath = NavigationPath()
@@ -92,7 +93,7 @@ struct RootView: View {
     private var grupperTab: some View {
         NavigationStack(path: $grupperPath) {
             HomeView(ledger: ledger, userId: userId, invites: invites, profile: profile,
-                     images: images, rates: rates, profiles: profiles,
+                     photos: photos, rates: rates, profiles: profiles,
                      onNewGroup: { showingNewGroup = true })
                 .overlay(alignment: .bottomTrailing) {
                     // Hidden on the empty state, which carries its own call to action.

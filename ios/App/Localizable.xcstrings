@@ -457,6 +457,16 @@
         }
       }
     },
+    "Byt bild" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change photo"
+          }
+        }
+      }
+    },
     "Byt namn" : {
       "localizations" : {
         "en" : {
@@ -2205,6 +2215,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Shown as you in new groups."
+          }
+        }
+      }
+    },
+    "Visa gruppbilden" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show group photo"
           }
         }
       }

@@ -11,7 +11,7 @@ struct HomeView: View {
     /// Carried through only to reach `SettleUpSheet`, which needs your own Swish number to build
     /// the link you send someone who owes you.
     let profile: UserProfile
-    let images: GroupImageStore
+    let photos: GroupPhotoSyncer
     let rates: RateStore
     let profiles: ProfileSyncer
     var onNewGroup: () -> Void
@@ -39,7 +39,8 @@ struct HomeView: View {
 
                 ForEach(groups) { group in
                     NavigationLink(value: group.id) {
-                        GroupCard(group: group, userId: userId, photo: images.image(for: group.id))
+                        GroupCard(group: group, userId: userId,
+                                  photo: photos.images.image(for: group.id))
                     }
                     .buttonStyle(ScaleButtonStyle())
                 }
@@ -52,7 +53,7 @@ struct HomeView: View {
         }
         .navigationDestination(for: GroupID.self) { groupId in
             GroupDetailView(ledger: ledger, userId: userId, groupId: groupId,
-                            invites: invites, profile: profile, images: images, rates: rates,
+                            invites: invites, profile: profile, photos: photos, rates: rates,
                             profiles: profiles)
         }
     }
