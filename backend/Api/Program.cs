@@ -3,6 +3,8 @@ using Kvitta.Api.Data;
 using Kvitta.Api.Endpoints;
 using Kvitta.Api.Options;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -162,6 +164,32 @@ using (var scope = app.Services.CreateScope())
 
 // M6's uptime monitor wants this, and it costs nothing now.
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+
+// Says out loud when the dev sign-in shortcut is reachable from the network, which is a supported
+// setup (the friend-phone trial needs it) but an invisible one: the bind address and the flag live
+// in two different files and neither mentions the other. Registered on ApplicationStarted because
+// the addresses are only known once Kestrel has bound them — reading configuration here would miss
+// --urls and ASPNETCORE_URLS.
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+    var addresses = app.Services.GetRequiredService<IServer>()
+        .Features.Get<IServerAddressesFeature>()?.Addresses ?? [];
+    var exposed = DevTokenExposure.ReachableAddresses(
+        app.Services.GetRequiredService<IOptions<AuthOptions>>().Value.AllowDevTokens,
+        addresses);
+
+    if (exposed.Count > 0)
+    {
+        app.Services.GetRequiredService<ILoggerFactory>()
+            .CreateLogger("Kvitta.Api.DevTokenExposure")
+            .LogWarning(
+                "POST /api/v1/auth/dev is reachable from the network on {Addresses}. It mints a "
+                + "token for any user id with no credential, so anyone who can reach this port can "
+                + "impersonate any user. Intended for the friend-phone trial on a home network — "
+                + "do not run this on public Wi-Fi.",
+                string.Join(", ", exposed));
+    }
+});
 
 app.MapAuthEndpoints(app.Environment);
 app.MapInviteEndpoints();
