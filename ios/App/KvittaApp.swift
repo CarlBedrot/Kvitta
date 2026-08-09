@@ -116,6 +116,12 @@ enum Bootstrap {
                 userId: DeviceIdentity.userId
             )
 
+            // Every local write asks for a push. Debounced inside the engine, so saving four
+            // expenses in a row is still one request; without this line an expense sits in the
+            // outbox until the app is next foregrounded, which reads as sync being unreliable.
+            // `sync` is captured weakly because it holds the ledger, and the ledger holds this.
+            ledger.onRecord = { [weak sync] in sync?.scheduleSync() }
+
             let session = SessionModel(
                 tokens: tokens,
                 // The real Sign in with Apple provider is written and compiles, but cannot run
