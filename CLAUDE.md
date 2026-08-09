@@ -30,7 +30,8 @@ Full architecture: docs/expense-app-sync-design.md. Read it before touching sync
 - Sync package tests: swift test (from ios/Sync/)
 - App store tests: xcodebuild test -scheme AppTests -destination "platform=iOS Simulator,name=iPhone 17 Pro" (device-local stores; TEST_HOST is pinned in project.yml because PRODUCT_NAME is Kvitta, not App)
 - Performance tests: swift test -c release. Debug builds are ~5x slower and say nothing about a shipped app.
-- Backend run: dotnet run --project backend/Api (serves http://localhost:5142; the port is pinned in launchSettings.json because it overrides ASPNETCORE_URLS)
+- Backend run: dotnet run --project backend/Api (serves http://0.0.0.0:5142; the port and host are pinned in launchSettings.json because it overrides ASPNETCORE_URLS)
+  The bind address is `0.0.0.0`, not `localhost`, so a sideloaded build on a friend's phone can reach the dev backend at `http://<your-mac-ip>:5142` over the same Wi-Fi. With `localhost` the socket only listens on loopback and every friend's phone gets connection refused while your own simulator works perfectly — a failure that looks like the app and is the server. This is a *development* convenience and the reason it is safe enough: the machine is a laptop on a home network, the dev sign-in endpoint mints tokens for any user id, and nothing here belongs on a public network. A real deploy is https behind a host and does not use this file.
 - Backend first run on a machine: dotnet user-secrets set "Auth:SigningKey" "$(openssl rand -base64 48)" --project backend/Api
   There is no signing key in any committed file and the host refuses to start without one. That is deliberate — a checked-in key is a backdoor — so a fresh clone must do this once.
 - Backend tests: dotnet test (from backend/; Testcontainers spins up postgres:17, so a container runtime must be running. KVITTA_TEST_POSTGRES overrides with a connection string if not.)
