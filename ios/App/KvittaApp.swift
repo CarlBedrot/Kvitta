@@ -86,6 +86,15 @@ enum Bootstrap {
     /// This is the same `rebuild()` the debug menu calls. Making launch and recovery one code
     /// path means the recovery path is exercised on every single launch rather than never.
     /// A heavy group costs about 20 ms here, which is why there is no loading state anywhere.
+    ///
+    /// Measured 2026-08-09 (Release, iPhone 17 Pro simulator), because the app looks blank for
+    /// a couple of seconds on open and this function is the obvious suspect: it is not. Opening
+    /// the database plus the whole replay is 66–265 ms — the replay itself 9–40 ms — and it is
+    /// the same with four seeded groups as with an empty ledger. The rest of the wait is UIKit
+    /// and SwiftUI standing the scene up before any of our code is asked for a view, which is
+    /// why no spinner can fill it: nothing we can draw exists yet. The launch screen is the
+    /// only surface alive in that window, so that is where the branding goes (`UILaunchScreen`
+    /// in project.yml). Do not add a loading state here expecting it to help.
     static func run(profile: UserProfile) -> Startup {
         do {
             let ledger = LedgerStore(
