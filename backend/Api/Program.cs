@@ -178,16 +178,27 @@ app.Lifetime.ApplicationStarted.Register(() =>
         app.Services.GetRequiredService<IOptions<AuthOptions>>().Value.AllowDevTokens,
         addresses);
 
+    var logger = app.Services.GetRequiredService<ILoggerFactory>()
+        .CreateLogger("Kvitta.Api.DevTokenExposure");
+
     if (exposed.Count > 0)
     {
-        app.Services.GetRequiredService<ILoggerFactory>()
-            .CreateLogger("Kvitta.Api.DevTokenExposure")
-            .LogWarning(
-                "POST /api/v1/auth/dev is reachable from the network on {Addresses}. It mints a "
-                + "token for any user id with no credential, so anyone who can reach this port can "
-                + "impersonate any user. Intended for the friend-phone trial on a home network — "
-                + "do not run this on public Wi-Fi.",
-                string.Join(", ", exposed));
+        logger.LogWarning(
+            "POST /api/v1/auth/dev is reachable from the network on {Addresses}. It mints a "
+            + "token for any user id with no credential, so anyone who can reach this port can "
+            + "impersonate any user. Intended for the friend-phone trial on a home network — "
+            + "do not run this on public Wi-Fi.",
+            string.Join(", ", exposed));
+    }
+    else if (app.Services.GetRequiredService<IOptions<AuthOptions>>().Value.AllowDevTokens)
+    {
+        // The other half of the same confusion. Loopback is the safe default, and it is also the
+        // setting under which a friend's phone gets connection refused while this machine's own
+        // simulator works perfectly — a failure that reads as a broken app. Say which mode we are
+        // in at the one moment somebody is watching, so neither state is a silent surprise.
+        logger.LogInformation(
+            "Listening on loopback only, so other devices cannot reach this server. For the "
+            + "friend-phone trial run: dotnet run --project backend/Api --launch-profile lan");
     }
 });
 
