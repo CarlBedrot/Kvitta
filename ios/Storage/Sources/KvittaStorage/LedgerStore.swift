@@ -24,6 +24,23 @@ public final class LedgerStore {
     /// they no longer retry, and the UI can show which ones and why.
     public private(set) var rejectedPushes: [RejectedPush] = []
 
+    /// Called after a local event has been written and applied.
+    ///
+    /// Exists so that "a local mutation happened" has exactly one place to be noticed. The app
+    /// wires this to the sync engine's debounced push (`Bootstrap`), which is the only reason it
+    /// exists — but the hook is deliberately untyped and Storage stays ignorant of Sync.
+    ///
+    /// The alternative, calling the sync engine from each save site, is what this replaces: there
+    /// are six or seven of them (new expense, settle-up, new group, members, edit, delete) and
+    /// the first version of this app shipped with *none* of them calling it. Saving an expense
+    /// left it in the outbox until the app happened to be foregrounded again, which looks exactly
+    /// like sync being unreliable. One hook at the single documented write path cannot be
+    /// forgotten by a new call site, because new call sites go through `record` too.
+    ///
+    /// Not fired by `integrate`: those events came *from* the server and pushing them back would
+    /// be a loop.
+    public var onRecord: (@MainActor () -> Void)?
+
     private let store: EventStore
     private var authorId: UserID
     private let now: @Sendable () -> Timestamp
@@ -87,6 +104,9 @@ public final class LedgerStore {
         )
         try store.append([event], origin: .local)
         state = Projector.apply(state, event)
+        // After the write has succeeded, so a failed append never schedules a push for an event
+        // that does not exist.
+        onRecord?()
         return event
     }
 
