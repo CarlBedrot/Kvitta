@@ -75,8 +75,7 @@ public sealed class KvittaApiFixture : IAsyncLifetime
             // Postgres that differs from the one the app talks to. Credentials are left to
             // Testcontainers, which generates them per run — nothing to commit, and no two runs
             // share one.
-            _container = new PostgreSqlBuilder()
-                .WithImage("postgres:17")
+            _container = new PostgreSqlBuilder("postgres:17")
                 .WithDatabase("kvitta_test")
                 .Build();
 
