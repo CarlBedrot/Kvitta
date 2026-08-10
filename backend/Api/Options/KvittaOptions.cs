@@ -42,6 +42,36 @@ public sealed class SyncOptions
 }
 
 /// <summary>
+/// Crash and error reporting. Off unless a DSN is configured, which is the whole of the switch.
+/// </summary>
+/// <remarks>
+/// The DSN is not committed anywhere, for the same reason the signing key is not: it is a write
+/// credential for somebody else's service. Locally it comes from <c>dotnet user-secrets</c>, in a
+/// deploy from the host's environment. Unlike the signing key its absence is not fatal — a server
+/// with no error reporting still works, it just tells nobody when it breaks.
+/// </remarks>
+public sealed class ObservabilityOptions
+{
+    public const string SectionName = "Observability";
+
+    /// <summary>Empty means Sentry is never initialised at all.</summary>
+    public string SentryDsn { get; init; } = "";
+
+    /// <summary>
+    /// Fraction of requests traced for performance. Zero by default: this is a friend group's
+    /// API on a free plan, and a full trace of every push would spend the quota on nothing.
+    /// </summary>
+    [Range(0.0, 1.0)]
+    public double TracesSampleRate { get; init; }
+
+    /// <summary>
+    /// Tags every event, so a laptop's stack trace never gets mistaken for a live one. Falls back
+    /// to the hosting environment name when unset.
+    /// </summary>
+    public string? Environment { get; init; }
+}
+
+/// <summary>
 /// Sign in with Apple, and the tokens this server issues off the back of it (design doc §7).
 /// </summary>
 public sealed class AuthOptions
