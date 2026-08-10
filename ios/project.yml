@@ -77,13 +77,11 @@ targets:
         TARGETED_DEVICE_FAMILY: 1
         INFOPLIST_KEY_CFBundleDisplayName: Slice
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
-        # Light only. `Theme` is a fixed warm-cream palette with no dark half, while every
-        # system-drawn label — navigation titles, Form rows, TextField text — follows the system
-        # appearance. On a phone in dark mode that is white text on a cream card, which is exactly
-        # what the first run on real hardware turned up. This covers the UIKit surfaces
-        # `preferredColorScheme` does not reach: the photo picker, the share sheet, the launch
-        # screen. A real dark palette is a design exercise, not a bug fix.
-        INFOPLIST_KEY_UIUserInterfaceStyle: Light
+        # No UIUserInterfaceStyle: the app follows the phone. `Theme` now carries both halves, so
+        # this lock and `preferredColorScheme(.light)` in KvittaApp were removed together — either
+        # one left behind would put system-drawn labels (navigation titles, Form rows, TextField
+        # text) on the other half's ground, which is exactly what the first run on real hardware
+        # turned up. If a dark-mode bug ever needs bisecting, put both back or neither.
         # Signing, so it survives `xcodegen generate` — setting it in Xcode's UI does not, because
         # the .xcodeproj is regenerated from this file. Team IDs are not secret; they ship inside
         # every signed app bundle.

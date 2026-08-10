@@ -136,6 +136,7 @@ private struct StatusCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(24)
         .background(Theme.positiveWash, in: .rect(cornerRadius: 28))
+        .settledGlow()
         .accessibilityElement(children: .combine)
     }
 

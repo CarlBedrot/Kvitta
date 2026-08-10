@@ -42,10 +42,10 @@ struct KvittaApp: App {
                     profiles: profiles,
                     photos: photos
                 )
-                // The palette is light-only by design (`Theme`), and the plist says so too. This
-                // is the SwiftUI half of the same statement, so Previews and any future scene
-                // agree with the shipped app instead of quietly rendering white on cream.
-                .preferredColorScheme(.light)
+                // Follows the phone. `Theme` has both halves now, so this and the plist's
+                // UIUserInterfaceStyle came out together — either one alone would leave
+                // system-drawn labels on the wrong ground, which is what the first run on real
+                // hardware turned up.
                 .task {
                     await session.restore()
                     // Recomputed at launch, so a debt settled on another device does not
@@ -73,7 +73,12 @@ struct KvittaApp: App {
                     Task { await profiles.push(profile) }
                 }
             case .failed(let message):
-                StartupFailureView(message: message).preferredColorScheme(.light)
+                // Entirely system-drawn (`ContentUnavailableView`), so it was the one screen the
+                // light lock was actively helping. Now that the rest of the app follows the phone,
+                // pinning this one would make the failure screen the only thing on a dark phone
+                // rendering white — which is a bad look for the screen whose whole job is to be
+                // legible when something has already gone wrong.
+                StartupFailureView(message: message)
             }
         }
     }
