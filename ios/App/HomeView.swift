@@ -245,68 +245,106 @@ private struct GroupCard: View {
         .accessibilityElement(children: .combine)
     }
 
+    /// One currency shares a line with the group's name. Two or more get their own lines beneath
+    /// it, because they do not fit beside it — the attempt reads "Fjäll / re- / san" down three
+    /// hyphenated lines while the subtitle truncates to "3 pe…".
+    ///
+    /// Growing the row only when the content actually needs it is also the honest shape: the
+    /// common group has one balance and stays one line tall.
+    @ViewBuilder
     private var row: some View {
         let nets = group.nets(for: userId).filter { $0.amountMinor != 0 }
         let net = nets.first ?? group.net(for: userId)
         let direction: BalanceDirection = nets.isEmpty ? .settled : BalanceDirection(net.amountMinor)
-        return HStack(spacing: 14) {
+
+        if nets.count > 1 {
+            VStack(spacing: 12) {
+                header { EmptyView() }
+                // Amounts right-aligned in a column of their own, so two currencies line up on
+                // their decimal rather than each ending wherever its direction word left off.
+                // Each line keeps its own word: "+191,33 kr / −200 DKK" under a single "du ska få"
+                // was read as a conversion rather than as two separate debts (how-slice-works §10).
+                VStack(spacing: 6) {
+                    ForEach(nets, id: \.currency) { bucket in
+                        HStack(spacing: 8) {
+                            Text(BalanceDirection(bucket.amountMinor).word)
+                                .font(.subheadline)
+                                .foregroundStyle(Theme.secondary)
+                            Spacer(minLength: 12)
+                            SignedAmountText(
+                                amountMinor: bucket.amountMinor,
+                                currency: bucket.currency,
+                                size: 17,
+                                explicit: true
+                            )
+                            .lineLimit(1)
+                            .fixedSize()
+                        }
+                    }
+                }
+                // Indented to the name's column, so the balances read as belonging to this group
+                // rather than floating under the card.
+                .padding(.leading, 62)
+            }
+        } else {
+            header { settledOrAmount(lead: net, direction: direction) }
+        }
+    }
+
+    /// Badge, name, subtitle — and on the one-balance layout, the amount before the chevron.
+    ///
+    /// Generic over its trailing view rather than taking an optional `AnyView`: erasure breaks
+    /// SwiftUI's diffing (CLAUDE.md), and the two callers pass genuinely different shapes.
+    private func header<Trailing: View>(@ViewBuilder trailing: () -> Trailing) -> some View {
+        HStack(spacing: 14) {
             GroupBadge(name: group.name, size: 48)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(GroupBadge.title(of: group.name))
                     .font(.body.weight(.semibold))
                     .foregroundStyle(Theme.ink)
+                    .lineLimit(1)
                 Text(subtitle)
                     .font(.caption)
                     .foregroundStyle(Theme.secondary)
+                    // One line, truncated. It used to wrap, and because the balance column can be
+                    // several lines tall it wrapped *mid-phrase* — "3 personer · 1 / sekund sedan".
+                    .lineLimit(1)
             }
 
             Spacer(minLength: 8)
 
-            VStack(alignment: .trailing, spacing: 3) {
-                if direction == .settled {
-                    Text("Kvitt")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(Theme.tertiary)
-                } else {
-                    SignedAmountText(
-                        amountMinor: net.amountMinor,
-                        currency: net.currency,
-                        size: 17,
-                        explicit: net.currency != group.currency,
-                        accessibilityPhrase: "\(GroupBadge.title(of: group.name)): \(direction.spokenWord) \(MoneyFormat.string(abs(net.amountMinor), net.currency, explicit: true))"
-                    )
-                    // Money never wraps mid-amount; the group name is what gives way.
-                    .lineLimit(1)
-                    .fixedSize()
-                    Text(direction.word)
-                        .font(.caption2)
-                        .foregroundStyle(Theme.secondary)
-                    // A second currency in play: one small exact line, not a hidden truth —
-                    // and each line carries its *own* direction word, because "+191,33 kr /
-                    // −200 DKK" under a single "du ska få" genuinely got misread as a
-                    // conversion (how-kvitta-works.md §10.1). Buckets can point opposite ways.
-                    ForEach(nets.dropFirst(), id: \.currency) { extra in
-                        HStack(spacing: 4) {
-                            Text(BalanceDirection(extra.amountMinor).word)
-                                .font(.caption2)
-                                .foregroundStyle(Theme.secondary)
-                            SignedAmountText(
-                                amountMinor: extra.amountMinor,
-                                currency: extra.currency,
-                                size: 12,
-                                explicit: true
-                            )
-                        }
-                        .lineLimit(1)
-                        .fixedSize()
-                    }
-                }
-            }
+            trailing()
 
             Image(systemName: "chevron.right")
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Theme.tertiary)
+        }
+    }
+
+    /// The one-balance trailing block: "Kvitt", or the amount with its direction word beneath.
+    @ViewBuilder
+    private func settledOrAmount(lead: Money, direction: BalanceDirection) -> some View {
+        if direction == .settled {
+            Text("Kvitt")
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(Theme.tertiary)
+        } else {
+            VStack(alignment: .trailing, spacing: 2) {
+                SignedAmountText(
+                    amountMinor: lead.amountMinor,
+                    currency: lead.currency,
+                    size: 17,
+                    explicit: lead.currency != group.currency,
+                    accessibilityPhrase: "\(GroupBadge.title(of: group.name)): \(direction.spokenWord) \(MoneyFormat.string(abs(lead.amountMinor), lead.currency, explicit: true))"
+                )
+                // Money never wraps mid-amount; the group name is what gives way.
+                .lineLimit(1)
+                .fixedSize()
+                Text(direction.word)
+                    .font(.caption)
+                    .foregroundStyle(Theme.secondary)
+            }
         }
     }
 
