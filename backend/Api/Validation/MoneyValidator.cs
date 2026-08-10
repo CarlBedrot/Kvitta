@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Kvitta.Api.Domain;
 
@@ -279,7 +280,10 @@ public static class MoneyValidator
         return true;
     }
 
-    private static bool TryGetString(JsonElement element, string property, out string? value)
+    // [NotNullWhen(true)] rather than a null-forgiving `!` at the call sites: the last line already
+    // guarantees a true return means a non-null value, and this is how that guarantee is stated to
+    // the compiler. Suppressing it at each caller would have to be re-argued at every new one.
+    private static bool TryGetString(JsonElement element, string property, [NotNullWhen(true)] out string? value)
     {
         value = null;
         if (!element.TryGetProperty(property, out var found) || found.ValueKind != JsonValueKind.String)
