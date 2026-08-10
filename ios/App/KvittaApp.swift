@@ -12,6 +12,11 @@ struct KvittaApp: App {
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
+        // First, so a crash inside Bootstrap — opening the database, replaying the log — is a
+        // crash Sentry sees rather than the one class of failure reporting would miss. Inert
+        // unless SentryDSN in the Info.plist has a value.
+        Observability.start()
+
         // Built here rather than as inline defaults because the object graph has an order:
         // the invite flow needs the profile to know what name to join a group under.
         let profile = UserProfile()

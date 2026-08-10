@@ -30,8 +30,51 @@ if (!builder.Environment.IsDevelopment())
     });
 }
 
+// Error reporting, and the one piece of configuration that has to be read before the host is
+// built rather than resolved from DI afterwards: Sentry hooks the logging and request pipelines,
+// so it has to be attached to the web host itself.
+//
+// No DSN means UseSentry is never called at all. That is stronger than passing an empty DSN and
+// trusting the SDK to disable itself: a server nobody has configured reporting for should have no
+// Sentry in its pipeline, not a Sentry that has promised to stay quiet.
+var observability = builder.Configuration
+    .GetSection(ObservabilityOptions.SectionName)
+    .Get<ObservabilityOptions>() ?? new ObservabilityOptions();
+
+if (!string.IsNullOrWhiteSpace(observability.SentryDsn))
+{
+    builder.WebHost.UseSentry(options =>
+    {
+        options.Dsn = observability.SentryDsn;
+        options.Environment = observability.Environment ?? builder.Environment.EnvironmentName;
+        options.TracesSampleRate = observability.TracesSampleRate;
+
+        // Never. Names, emails and IP addresses are not ours to ship to a third party, and the
+        // structured logs already deliberately carry ids instead.
+        options.SendDefaultPii = false;
+
+        // The request body of a push *is* the friend group's money history. Sentry defaults to
+        // None; spelling it out means a future edit has to argue with this line rather than
+        // silently inherit a different default.
+        options.MaxRequestBodySize = Sentry.Extensibility.RequestSize.None;
+
+        // Warnings and above become breadcrumbs, errors become events. Information would turn
+        // every rejection code the server already logs into Sentry volume for no extra signal.
+        options.MinimumBreadcrumbLevel = LogLevel.Warning;
+        options.MinimumEventLevel = LogLevel.Error;
+
+        options.SetBeforeSend(SentryScrubbing.Scrub);
+    });
+}
+
 // Configuration through IOptions only. CLAUDE.md forbids Environment.GetEnvironmentVariable —
 // this is the one place the app learns anything about its surroundings.
+builder.Services
+    .AddOptions<ObservabilityOptions>()
+    .Bind(builder.Configuration.GetSection(ObservabilityOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
 builder.Services
     .AddOptions<DatabaseOptions>()
     .Bind(builder.Configuration.GetSection(DatabaseOptions.SectionName))
@@ -148,6 +191,14 @@ builder.Services.AddRateLimiter(limiter =>
 var app = builder.Build();
 
 app.UseResponseCompression();
+
+// Only when somebody asked for traces. Without the sampler this middleware still opens and closes
+// a transaction per request, which is quota spent on a number nobody is looking at.
+if (!string.IsNullOrWhiteSpace(observability.SentryDsn) && observability.TracesSampleRate > 0)
+{
+    app.UseSentryTracing();
+}
+
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseRateLimiter();
@@ -180,6 +231,25 @@ app.Lifetime.ApplicationStarted.Register(() =>
 
     var logger = app.Services.GetRequiredService<ILoggerFactory>()
         .CreateLogger("Kvitta.Api.DevTokenExposure");
+
+    // Same reasoning as the two branches below: the failure mode worth designing against is
+    // silence. A server that has been crashing for a week into a Sentry that was never switched
+    // on looks exactly like a server that has not crashed.
+    var reporting = app.Services.GetRequiredService<ILoggerFactory>()
+        .CreateLogger("Kvitta.Api.Observability");
+
+    if (string.IsNullOrWhiteSpace(observability.SentryDsn))
+    {
+        reporting.LogInformation(
+            "Error reporting is off — no Observability:SentryDsn is configured. Set one with: "
+            + "dotnet user-secrets set \"Observability:SentryDsn\" \"<dsn>\" --project backend/Api");
+    }
+    else
+    {
+        reporting.LogInformation(
+            "Error reporting is on, sending to Sentry as environment {Environment}.",
+            observability.Environment ?? app.Environment.EnvironmentName);
+    }
 
     if (exposed.Count > 0)
     {

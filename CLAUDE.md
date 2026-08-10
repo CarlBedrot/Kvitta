@@ -37,6 +37,8 @@ Full architecture: docs/expense-app-sync-design.md. Read it before touching sync
   The `lan` profile is what a sideloaded build on a friend's phone needs: point its *Serveradress* at `http://<your-mac-ip>:5142`. Forget it and the phone gets connection refused while your own simulator works perfectly — a failure that looks like the app and is the server, which is why the host says which mode it is in on every start (`DevTokenExposure`): a warning when it is exposed, and a line telling you the `lan` flag exists when it is not. A real deploy is https behind a host and never reads this file.
 - Backend first run on a machine: dotnet user-secrets set "Auth:SigningKey" "$(openssl rand -base64 48)" --project backend/Api
   There is no signing key in any committed file and the host refuses to start without one. That is deliberate — a checked-in key is a backdoor — so a fresh clone must do this once.
+- Backend error reporting, optional: dotnet user-secrets set "Observability:SentryDsn" "<dsn>" --project backend/Api
+  Without it the host runs with no Sentry in its pipeline at all and says so on the first line of its startup log. The app's DSN is the `SentryDSN` key in ios/project.yml; blank there means the same thing.
 - Backend tests: dotnet test (from backend/; Testcontainers spins up postgres:17, so a container runtime must be running. KVITTA_TEST_POSTGRES overrides with a connection string if not.)
 - Backend local deps: colima start, then docker compose up -d (from backend/)
 - Database backup: backend/ops/backup.sh (writes backend/backups/, gitignored — real user data)
@@ -112,9 +114,19 @@ Multi-currency (M7):
 
 Shipping (M6):
 - Blocked on a paid Apple Developer account: TestFlight, App Store Connect, Sign in with Apple, APNs. Sorting the account out unblocks all four at once.
-- Blocked on decisions that are Carl's to make, not a script's: choosing a host and deploying, creating a Sentry account, wiring an uptime monitor. The Dockerfile builds the artefact; nothing deploys it.
+- Blocked on decisions that are Carl's to make, not a script's: choosing a host and deploying, wiring an uptime monitor. The Dockerfile builds the artefact; nothing deploys it.
 - backend/backups/ is gitignored. Never commit a dump — it is the friend group's real money history.
 - PrivacyInfo.xcprivacy is required for App Store submission and declares no tracking, because there is none: no analytics SDK, no ad identifier, no third party.
+
+Observability (Sentry):
+- Reporting is off unless a DSN is configured, on both sides, and that is the whole switch. The server never calls `UseSentry` without `Observability:SentryDsn`; the app never calls `SentrySDK.start` without a non-empty `SentryDSN` in its Info.plist. A fresh clone builds, runs and passes its tests with neither, the same way it does with no backend.
+- The server's DSN is a secret and lives in user-secrets or the host's environment — never a committed file, same rule as `Auth:SigningKey`. The **app's** DSN is not: a client DSN ships inside every copy of an app and can only write, so it lives in `ios/project.yml` on purpose.
+- Reports carry ids, not people. `SendDefaultPii = false` on both, and `SentryScrubbing.Scrub` / `Observability.scrub` are pure functions — testable without a DSN or a network — that drop `Authorization`, cookies, IPs and the machine name. Group ids, member ids and rejection codes stay, because a report nobody can act on is why people switch reporting off.
+- Three things are never sent and each is set explicitly rather than left to a default: the request body (`MaxRequestBodySize = None`) — a push body *is* the friend group's money history; `attachScreenshot`; and `attachViewHierarchy` — both of those are every name and amount on screen, one autocomplete away from a debugging session.
+- No attempt is made to rewrite exception messages. Nothing here puts money or a name into one, and a regex sweep over free text would catch the cases we already thought of while giving false confidence about the rest.
+- `TracesSampleRate` is 0 on both sides. This is a friend group's app on a free plan; crashes are the point and a trace of every screen transition is quota spent on numbers nobody reads.
+- The host says at boot whether reporting is on, for the same reason `DevTokenExposure` does: a server that has been crashing for a week into a Sentry that was never switched on looks exactly like a server that has not crashed.
+- Sentry is a dependency of the **app target only**. Not Core (which has zero and keeps them), not Storage, not Sync.
 
 Storage:
 - Projections are held in memory and rebuilt from the log at launch, not cached in the database. Replay costs ~8.9 µs/event in a release build and stays flat to 5,000 events, so a 5,000-event group rebuilds in ~45ms (ReplayPerformanceTests, re-measured 2026-08-10 — it was 4.5 µs/event in July, and six event types plus per-currency buckets have been added since). A second copy of the truth would buy nothing at that cost and could drift from the first. Measure in release: debug is ~5x slower and says nothing about a shipped app.

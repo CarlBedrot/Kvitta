@@ -372,12 +372,40 @@ yet — it is issues #47 and #48. Treat this section as the best available guess
 12. **iOS 26.0 minimum.** Anyone on an older phone cannot install at all, and the failure reads
     like a signing problem rather than a version one.
 13. The backend is not deployed anywhere; Dockerfile exists, host undecided, so sync only
-    happens on the home network with this Mac awake. Sentry and uptime monitoring likewise wait
-    on account decisions. Until then, the support tooling that needs no accounts exists:
-    **"Dela felrapport"** in Jag produces a shareable, privacy-safe state report (versions, sync
-    state, queue depths, skip/rejection codes — no names, no amounts, enforced by test), the
-    server logs every rejection with codes and ids only, and production log output is structured
-    JSON so whichever host is chosen can search it. (#49)
+    happens on the home network with this Mac awake. Uptime monitoring still waits on that
+    decision — there is no URL to watch. Alongside it, the support tooling that needs no host
+    exists: **"Dela felrapport"** in Jag produces a shareable, privacy-safe state report
+    (versions, sync state, queue depths, skip/rejection codes — no names, no amounts, enforced by
+    test), the server logs every rejection with codes and ids only, and production log output is
+    structured JSON so whichever host is chosen can search it. (#49)
+
+### Crash reporting (Sentry)
+
+Wired on both sides, and **off unless a DSN is configured** — that is the whole switch. The
+server never calls `UseSentry` without `Observability:SentryDsn` (user-secrets or the host's
+environment, never a committed file, same rule as the signing key); the app never calls
+`SentrySDK.start` without a non-empty `SentryDSN` in its Info.plist. A fresh clone builds, runs
+and passes its tests with neither.
+
+The reports carry the same thing the logs already do — ids, not people:
+
+- `SendDefaultPii = false` on both sides, and a pure scrubbing function either side
+  (`SentryScrubbing.Scrub`, `Observability.scrub`) drops `Authorization`, cookies, IP addresses
+  and the machine name. Both are unit-tested without a DSN or a network.
+- Three things are never sent, each set explicitly rather than left to a default: the **request
+  body** (a push body *is* the friend group's money history), the **screenshot**, and the **view
+  hierarchy** — the last two being every name and amount on screen.
+- Group ids, member ids and rejection codes are kept on purpose. A report nobody can act on is
+  the reason people switch reporting off.
+- No attempt is made to rewrite exception messages. Nothing here puts money or a name into one,
+  and a regex sweep over free text would catch the cases we already thought of while giving false
+  confidence about the rest.
+- `TracesSampleRate` is 0 on both sides. Crashes are the point; a trace of every screen
+  transition is a free plan's quota spent on numbers nobody reads.
+
+The server says at boot which mode it is in, for the same reason `DevTokenExposure` does: a
+server that has been crashing for a week into a Sentry that was never switched on looks exactly
+like a server that has not crashed.
 
 **Not built yet (roadmap)**
 14. Receipt scanning — **parked by decision (2026-08-01)**: uncertain anyone would use it when

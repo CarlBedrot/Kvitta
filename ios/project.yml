@@ -19,6 +19,13 @@ packages:
     path: Storage
   KvittaSync:
     path: Sync
+  # Crash reporting, and the only third-party dependency the app target has. It is deliberately
+  # not a dependency of KvittaCore, KvittaStorage or KvittaSync: Core must stay compilable
+  # anywhere with nothing installed (CLAUDE.md), and a reporter belongs at the edge that owns the
+  # process, not inside the logic being reported on.
+  Sentry:
+    url: https://github.com/getsentry/sentry-cocoa
+    from: 9.9.0
 
 targets:
   AppTests:
@@ -53,6 +60,8 @@ targets:
         product: KvittaStorage
       - package: KvittaSync
         product: KvittaSync
+      - package: Sentry
+        product: Sentry
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: se.kvitta.app
@@ -110,3 +119,7 @@ targets:
         # plain http to anything but localhost otherwise). A real deploy is https and unaffected.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+        # Crash reporting is off while this is empty, which is the state a fresh clone builds in.
+        # Unlike the backend's DSN this one is not a secret and belongs in the repo: a client DSN
+        # ships inside every copy of the app anyway, and it can only write, never read.
+        SentryDSN: ""
