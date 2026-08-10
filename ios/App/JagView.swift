@@ -417,7 +417,7 @@ struct JagView: View {
                 .foregroundStyle(Theme.tertiary)
             LabeledContent("I kö för uppladdning", value: "\((try? ledger.pendingPushCount()) ?? -1)")
             LabeledContent("Överhoppade händelser", value: "\(ledger.state.skipped.count)")
-            LabeledContent("Olästa rader", value: "\(ledger.rejected.count)")
+            LabeledContent("Oläsbara rader", value: "\(ledger.rejected.count)")
             Button("Bygg om projektioner från loggen", systemImage: "arrow.clockwise") {
                 perform { try ledger.rebuild() }
             }

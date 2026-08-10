@@ -34,6 +34,9 @@ struct RootView: View {
     /// Held here so creating a group can push straight into it. A new group has nobody in it yet,
     /// so landing back on the list would leave you looking at a row you cannot do anything with.
     @State private var grupperPath = NavigationPath()
+    /// Owned here rather than by `ActivityView`, because the badge has to be right on the tab bar
+    /// while the feed itself is off screen — which is the only time the badge matters.
+    @State private var unread = UnreadStore()
 
     var body: some View {
         ZStack {
@@ -43,9 +46,10 @@ struct RootView: View {
                 }
                 Tab("Aktivitet", systemImage: "arrow.triangle.2.circlepath", value: AppTab.aktivitet) {
                     NavigationStack {
-                        ActivityView(ledger: ledger, userId: userId)
+                        ActivityView(ledger: ledger, userId: userId, unread: unread)
                     }
                 }
+                .badge(unread.count)
                 Tab("Jag", systemImage: "person.crop.circle", value: AppTab.jag) {
                     JagView(ledger: ledger, sync: sync, profile: profile, session: session,
                             invites: invites, reminders: reminders, rates: rates, userId: userId)
@@ -87,6 +91,12 @@ struct RootView: View {
             try? await Task.sleep(for: .seconds(1.5))
             guard !Task.isCancelled else { return }
             await profiles.push(profile)
+        }
+        // Keyed on the log's size so a pull that brings somebody else's expenses in updates the
+        // badge without the feed being open — which is the only situation where a badge is of any
+        // use at all.
+        .task(id: ledger.state.appliedEventIds.count) {
+            unread.refresh(from: ledger)
         }
     }
 

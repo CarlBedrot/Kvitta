@@ -148,6 +148,24 @@ public final class LedgerStore {
         try store.recordPushFailure(eventIds, error: error)
     }
 
+    // MARK: - Unread
+
+    /// Entities that arrived on this device after `mark` and were written by somebody else.
+    ///
+    /// The author to exclude is `currentAuthorId` rather than a parameter: "mine" can only mean
+    /// this device's identity, and letting a caller pass a different one would let the feed claim
+    /// somebody else's expenses were their own.
+    public func unreadEntities(since mark: Int64) throws -> Set<UUID> {
+        try store.entitiesReceived(after: mark, excludingAuthor: authorId)
+    }
+
+    /// The mark to save once the feed has been shown. See `EventStore.latestReceivedAt`.
+    public func latestReceivedAt() throws -> Int64 {
+        try store.latestReceivedAt()
+    }
+
+    // MARK: - Sync cursors
+
     public func cursor(forGroup groupId: GroupID) throws -> Int64 {
         try store.cursor(forGroup: groupId)
     }

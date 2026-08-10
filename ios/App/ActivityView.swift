@@ -10,6 +10,14 @@ import KvittaStorage
 struct ActivityView: View {
     let ledger: LedgerStore
     let userId: UserID
+    let unread: UnreadStore
+
+    /// Which rows to draw a dot on, frozen when the screen appeared.
+    ///
+    /// Held separately from `unread.unread` because that set is emptied the moment the feed is
+    /// marked read — and if the rows read it directly, every dot would vanish while the user was
+    /// still looking at them. The point of the dot is to show what is new *on this visit*.
+    @State private var highlighted: Set<UUID> = []
 
     /// What kind of rows to show. Per-visit state, deliberately not persisted: a filter you set
     /// last month and forgot about would make the feed quietly lie.
@@ -47,7 +55,7 @@ struct ActivityView: View {
                                         Rectangle().fill(Theme.hairline).frame(height: 1)
                                             .padding(.leading, 62)
                                     }
-                                    FeedRow(entry: entry)
+                                    FeedRow(entry: entry, isUnread: highlighted.contains(entry.id))
                                 }
                             }
                             .cardSurface(padding: 8)
@@ -61,6 +69,18 @@ struct ActivityView: View {
         }
         .background(AmbientBackground())
         .navigationTitle("Aktivitet")
+        // Keyed on the log's size, not just `onAppear`: expenses that arrive while this screen is
+        // open would otherwise light the tab badge for a feed the user is looking straight at, and
+        // would keep it lit until they navigated away and back.
+        .task(id: ledger.state.appliedEventIds.count) {
+            // The mark is read before the rows are drawn rather than stamped as "now" afterwards,
+            // so an event landing mid-draw is shown again next visit instead of being swallowed.
+            let mark = unread.pendingMark(from: ledger)
+            // Union rather than assignment: the dots have to survive being marked read, and
+            // several arrivals during one visit should all keep theirs.
+            highlighted.formUnion(unread.unread)
+            unread.markRead(upTo: mark)
+        }
     }
 
     /// The mockup's filter row, now that there is something real to filter.
@@ -274,10 +294,30 @@ private struct DayGroup: Identifiable {
 
 private struct FeedRow: View {
     let entry: FeedEntry
+    /// New since the last time this feed was open, and written by somebody else.
+    let isUnread: Bool
 
     var body: some View {
         HStack(spacing: 14) {
+            // The dot rides on the icon rather than taking a column of its own. A leading gutter
+            // would push every row 21pt right and leave the day dividers — inset to exactly where
+            // the icon starts — pointing at nothing. It is also a dot rather than a bold row or a
+            // tinted background: the feed's whole job is that names and amounts line up down the
+            // column, and anything that changes one row's weight breaks the scan for its
+            // neighbours too.
             icon
+                .overlay(alignment: .topTrailing) {
+                    if isUnread {
+                        Circle()
+                            .fill(Theme.accent)
+                            .frame(width: 9, height: 9)
+                            // Ringed in the card colour so it reads as sitting on top of the icon
+                            // rather than as part of it.
+                            .overlay(Circle().strokeBorder(Theme.card, lineWidth: 2))
+                            .offset(x: 2, y: -2)
+                            .accessibilityLabel("Oläst")
+                    }
+                }
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {

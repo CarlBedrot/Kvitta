@@ -242,6 +242,53 @@ public struct EventStore: Sendable {
         }
     }
 
+    /// The entities this device first heard about after `mark`, ignoring anything `author` wrote.
+    ///
+    /// The filter is on `receivedAt` — when this phone learned the event existed — and deliberately
+    /// not on `clientTimestamp`. An expense someone entered on Friday can reach you on Sunday, and
+    /// against a clock it would arrive already older than the last time you looked, so it would be
+    /// silently marked as read having never been on screen. `receivedAt` cannot go backwards for
+    /// this device, which is the only property the unread mark actually needs.
+    ///
+    /// Excluding your own authorship is not cosmetic either: your own expense reaches your own
+    /// outbox the instant you tap save, so without this every entry you make would notify you
+    /// about yourself.
+    ///
+    /// Entity rather than event ids, because that is what the feed shows: editing an expense three
+    /// times is three events and one row, and that row is unread once, not three times.
+    ///
+    /// Only rows past the mark are decoded, so the cost is bounded by what is new rather than by
+    /// the size of the log.
+    public func entitiesReceived(after mark: Int64, excludingAuthor author: UserID) throws -> Set<UUID> {
+        let payloads = try writer.read { db in
+            try Data.fetchAll(
+                db,
+                sql: "SELECT payload FROM event WHERE receivedAt > ?",
+                arguments: [mark]
+            )
+        }
+
+        var entities: Set<UUID> = []
+        for payload in payloads {
+            // An unreadable row costs its badge, never the screen — same reasoning as `load`.
+            guard let event = try? EventCoding.decode(payload), event.authorId != author else {
+                continue
+            }
+            entities.insert(event.entityId)
+        }
+        return entities
+    }
+
+    /// The high-water mark to store when the user has seen everything currently known.
+    ///
+    /// Read before showing the feed rather than stamping "now" after it: an event that lands while
+    /// the screen is open would otherwise be marked read without ever having been drawn.
+    public func latestReceivedAt() throws -> Int64 {
+        try writer.read { db in
+            try Int64.fetchOne(db, sql: "SELECT MAX(receivedAt) FROM event") ?? 0
+        }
+    }
+
     public func eventCount() throws -> Int {
         try writer.read { db in
             try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM event") ?? 0

@@ -210,7 +210,12 @@ enum PreviewLedger {
 
 #Preview("Aktivitet") {
     NavigationStack {
-        ActivityView(ledger: PreviewLedger.populated(), userId: PreviewLedger.userId)
+        ActivityView(
+            ledger: PreviewLedger.populated(),
+            userId: PreviewLedger.userId,
+            // A throwaway suite, so a preview can never mark the simulator's real feed as read.
+            unread: UnreadStore(defaults: UserDefaults(suiteName: "preview.unread") ?? .standard)
+        )
     }
 }
 
