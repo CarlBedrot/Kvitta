@@ -147,3 +147,20 @@ A PR touching ios/Core or backend event handling without tests is incomplete.
 - Tool split: terminal Claude Code for ios/Core and backend/ (test-driven logic). In-Xcode Claude Agent (Xcode 26.3+) for SwiftUI screens, where Preview capture lets it verify UI visually.
 - Keep ios/Core free of dependencies. It should compile on any platform.
 - Prefer boring solutions. The project exists because clever backends go down.
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on `CarlBedrot/Kvitta`, via the `gh` CLI. Batch work into a list of issues to be
+approved once, rather than steering it turn by turn. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical labels, unrenamed: `needs-triage`, `needs-info`, `ready-for-agent`,
+`ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context — one `CONTEXT.md` at the root, ADRs in `docs/adr/`. Neither exists yet; they get
+created lazily by `/domain-modeling`, so don't flag their absence. See `docs/agents/domain.md`.
