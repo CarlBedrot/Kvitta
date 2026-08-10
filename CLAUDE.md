@@ -134,7 +134,9 @@ Storage:
 - rebuild() is what launch calls, so the recovery hatch is exercised every time the app opens instead of never.
 
 SwiftUI:
-- The app is light-only: INFOPLIST_KEY_UIUserInterfaceStyle in project.yml plus preferredColorScheme(.light) in KvittaApp. Theme is a fixed cream palette with no dark half, and every system-drawn label follows the system appearance — so without this a phone in dark mode gets white text on a cream card. Adding a dark palette is a design exercise; until it happens, do not remove either line.
+- The app follows the phone. `Theme` carries both halves through one `adaptive(light:dark:)` helper, so every call site is unchanged and the palette switches in one place. The two light locks — INFOPLIST_KEY_UIUserInterfaceStyle in project.yml and preferredColorScheme(.light) in KvittaApp — came out **together**, and either one left behind puts system-drawn labels on the other half's ground. If dark mode ever needs bisecting, put both back or neither.
+- The dark half is the light one inside out: `ink` was always a warm near-black in the cream's own hue family, so it becomes the ground and the cream becomes the type. Keep every dark grey warm — a neutral charcoal throws away the thing that stops this looking like Splitwise. The accent is the same orange in both. Money colours are not: sage at its light value is 3.75:1 on the dark ground, so both directions were lifted, and each keeps *more* contrast than its light counterpart.
+- Elevation is per-half. Light uses shadow; dark uses a card lighter than its ground plus a hairline top-edge highlight, because a shadow on near-black is invisible.
 - A group is created with only you in it. Names are never typed for other people at creation — they join by link and pick their own. `MembersSheet` still adds someone by name, for the friend who will never install the app (design doc §5), and that must not be removed.
 - Never use AnyView to silence type-erasure errors. Use a @ViewBuilder generic or a switch over an enum returning concrete views. AnyView breaks SwiftUI diffing.
 - Views over ~60 lines get split into subviews.
