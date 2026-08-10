@@ -231,7 +231,7 @@ sequenceDiagram
     participant S as Server
     participant J as Jonas's phone
     O->>S: POST /groups/{id}/invites
-    S-->>O: kvitta://invite/<token>
+    S-->>O: slice://invite/<token>
     O->>J: share link (any channel)
     J->>S: POST /invites/{token}/accept (claiming the "Jonas" placeholder)
     S->>S: writes MemberUpdated {linkedUserId} server-side
@@ -239,13 +239,24 @@ sequenceDiagram
     J->>S: pull → full group history arrives
 ```
 
+- Invite links are `slice://invite/<token>`. Links minted before the rebrand used `kvitta://`
+  and still open — the scheme changed, the token format and the accept endpoint did not.
 - Sign in with Apple is fully written but **cannot run without a paid Apple Developer team**
   (the entitlement). Until then a development-only sign-in endpoint stands in, which is also
-  what the local seed script uses to fabricate friends.
+  what the local seed script uses to fabricate friends. That endpoint mints a token for any
+  user id with no credential, which is exactly why exposing the server to the LAN is opt-in
+  (§8) rather than the default.
 
 ## 8. What runs where: the local dev loop
 
-- `colima start && docker compose up -d` (from `backend/`) → Postgres.
+- **`./tools/trial.sh` → everything, in the right order.** Starts colima if it is down, brings
+  Postgres up and waits on its healthcheck, regenerates and opens the Xcode project, prints
+  this Mac's current LAN address in the exact form the app's *Serveradress* field wants, and
+  runs the backend in the `lan` profile in the foreground. Ctrl-C stops the server; Postgres is
+  left up, because the trial data lives in it. The steps that happen on the *phone* — Developer
+  Mode, the "Ej betrodd utvecklare" trust step — are not in the script, because no script can
+  tap them.
+- `colima start && docker compose up -d` (from `backend/`) → Postgres, by hand.
 - `dotnet run --project backend/Api` → API on `http://localhost:5142`.
 - `python3 backend/ops/seed-dev.py --user <device-uuid>` → three groups of fake friends with
   Swish numbers in their profiles, joined through the real invite flow — nothing bypasses
@@ -255,6 +266,15 @@ sequenceDiagram
 - Build floor: the server refuses clients below build 3 with `426 Upgrade Required` — a build-2
   client would show one-sided balances from the same log, and both phones must agree on what
   the money means before they share a group.
+
+**Loopback is the default, and reaching the LAN is something you ask for.** Plain `dotnet run`
+binds loopback only, so a phone gets connection refused while your own simulator works
+perfectly — a failure that looks like the app and is the server. `--launch-profile lan` binds
+`0.0.0.0`. The server announces which of the two it is on at every start: a warning naming the
+reachable addresses when it is exposed, and a line telling you the `lan` flag exists when it is
+not. Neither state is silent, which is the whole point — the dev sign-in endpoint mints a token
+for any user id with no credential, so on the LAN anyone on the same Wi-Fi can impersonate any
+user and read a group's entire money history. Fine at home with friends. Not fine on café Wi-Fi.
 
 ## 9. What is verified working
 
@@ -268,54 +288,107 @@ backend, several flows also on a physical iPhone):
 - Swish deep link **on a real phone** (the `swish://payment?data=` shape); MobilePay clipboard flow
 - Profile-synced Swish numbers: set in Jag → prefilled on a co-member's settle sheet with no typing; clearing withdraws
 - Two-sided settle-up, live: pending froze the balance, the payee's confirmation moved it exactly 69,75 kr, a mis-targeted confirmation was rejected as forged
-- Payment reminders (local notifications), balance audit trail, edit history, group photos
+- Payment reminders (local notifications), balance audit trail, edit history
+- **Group photos**: picked on one phone, synced to every member, served only to members, and
+  viewable uncropped by tapping the banner. Also one profile picture per person, a group picker
+  when adding an expense from the home screen, and a `+` inside a group
 - CSV export reconciling öre for öre with the balances screen; Aktivitet filters; per-line
   direction words on every mixed-currency line; group descriptions; a fully English UI on an
   English device
-- Test suites: Core 127 (incl. four property tests × 1 000 seeded histories), Storage 27,
-  Sync 22, backend 70, and an app-target bundle (AppTests, 6) covering the device-local stores
+- **"Dela felrapport"** in Jag: a shareable state report with versions, sync state, queue depths
+  and rejection codes — and no names or amounts, enforced by test
+- **The LAN trial rig**: `./tools/trial.sh` verified from genuinely cold — colima down, no
+  server, no generated project — through to `GET /health` answering 200 on the Mac's LAN
+  address rather than only on loopback, with the exposure warning firing, and Ctrl-C releasing
+  the port with no process left behind
+
+Test suites, all re-run at commit `6bf25a3`:
+
+| Suite | Tests |
+|---|---|
+| `ios/Core` | **127** in 20 suites, incl. six property tests × 1 000 seeded histories |
+| `ios/Storage` | **30** in 6 suites |
+| `ios/Sync` | **25** in 4 suites |
+| backend | **85** (Testcontainers spins up its own Postgres) |
+| AppTests | **9** in 2 suites, on the simulator — the device-local stores |
+| **Total** | **276** |
+
+Replay performance, release build (`swift test -c release`), because a debug build is roughly
+five times slower and says nothing about a shipped app: **~8.9 µs/event**, flat from 1 000 to
+5 000 events — a 5 000-event group replays in **44,5 ms**. That is comfortably invisible at
+launch, which is what the in-memory-projection decision rests on (§3). It is *not* the 4,5 µs
+measured in July; see §10.
 
 ## 10. What is off, missing, or honestly questionable
 
-Found or re-confirmed while writing this document:
+**The largest gap is not in this list, it is the absence of users.** Everything below was found
+by reading the code, running the suites, and driving the simulator. Nothing here has been
+falsified by two people using the app on two phones for a week, because that has not happened
+yet — it is issues #47 and #48. Treat this section as the best available guess, not as evidence.
+
+**Not verified by hand**
+1. **Outbound push has never been exercised from a physical phone.** The fix that makes a local
+   write ask for a push immediately, rather than sitting in the outbox until the app is next
+   foregrounded, is covered by tests and by the simulator — not by a thumb on a real device.
+   It is the half the friend trial leans on hardest: if it is broken, everyone sees only their
+   own expenses and the app looks fine right up until two people compare. (#47)
+2. **No two physical phones have ever shared a group.** Two-sided settle-up, the invite accept
+   flow and profile-synced Swish numbers are all two-party behaviours that a single device
+   cannot show. (#48)
+
+**Measured, and different from what this document used to say**
+3. **Replay costs ~8,9 µs/event, not the 4,5 µs measured in July** — roughly twice as much, on
+   the same command and the same machine class. Six event types and per-currency balance
+   buckets have been added since, so this is plausibly the work growing rather than a
+   regression, but nobody has proven which. It does not threaten the design: a 5 000-event
+   group still replays in 44,5 ms and no group will approach that. Worth re-measuring if it
+   doubles again — `CLAUDE.md` carries the same number so the two cannot drift apart quietly.
 
 **UI findings**
-1. ~~**The group card's direction word is ambiguous in mixed-currency groups**~~ — *fixed*:
-   every non-primary bucket line now carries its own direction word ("du är skyldig −200 DKK"),
-   on the home status card and on group cards, and amounts never wrap mid-number.
-2. The floating + button covers the right edge of a group card mid-scroll. Inherent to a
+4. The floating + button covers the right edge of a group card mid-scroll. Inherent to a
    mockup-specified floating FAB; cosmetic.
-   *(Overnight sweep: findings 1, and roadmap items CSV export, group descriptions, activity
-   filters and the localization gap all shipped as PRs #25–#30.)*
-3. Swedish hyphenation can break seeded names oddly ("Köpenhamn-shelgen"). Cosmetic, locale-driven.
+5. Swedish hyphenation can break seeded names oddly ("Köpenhamn-shelgen"). Cosmetic,
+   locale-driven.
 
 **Known limitations by design (not bugs)**
-4. Anyone can still *record* a third-party payment (Ellen → Sara) — deliberately kept for the
+6. Anyone can still *record* a third-party payment (Ellen → Sara) — deliberately kept for the
    friend-without-the-app case, but since M8 it needs Sara's confirmation to count, which
    defuses the phantom-payment risk.
-5. Currency conversion never applies to transfers or stored amounts — only the ≈ display. If
+7. Currency conversion never applies to transfers or stored amounts — only the ≈ display. If
    the ECB fetch fails there is silently no ≈ line.
-6. A group's primary currency is frozen once it holds money — relabelling stored amounts would
+8. A group's primary currency is frozen once it holds money — relabelling stored amounts would
    move real money.
+9. The app is light-only, in two places on purpose (`INFOPLIST_KEY_UIUserInterfaceStyle` and
+   `preferredColorScheme(.light)`). The palette has no dark half, and every system-drawn label
+   follows the system appearance — so removing one line without the other gives a phone in dark
+   mode white text on a cream card.
 
 **Blocked on things outside the code**
-7. Sign in with Apple, APNs push, TestFlight — all need the paid Apple Developer team.
-   Reminders and settle-up nudges work today because they are local notifications.
-8. The backend is not deployed anywhere; Dockerfile exists, host undecided. Sentry and uptime
-   monitoring likewise waiting on account decisions. Until then, the support tooling that needs
-   no accounts exists: **"Dela felrapport"** in Jag produces a shareable, privacy-safe state
-   report (versions, sync state, queue depths, skip/rejection codes — no names, no amounts,
-   enforced by test), the server logs every rejection with codes and ids only, and production
-   log output is structured JSON so whichever host is chosen can search it.
+10. Sign in with Apple, APNs push, TestFlight — all need the paid Apple Developer team.
+    Reminders and settle-up nudges work today because they are local notifications. (#44)
+11. **Free-account signing expires after 7 days.** Until the paid team exists, a sideloaded
+    build simply stops launching a week later, on your phone and on anyone else's. Nothing in
+    the app says so; you find out when it dies.
+12. **iOS 26.0 minimum.** Anyone on an older phone cannot install at all, and the failure reads
+    like a signing problem rather than a version one.
+13. The backend is not deployed anywhere; Dockerfile exists, host undecided, so sync only
+    happens on the home network with this Mac awake. Sentry and uptime monitoring likewise wait
+    on account decisions. Until then, the support tooling that needs no accounts exists:
+    **"Dela felrapport"** in Jag produces a shareable, privacy-safe state report (versions, sync
+    state, queue depths, skip/rejection codes — no names, no amounts, enforced by test), the
+    server logs every rejection with codes and ids only, and production log output is structured
+    JSON so whichever host is chosen can search it. (#49)
 
 **Not built yet (roadmap)**
-9. Receipt scanning — **parked by decision (2026-08-01)**: uncertain anyone would use it when
-   typing an amount takes five seconds. The mockups show it; nothing in the app pretends it
-   exists. Revisit only if real usage asks for it.
-10. ~~CSV export~~, ~~activity filters~~, ~~group descriptions~~ *(all shipped overnight)* —
-    remaining: notification inbox, dark mode; receipt scanning parked (see 9).
+14. Receipt scanning — **parked by decision (2026-08-01)**: uncertain anyone would use it when
+    typing an amount takes five seconds. The mockups show it; nothing in the app pretends it
+    exists. Revisit only if real usage asks for it.
+15. Notification inbox (#50) and dark mode (#51) are what remain on the roadmap — and both are
+    deliberately blocked on the trial, because "the last item on the list" is not the same thing
+    as "the right next thing". Receipt scanning was parked on exactly that reasoning.
 
 ---
 
-*Last updated at commit `24c0680` (M8). When behaviour and this document disagree, trust the
-code and the test suites — then fix the document.*
+*Last updated at commit `6bf25a3`, with every test suite re-run rather than quoted. When
+behaviour and this document disagree, trust the code and the test suites — then fix the
+document.*

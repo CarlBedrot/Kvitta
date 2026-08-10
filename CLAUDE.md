@@ -117,7 +117,7 @@ Shipping (M6):
 - PrivacyInfo.xcprivacy is required for App Store submission and declares no tracking, because there is none: no analytics SDK, no ad identifier, no third party.
 
 Storage:
-- Projections are held in memory and rebuilt from the log at launch, not cached in the database. A heavy group replays in ~20ms (ReplayPerformanceTests), so a second copy of the truth would buy nothing and could drift from the first.
+- Projections are held in memory and rebuilt from the log at launch, not cached in the database. Replay costs ~8.9 µs/event in a release build and stays flat to 5,000 events, so a 5,000-event group rebuilds in ~45ms (ReplayPerformanceTests, re-measured 2026-08-10 — it was 4.5 µs/event in July, and six event types plus per-currency buckets have been added since). A second copy of the truth would buy nothing at that cost and could drift from the first. Measure in release: debug is ~5x slower and says nothing about a shipped app.
 - Write events only through LedgerStore.record. It appends to the log and folds into the projection in one call; there is deliberately no API to do either alone.
 - rebuild() is what launch calls, so the recovery hatch is exercised every time the app opens instead of never.
 
