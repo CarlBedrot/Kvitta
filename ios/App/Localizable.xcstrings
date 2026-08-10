@@ -1898,13 +1898,23 @@
         }
       }
     },
-    "Olästa rader" : {
+    "Oläsbara rader" : {
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Unread rows"
+            "value" : "Unreadable rows"
+          }
+        }
+      }
+    },
+    "Oläst" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unread"
           }
         }
       }

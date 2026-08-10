@@ -33,7 +33,7 @@ enum DiagnosticReport {
         } else {
             lines.append("Valutakurser: saknas")
         }
-        lines.append("Utkorg: \((try? ledger.pendingPushCount()) ?? -1) · Olästa rader: \(ledger.rejected.count)")
+        lines.append("Utkorg: \((try? ledger.pendingPushCount()) ?? -1) · Oläsbara rader: \(ledger.rejected.count)")
 
         // One line per group, identified by an id prefix — enough to correlate against the
         // server, useless to anyone else.
