@@ -20,6 +20,7 @@ Full architecture: docs/expense-app-sync-design.md. Read it before touching sync
 
 ## Commands
 
+- **Friend-phone trial, whole rig: ./tools/trial.sh** — starts colima if it is down, brings Postgres up and waits for its healthcheck, regenerates and opens the Xcode project, prints the Mac's current LAN address in the exact form the app's *Serveradress* field wants, and finally runs the backend in the `lan` profile in the foreground (Ctrl-C stops it; Postgres is left up because the trial data lives in it). The individual commands are all still listed below — this is the order they have to go in, which is the part that kept getting lost. The steps that happen on the phone are in the `sideload-ios` skill.
 - iOS generate project: xcodegen generate (run from ios/)
 - iOS build: xcodebuild build -scheme App -destination "platform=iOS Simulator,name=iPhone 17 Pro"
   (iPhone 17 Pro is on the iOS 26.5 runtime. Older sim names on this machine are iOS 18.2 and cannot install an iOS 26 app — the error you get is opaque.)
