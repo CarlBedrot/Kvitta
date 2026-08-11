@@ -161,14 +161,49 @@ enum Bootstrap {
         }
     }
 
+    /// Makes the two sideload settings passed at launch stick.
+    ///
+    /// A launch argument lands in the argument domain, which wins for that launch and is gone the
+    /// next time the app is opened from the home screen. Copying them into the persistent domain
+    /// is what turns them into a way to set a phone up from the Mac in one command:
+    ///
+    ///     xcrun devicectl device process launch --device <udid> se.kvitta.app \
+    ///         -- -se.kvitta.syncBaseURL http://192.168.0.155:5142 -se.kvitta.syncEnabled YES
+    ///
+    /// which beats reading an IP address aloud to someone holding a phone in another room, and is
+    /// how a friend's phone gets configured during the trial without them touching a settings
+    /// screen at all.
+    private static func adoptLaunchArgumentOverride() {
+        let defaults = UserDefaults.standard
+        let arguments = defaults.volatileDomain(forName: UserDefaults.argumentDomain)
+
+        if let passed = arguments["se.kvitta.syncBaseURL"] as? String, URL(string: passed) != nil {
+            defaults.set(passed, forKey: "se.kvitta.syncBaseURL")
+        }
+        // Read through `bool(forKey:)` so the argument's own spelling — YES, true, 1 — is Apple's
+        // problem rather than ours.
+        if arguments[SyncSettings.defaultsKey] != nil {
+            defaults.set(defaults.bool(forKey: SyncSettings.defaultsKey), forKey: SyncSettings.defaultsKey)
+        }
+    }
+
     static var databaseURL: URL {
         URL.applicationSupportDirectory.appending(path: "Kvitta/kvitta.sqlite")
     }
 
+    /// What the app is actually talking to, as resolved at launch.
+    ///
+    /// Shown in the developer section. The override only takes effect on the next launch, so a
+    /// typed address and a used address are two different things — an hour went into a sideloaded
+    /// build that "could not reach the server" with the right address sitting in the field.
+    private(set) static var activeBaseURL: URL?
+
     /// Points at the local server by default. A real host lands with the deploy in M6.
     static var syncConfiguration: SyncConfiguration {
+        adoptLaunchArgumentOverride()
         let stored = UserDefaults.standard.string(forKey: "se.kvitta.syncBaseURL")
         let url = stored.flatMap(URL.init(string:)) ?? URL(string: "http://localhost:5142")!
+        activeBaseURL = url
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
         return SyncConfiguration(baseURL: url, buildNumber: Int(build ?? "1") ?? 1)
     }
