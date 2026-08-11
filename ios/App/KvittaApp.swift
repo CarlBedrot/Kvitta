@@ -52,6 +52,16 @@ struct KvittaApp: App {
                     // leave a stale reminder queued here.
                     await reminders.reschedule(ledger: ledger, userId: session.userId ?? DeviceIdentity.userId)
                 }
+                .task {
+                    // ECB's fixing lands mid-afternoon, and an app left open all evening
+                    // should pick it up without being backgrounded first. Check often,
+                    // fetch rarely: refresh() no-ops once the day's table is cached, so
+                    // most of these ticks cost nothing.
+                    while !Task.isCancelled {
+                        await rates.refresh()
+                        try? await Task.sleep(for: .seconds(30 * 60))
+                    }
+                }
                 .onOpenURL { url in
                     // slice://invite/<token> (kvitta:// still accepted). A custom scheme rather than a universal link,
                     // because an https link needs an apple-app-site-association file on a host
