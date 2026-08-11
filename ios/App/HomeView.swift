@@ -16,6 +16,9 @@ struct HomeView: View {
     let profiles: ProfileSyncer
     var onNewGroup: () -> Void
 
+    /// Bumped when the last open debt anywhere closes. See `ConfettiBurst`.
+    @State private var celebrations = 0
+
     private var groups: [GroupState] { ledger.state.groupsByLastActivity }
 
     var body: some View {
@@ -27,6 +30,14 @@ struct HomeView: View {
             }
         }
         .background(AmbientBackground())
+        // Being square with *everyone*, not just with one group, is the bigger of the two moments
+        // — so it gets the same paper. On the transition only: opening the app already settled is
+        // a state, not news.
+        .onChange(of: HomeSummary(groups: groups, userId: userId).allSettled) { wasSettled, isSettled in
+            if isSettled && !wasSettled { celebrations += 1 }
+        }
+        .overlay { ConfettiBurst(trigger: celebrations) }
+        .sensoryFeedback(.success, trigger: celebrations)
         .navigationTitle("Grupper")
     }
 
