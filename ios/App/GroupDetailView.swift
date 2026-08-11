@@ -31,6 +31,9 @@ struct GroupDetailView: View {
     /// Adding an expense from inside the group it belongs to — the group is the screen you are
     /// standing on, so there is nothing to guess.
     @State private var expenseModel: NewExpenseModel?
+    /// Bumped the moment the group reaches zero. Not a Bool: settling twice in one session — pay,
+    /// add a round, pay again — should be celebrated twice.
+    @State private var celebrations = 0
 
     /// The live group out of the projection. `nil` only if the group vanished mid-navigation,
     /// which a rebuild from a bad log could theoretically produce — show nothing rather than crash.
@@ -132,6 +135,14 @@ struct GroupDetailView: View {
             .padding(.top, 4)
         }
         .background(AmbientBackground())
+        // Reaching zero is the thing this whole app is for, and it used to happen in silence —
+        // a card changed its wording. Fired on the *transition*, so opening a group that was
+        // already settled is not a party for something you did last week.
+        .onChange(of: group.balances().isSettled) { wasSettled, isSettled in
+            if isSettled && !wasSettled { celebrations += 1 }
+        }
+        .overlay { ConfettiBurst(trigger: celebrations) }
+        .sensoryFeedback(.success, trigger: celebrations)
         // The same + as on Grupper, but here the group is the screen you stand on, so it goes
         // straight to Ny utgift — no menu, no chooser. Hidden while you are alone in the group;
         // SoloGroupCard is already pointing at the way forward.

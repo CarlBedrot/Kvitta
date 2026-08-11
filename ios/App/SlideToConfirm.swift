@@ -52,6 +52,10 @@ struct SlideToConfirm: View {
             completed = true
             action()
         }
+        // The thump at the end of the track. A gesture that means "this money moved" should be
+        // felt landing, not just watched — and the click is what tells your thumb it committed
+        // before your eyes have read the sheet that follows.
+        .sensoryFeedback(.impact(weight: .medium), trigger: completed) { _, done in done }
         .accessibilityRepresentation {
             Button(label, action: action)
         }

@@ -258,6 +258,10 @@ private struct Keypad: View {
         }
         .padding(.horizontal, 34)
         .padding(.top, 8)
+        // A key that moves nothing — backspace on an empty amount, a second comma — is a key that
+        // did nothing, and the silence is the honest answer. Triggering on the value rather than
+        // on the tap gets that for free.
+        .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.45), trigger: amount)
     }
 
     private func press(_ key: KeypadKey) {
