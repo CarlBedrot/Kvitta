@@ -100,6 +100,9 @@ final class NewExpenseModel: Identifiable {
     var payerMember: Member? { members.first { $0.id == payerId } }
     var isPayerMe: Bool { payerId != nil && payerId == group?.me(for: userId)?.id }
 
+    /// Which member in this group is you — the one avatar that can carry a real photo.
+    var meId: MemberID? { group?.me(for: userId)?.id }
+
     /// A member's name for display, showing the linked local member as "Du" (localized).
     func name(for member: Member) -> String {
         member.id == group?.me(for: userId)?.id ? String(localized: "Du") : member.displayName

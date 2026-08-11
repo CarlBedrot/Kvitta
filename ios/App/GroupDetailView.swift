@@ -706,24 +706,41 @@ private struct TransferRow: View {
     let onSettle: () -> Void
     let onAudit: () -> Void
 
+    @Environment(\.myAvatarPhoto) private var myPhoto
+
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
             // The row body opens the audit; the trailing button settles. Two separate targets,
             // matching "tap any balance/transfer" from the design doc's trust rule.
             Button(action: onAudit) {
-                HStack(spacing: 6) {
-                    (Text(name(transfer.from)) + Text(verbatim: " → ") + Text(name(transfer.to)))
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(Theme.ink)
-                    SignedAmountText(
-                        amountMinor: transfer.amountMinor,
-                        currency: transfer.currency,
-                        size: 15,
-                        sign: .none,
-                        explicit: transfer.currency != group.currency,
-                        accessibilityPhrase: spokenPhrase
+                HStack(spacing: 12) {
+                    // Two faces and the direction between them: the sentence this row used to
+                    // spell out, read at a glance instead. Payer on the left, because that is the
+                    // direction the money travels and the order the names are said in.
+                    TransferFaces(
+                        payerName: name(transfer.from),
+                        payeeName: name(transfer.to),
+                        payerPhoto: transfer.from == meId ? myPhoto : nil,
+                        payeePhoto: transfer.to == meId ? myPhoto : nil
                     )
-                    Spacer(minLength: 8)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(name(transfer.from)) → \(name(transfer.to))")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Theme.ink)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                        SignedAmountText(
+                            amountMinor: transfer.amountMinor,
+                            currency: transfer.currency,
+                            size: 17,
+                            sign: .none,
+                            explicit: transfer.currency != group.currency,
+                            accessibilityPhrase: spokenPhrase
+                        )
+                    }
+
+                    Spacer(minLength: 4)
                 }
                 .contentShape(.rect)
             }
@@ -733,12 +750,12 @@ private struct TransferRow: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(Theme.accent, in: .rect(cornerRadius: 18))
+                .padding(.vertical, 9)
+                .background(Theme.accent, in: .capsule)
                 .buttonStyle(ScaleButtonStyle())
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.vertical, 10)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(spokenPhrase)
     }
@@ -750,6 +767,38 @@ private struct TransferRow: View {
 
     private var spokenPhrase: String {
         "\(name(transfer.from)) → \(name(transfer.to)), \(MoneyFormat.string(transfer.amountMinor, transfer.currency, explicit: true))"
+    }
+}
+
+/// The two people in a transfer, overlapping, with the direction drawn between them.
+///
+/// Overlapping rather than side by side because a debt is a relationship, not two facts; the pair
+/// occupies one slot and reads as one object. The payee sits on top and slightly forward, which is
+/// the end the money is moving toward.
+private struct TransferFaces: View {
+    let payerName: String
+    let payeeName: String
+    let payerPhoto: Data?
+    let payeePhoto: Data?
+
+    var body: some View {
+        ZStack {
+            Avatar(name: payerName, photo: payerPhoto, size: 34)
+                .offset(x: -11)
+            Avatar(name: payeeName, photo: payeePhoto, size: 34)
+                .overlay(Circle().strokeBorder(Theme.card, lineWidth: 2))
+                .offset(x: 11)
+            // Sits in the seam between the two, on its own disc so it stays legible whatever
+            // colours the initials landed on.
+            Image(systemName: "arrow.right")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(Theme.card)
+                .frame(width: 17, height: 17)
+                .background(Theme.ink.opacity(0.85), in: .circle)
+                .offset(y: 13)
+        }
+        .frame(width: 56, height: 40)
+        .accessibilityHidden(true)
     }
 }
 

@@ -63,6 +63,14 @@ final class UserProfile {
     }
 }
 
+extension EnvironmentValues {
+    /// Your own picture from Jag, so any screen can draw your face without it being threaded
+    /// through every initialiser between here and there. Nil for everybody else — co-members'
+    /// photos do not sync, so they render as their initials, and the two look deliberate side by
+    /// side because the initials colour is derived from the name rather than picked.
+    @Entry var myAvatarPhoto: Data?
+}
+
 /// A round avatar: the photo if there is one, otherwise initials on a colour derived from the
 /// name, so everyone in a group is reliably a different colour without anyone choosing one.
 struct Avatar: View {
