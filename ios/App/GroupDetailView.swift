@@ -169,7 +169,9 @@ struct GroupDetailView: View {
             MembersSheet(ledger: ledger, userId: userId, groupId: groupId, invites: invites,
                          profile: profile)
         }
-        .navigationBarTitleDisplayMode(.large)
+        // Inline, not large: the hero card now carries the full, wrapping name, and a large bar
+        // title would show a truncated copy of it directly above the real thing.
+        .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $settlingTransfer) { presentation in
             SettleUpSheet(ledger: ledger, userId: userId, groupId: groupId,
                           transfer: presentation.transfer, payees: payees, profile: profile)
@@ -349,6 +351,19 @@ private struct GroupHeroCard: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Visa gruppbilden")
             }
+            // The full name, with room to wrap. The navigation bar can only ever truncate a
+            // long name, so it drops to an inline label and this becomes the one place the
+            // whole name is actually readable.
+            let title = GroupBadge.title(of: group.name)
+            if !title.isEmpty {
+                Text(title)
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(Theme.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 24)
+                    .padding(.top, 24)
+            }
             Group {
                 if isSettled {
                     settled
@@ -356,7 +371,9 @@ private struct GroupHeroCard: View {
                     open
                 }
             }
-            .padding(24)
+            .padding(.horizontal, 24)
+            .padding(.top, title.isEmpty ? 24 : 12)
+            .padding(.bottom, 24)
         }
         .flushCardSurface(fill: isSettled ? Theme.positiveWash : Theme.card)
         .task(id: photoItem) { await loadPhoto() }
