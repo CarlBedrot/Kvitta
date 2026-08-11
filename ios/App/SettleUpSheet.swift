@@ -19,6 +19,9 @@ struct SettleUpSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
+    // Your own face, inherited from RootView — everyone else renders as initials, the same
+    // contacts-style rule as everywhere: photos decorate your device, never the group.
+    @Environment(\.myAvatarPhoto) private var myAvatarPhoto
 
     @State private var failure: String?
     @State private var settleTick = 0
@@ -39,16 +42,7 @@ struct SettleUpSheet: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Text("Gör upp")
-                .font(.title2.weight(.bold))
-                .foregroundStyle(Theme.ink)
-                .padding(.top, 28)
-
-            (Text(name(transfer.from)) + Text(verbatim: " → ") + Text(name(transfer.to)))
-                .font(.subheadline)
-                .foregroundStyle(Theme.secondary)
-                .padding(.top, 4)
-
+            header
             amountSection
             Spacer()
 
@@ -63,46 +57,11 @@ struct SettleUpSheet: View {
                 Text(failure).font(.footnote).foregroundStyle(Theme.clay).padding(.bottom, 8)
             }
 
-            if theyOweMe {
-                // Only SEK has a link worth sending. In any other currency the person paying
-                // arranges it themselves and "Markera som betald" below is the whole flow —
-                // offering MobilePay here would invite you to pay a debt owed *to* you.
-                if transfer.currency == .sek {
-                    RequestPaymentButton(link: requestLink)
-                }
-            } else if !iAmThePayer {
-                // A transfer between two other people. Recording that it happened is legitimate —
-                // it is how the friend who never installed the app gets their cash payment into
-                // the books — but a payment-app button here would invite *you* to pay somebody
-                // else's debt from your own account. "Markera som betald" below is the whole flow.
-                EmptyView()
-            } else if let link = paymentLink {
-                // Swish pink, deliberately off-palette: recognition beats palette purity for a
-                // button whose whole job is to look like the app it opens (ui-design.md).
-                Button(link.method == .swish ? "Öppna Swish" : "Öppna MobilePay") {
-                    handOff(to: link)
-                }
-                .buttonStyle(PrimaryButtonStyle(
-                    fill: link.method == .swish ? Color(hex: 0xEE4A9B) : Color(hex: 0x5A78FF)
-                ))
-                .padding(.horizontal, 20)
-                .padding(.bottom, 10)
-            } else if needsNumber {
-                Button("Öppna Swish") { askingForNumber = true }
-                    .buttonStyle(PrimaryButtonStyle(fill: Color(hex: 0xEE4A9B)))
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 10)
+            if askingToConfirm {
+                confirmReturn
+            } else {
+                actions
             }
-
-            Button("Markera som betald") { settle(method: .cash) }
-                .buttonStyle(PrimaryButtonStyle(fill: Theme.ink))
-                .padding(.horizontal, 20)
-
-            Button("Avbryt") { dismiss() }
-                .font(.body.weight(.medium))
-                .foregroundStyle(Theme.secondary)
-                .padding(.top, 14)
-                .padding(.bottom, 24)
         }
         .frame(maxWidth: .infinity)
         .background(AmbientBackground())
@@ -125,14 +84,105 @@ struct SettleUpSheet: View {
             // know the fate of before typing it in.
             Text("Sparas bara på den här telefonen, inte i gruppen.")
         }
-        .confirmationDialog(
-            "Gick betalningen igenom?",
-            isPresented: $askingToConfirm,
-            titleVisibility: .visible
-        ) {
-            Button("Ja, betalt") { settle(method: awaitingReturn ?? .cash) }
-            Button("Nej, inte än", role: .cancel) { awaitingReturn = nil }
+    }
+
+    /// Who, before how much: the same two faces as the transfer row that opened this sheet,
+    /// so the sheet reads as that row brought closer rather than as a new place.
+    private var header: some View {
+        VStack(spacing: 0) {
+            Text("Gör upp")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.secondary)
+                .padding(.top, 20)
+
+            HStack(spacing: 12) {
+                Avatar(name: name(transfer.from), photo: photo(for: transfer.from), size: 44)
+                Image(systemName: "arrow.right")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Theme.tertiary)
+                Avatar(name: name(transfer.to), photo: photo(for: transfer.to), size: 44)
+            }
+            .padding(.top, 14)
+            .accessibilityHidden(true)
+
+            (Text(name(transfer.from)) + Text(verbatim: " → ") + Text(name(transfer.to)))
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(Theme.ink)
+                .padding(.top, 8)
         }
+    }
+
+    /// The normal state: a payment app if one applies, and the slide that writes the books.
+    @ViewBuilder
+    private var actions: some View {
+        if theyOweMe {
+            // Only SEK has a link worth sending. In any other currency the person paying
+            // arranges it themselves and the slide below is the whole flow — offering
+            // MobilePay here would invite you to pay a debt owed *to* you.
+            if transfer.currency == .sek {
+                RequestPaymentButton(link: requestLink)
+            }
+        } else if !iAmThePayer {
+            // A transfer between two other people. Recording that it happened is legitimate —
+            // it is how the friend who never installed the app gets their cash payment into
+            // the books — but a payment-app button here would invite *you* to pay somebody
+            // else's debt from your own account. The slide below is the whole flow.
+            EmptyView()
+        } else if let link = paymentLink {
+            // Swish pink, deliberately off-palette: recognition beats palette purity for a
+            // button whose whole job is to look like the app it opens (ui-design.md).
+            Button(link.method == .swish ? "Öppna Swish" : "Öppna MobilePay") {
+                handOff(to: link)
+            }
+            .buttonStyle(PrimaryButtonStyle(
+                fill: link.method == .swish ? Color(hex: 0xEE4A9B) : Color(hex: 0x5A78FF)
+            ))
+            .padding(.horizontal, 20)
+            .padding(.bottom, 10)
+        } else if needsNumber {
+            Button("Öppna Swish") { askingForNumber = true }
+                .buttonStyle(PrimaryButtonStyle(fill: Color(hex: 0xEE4A9B)))
+                .padding(.horizontal, 20)
+                .padding(.bottom, 10)
+        }
+
+        // A slide, not a button: this is the action that writes PaymentRecorded — opening a
+        // payment app commits nothing, which is exactly why it stays an ordinary button above.
+        SlideToConfirm(label: String(localized: "Dra för att markera som betald")) {
+            settle(method: .cash)
+        }
+        .padding(.horizontal, 20)
+
+        Button("Avbryt") { dismiss() }
+            .font(.body.weight(.medium))
+            .foregroundStyle(Theme.secondary)
+            .padding(.top, 14)
+            .padding(.bottom, 24)
+    }
+
+    /// Back from Swish or MobilePay: the question, answered with the same weight as the cash
+    /// path. In-sheet rather than a system dialog so the yes is a slide here too — nothing
+    /// about having *opened* an app means money moved.
+    @ViewBuilder
+    private var confirmReturn: some View {
+        Text("Gick betalningen igenom?")
+            .font(.body.weight(.semibold))
+            .foregroundStyle(Theme.ink)
+            .padding(.bottom, 12)
+
+        SlideToConfirm(label: String(localized: "Dra för att bekräfta betalningen")) {
+            settle(method: awaitingReturn ?? .cash)
+        }
+        .padding(.horizontal, 20)
+
+        Button("Nej, inte än") {
+            awaitingReturn = nil
+            askingToConfirm = false
+        }
+        .font(.body.weight(.medium))
+        .foregroundStyle(Theme.secondary)
+        .padding(.top, 14)
+        .padding(.bottom, 24)
     }
 
     private var amountSection: some View {
@@ -159,6 +209,10 @@ struct SettleUpSheet: View {
     private func name(_ memberId: MemberID) -> String {
         if memberId == group?.me(for: userId)?.id { return String(localized: "Du") }
         return group?.members[memberId]?.displayName ?? "?"
+    }
+
+    private func photo(for memberId: MemberID) -> Data? {
+        memberId == group?.me(for: userId)?.id ? myAvatarPhoto : nil
     }
 
     /// The money is coming to you, so there is nothing here for you to pay.
