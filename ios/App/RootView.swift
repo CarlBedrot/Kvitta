@@ -67,6 +67,9 @@ struct RootView: View {
         // One accent for the whole app. Without this the selected tab, and every control that
         // falls back to the system accent, comes out iOS blue.
         .tint(Theme.accent)
+        // Set once, read by every avatar of you anywhere below — including inside sheets, which
+        // inherit the environment from whatever presented them.
+        .environment(\.myAvatarPhoto, profile.avatarData)
         .sheet(isPresented: $showingNewGroup) {
             NewGroupSheet(ledger: ledger, userId: userId, profile: profile) { groupId in
                 grupperPath.append(groupId)

@@ -19,12 +19,8 @@ struct SplitEditorSheet: View {
         NavigationStack {
             Form {
                 Section("Betalade av") {
-                    Picker("Betalade av", selection: $model.payerId) {
-                        ForEach(model.members) { member in
-                            Text(model.name(for: member)).tag(Optional(member.id))
-                        }
-                    }
-                    .labelsHidden()
+                    PayerStrip(model: model)
+                        .listRowInsets(EdgeInsets(top: 12, leading: 0, bottom: 12, trailing: 0))
                 }
 
                 Section("Fördelning") {
@@ -69,30 +65,173 @@ struct SplitEditorSheet: View {
 
 // MARK: - Per-mode rows
 
+/// Who the bill is split between: faces you tap, not a column of switches.
+///
+/// A switch is a settings control — it asks "is this option on", one row at a time, and reading a
+/// four-person split meant scanning four of them for a colour. Faces answer the actual question,
+/// which is *who*, in one glance: the people who are in are lit and carry their share, the people
+/// who are out have stepped back. It is also the same avatar that identifies these people
+/// everywhere else in the app, so nobody has to read a name to know who they are looking at.
 private struct EqualRows: View {
     @Bindable var model: NewExpenseModel
     let shareMap: [MemberID: Int64]
 
+    private let columns = [GridItem(.adaptive(minimum: 78, maximum: 110), spacing: 12)]
+
     var body: some View {
-        ForEach(model.members) { member in
-            Toggle(isOn: included(member.id)) {
-                MemberRowLabel(name: model.name(for: member),
-                               shareMinor: shareMap[member.id],
-                               currency: model.currency)
+        LazyVGrid(columns: columns, spacing: 14) {
+            ForEach(model.members) { member in
+                PersonToggle(
+                    name: model.name(for: member),
+                    isMe: model.meId == member.id,
+                    isOn: model.draft.included.contains(member.id),
+                    shareMinor: shareMap[member.id],
+                    currency: model.currency,
+                    action: { toggle(member.id) }
+                )
             }
-            // Stock iOS green is the one loud note in an otherwise warm palette. Sage is the
-            // colour this app already uses to mean "counted in your favour".
-            .tint(Theme.sage)
         }
+        .padding(.vertical, 6)
+        .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
+        .animation(.spring(duration: 0.28), value: model.draft.included)
+
+        Button(allIncluded ? "Ingen" : "Alla") {
+            if allIncluded {
+                model.draft.included.removeAll()
+            } else {
+                model.draft.included = Set(model.memberIds)
+            }
+        }
+        .font(.subheadline.weight(.medium))
     }
 
-    private func included(_ id: MemberID) -> Binding<Bool> {
-        Binding(
-            get: { model.draft.included.contains(id) },
-            set: { on in
-                if on { model.draft.included.insert(id) } else { model.draft.included.remove(id) }
+    private var allIncluded: Bool {
+        !model.memberIds.isEmpty && model.draft.included.count == model.memberIds.count
+    }
+
+    private func toggle(_ id: MemberID) {
+        if model.draft.included.contains(id) {
+            model.draft.included.remove(id)
+        } else {
+            model.draft.included.insert(id)
+        }
+    }
+}
+
+/// One face in the split grid.
+///
+/// Selected is the loud state on purpose: an accent ring, a tick, and the share in full colour.
+/// Deselected drains the colour out of the avatar rather than hiding the person, because who is
+/// *not* in a split is information too — and a face that disappeared would read as a bug.
+private struct PersonToggle: View {
+    let name: String
+    let isMe: Bool
+    let isOn: Bool
+    let shareMinor: Int64?
+    let currency: CurrencyCode
+    let action: () -> Void
+
+    @Environment(\.myAvatarPhoto) private var myPhoto
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                ZStack(alignment: .bottomTrailing) {
+                    Avatar(name: name, photo: isMe ? myPhoto : nil, size: 54)
+                        .saturation(isOn ? 1 : 0)
+                        .opacity(isOn ? 1 : 0.45)
+                        .overlay(
+                            Circle().strokeBorder(Theme.accent, lineWidth: isOn ? 2.5 : 0)
+                                .padding(-3)
+                        )
+                    if isOn {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 20, height: 20)
+                            .background(Theme.accent, in: .circle)
+                            .overlay(Circle().strokeBorder(Theme.card, lineWidth: 2))
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+                .scaleEffect(isOn ? 1 : 0.92)
+
+                Text(name)
+                    .font(.caption.weight(isOn ? .semibold : .regular))
+                    .foregroundStyle(isOn ? Theme.ink : Theme.tertiary)
+                    .lineLimit(1)
+
+                // The share keeps its slot when the person is out, so the grid does not reflow on
+                // every tap — an en dash is the placeholder.
+                Group {
+                    if isOn, let shareMinor {
+                        Text(MoneyFormat.string(shareMinor, currency))
+                            .foregroundStyle(Theme.secondary)
+                    } else {
+                        Text(verbatim: "–").foregroundStyle(Theme.tertiary)
+                    }
+                }
+                .font(.caption2)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
             }
-        )
+            .frame(maxWidth: .infinity)
+            .contentShape(.rect)
+        }
+        .buttonStyle(ScaleButtonStyle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(name)
+        .accessibilityAddTraits(isOn ? [.isButton, .isSelected] : .isButton)
+        .accessibilityHint(isOn ? "Ta bort ur fördelningen" : "Lägg till i fördelningen")
+    }
+}
+
+/// Who paid, as a row of faces rather than a wheel.
+///
+/// Exactly one person is always chosen here, which is what separates it from the grid above: this
+/// one never empties, so tapping the person who is already selected does nothing rather than
+/// leaving the expense with no payer.
+private struct PayerStrip: View {
+    @Bindable var model: NewExpenseModel
+
+    @Environment(\.myAvatarPhoto) private var myPhoto
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 14) {
+                ForEach(model.members) { member in
+                    let isPayer = model.payerId == member.id
+                    Button {
+                        model.payerId = member.id
+                    } label: {
+                        VStack(spacing: 6) {
+                            Avatar(
+                                name: model.name(for: member),
+                                photo: model.meId == member.id ? myPhoto : nil,
+                                size: 48
+                            )
+                            .opacity(isPayer ? 1 : 0.5)
+                            .overlay(
+                                Circle().strokeBorder(Theme.accent, lineWidth: isPayer ? 2.5 : 0)
+                                    .padding(-3)
+                            )
+                            Text(model.name(for: member))
+                                .font(.caption.weight(isPayer ? .semibold : .regular))
+                                .foregroundStyle(isPayer ? Theme.ink : Theme.tertiary)
+                                .lineLimit(1)
+                        }
+                        .frame(width: 68)
+                        .contentShape(.rect)
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .accessibilityLabel(model.name(for: member))
+                    .accessibilityAddTraits(isPayer ? [.isButton, .isSelected] : .isButton)
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+        .animation(.spring(duration: 0.28), value: model.payerId)
     }
 }
 
@@ -113,7 +252,10 @@ private struct ExactRows: View {
     var body: some View {
         ForEach(model.members) { member in
             HStack {
-                Text(model.name(for: member))
+                MemberRowLabel(name: model.name(for: member),
+                               isMe: model.meId == member.id,
+                               shareMinor: nil,
+                               currency: model.currency)
                 Spacer()
                 TextField("0", text: field(member.id))
                     .keyboardType(.decimalPad)
@@ -154,6 +296,7 @@ private struct PercentRows: View {
         ForEach(model.members) { member in
             HStack {
                 MemberRowLabel(name: model.name(for: member),
+                               isMe: model.meId == member.id,
                                shareMinor: shareMap[member.id],
                                currency: model.currency)
                 Spacer()
@@ -188,6 +331,7 @@ private struct ShareRows: View {
             Stepper(value: weight(member.id), in: 0...99) {
                 HStack {
                     MemberRowLabel(name: model.name(for: member),
+                                   isMe: model.meId == member.id,
                                    shareMinor: shareMap[member.id],
                                    currency: model.currency)
                     Spacer()
@@ -209,20 +353,30 @@ private struct ShareRows: View {
 
 // MARK: - Shared pieces
 
-/// A member's name with their resolved share alongside — the live preview of the split.
+/// A member's face and name with their resolved share under it — the live preview of the split.
+///
+/// The avatar is here for the same reason it is in the grid above: these rows are about people,
+/// and the exact/procent/andelar modes should not suddenly become a list of strings just because
+/// they happen to carry a text field.
 private struct MemberRowLabel: View {
     let name: String
+    var isMe = false
     let shareMinor: Int64?
     let currency: CurrencyCode
 
+    @Environment(\.myAvatarPhoto) private var myPhoto
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 1) {
-            Text(name)
-            if let shareMinor {
-                Text(MoneyFormat.string(shareMinor, currency))
-                    .font(.footnote)
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.secondary)
+        HStack(spacing: 10) {
+            Avatar(name: name, photo: isMe ? myPhoto : nil, size: 32)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(name)
+                if let shareMinor {
+                    Text(MoneyFormat.string(shareMinor, currency))
+                        .font(.footnote)
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.secondary)
+                }
             }
         }
     }
