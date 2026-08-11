@@ -25,7 +25,7 @@ Full architecture: docs/expense-app-sync-design.md. Read it before touching sync
 - iOS build: xcodebuild build -scheme App -destination "platform=iOS Simulator,name=iPhone 17 Pro"
   (iPhone 17 Pro is on the iOS 26.5 runtime. Older sim names on this machine are iOS 18.2 and cannot install an iOS 26 app — the error you get is opaque.)
 - Xcode tooling via MCP: prefer Apple's official bridge (xcrun mcpbridge, Xcode 26.3+); XcodeBuildMCP as fallback for simulator automation it does not cover
-- App icon: the source of truth is docs/brand/slice-mascot.png — Carl's brand artwork, not generated. To regenerate the icon from it: copy to ios/App/Assets.xcassets/AppIcon.appiconset/AppIcon.png, `sips -c 1024 1024` (center crop), then strip alpha via a jpeg round-trip (`sips -s format jpeg … && sips -s format png …`; the marketing icon must be opaque and exactly 1024×1024). The old SVG pipeline (tools/rasterize-icon.swift) is retired but kept for reference.
+- App icon: the source of truth is docs/brand/slice-mascot.png — Carl's brand artwork, not generated. To regenerate: center-crop to 1024×1024 and flatten onto the brand blue `#4FA9E8` (same hue as LaunchBackground's light half) with PIL — `Image.new("RGB", (1024,1024), (79,169,232))` + paste with the mascot's own alpha as mask. Never strip alpha via a jpeg round-trip: transparent becomes black, which is exactly the pizza-on-a-void icon Carl asked to be rid of. The marketing icon must be opaque and exactly 1024×1024. The old SVG pipeline (tools/rasterize-icon.swift) is retired but kept for reference.
 - Core package tests: swift test (from ios/Core/)
 - Storage package tests: swift test (from ios/Storage/)
 - Sync package tests: swift test (from ios/Sync/)
