@@ -135,7 +135,8 @@ ${BOLD}Serveradressen att knappa in i appen${RESET}
 
     ${GREEN}${BOLD}http://${IP}:${PORT}${RESET}
 
-    Jag → Serveradress → klistra in den → Jag → Logga in
+    Jag → Om Slice → tryck 7 ggr på versionsraden (låser upp Utvecklarverktyg)
+    → Serveradress → klistra in den → Logga in
 
 ${BOLD}I Xcode, som just öppnades${RESET}
 

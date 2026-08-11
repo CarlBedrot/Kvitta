@@ -10,7 +10,9 @@ import PhotosUI
 /// because it was the only place to put them while the app was being built. None of that belongs
 /// in front of a person. "Väntar på push" is a queue depth; "överhoppade händelser" should always
 /// be zero and is a bug report when it is not. They now live behind a section that only exists in
-/// debug builds, and what is left says one thing: is everything saved.
+/// debug builds — and even there stays hidden until seven taps on the version row ask for it,
+/// because every build that reaches a phone today *is* a debug build. What is left says one
+/// thing: is everything saved.
 struct JagView: View {
     let ledger: LedgerStore
     let sync: SyncEngine
@@ -26,6 +28,12 @@ struct JagView: View {
     @State private var inviteCode = ""
     #if DEBUG
     @State private var serverAddress = UserDefaults.standard.string(forKey: "se.kvitta.syncBaseURL") ?? ""
+    // Compile-time gating alone stopped meaning "developers only" the day the app reached real
+    // phones: every build anyone actually runs is a Debug build (Xcode sideload, simulator) and
+    // will be until TestFlight exists. So even in Debug the toolbox hides until deliberately
+    // asked for — seven taps on the version row, the same ritual every phone OS taught people.
+    @AppStorage("se.kvitta.devToolsVisible") private var devToolsVisible = false
+    @State private var versionTaps = 0
     #endif
 
     var body: some View {
@@ -39,7 +47,9 @@ struct JagView: View {
                 aboutSection
                 helpSection
                 #if DEBUG
-                developerSection
+                if devToolsVisible {
+                    developerSection
+                }
                 #endif
                 if let failure {
                     Section {
@@ -321,6 +331,19 @@ struct JagView: View {
                     value: "\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?") (\(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"))"
                 )
             }
+            #if DEBUG
+            // The door into the developer section. Seven taps, counted per visit to this
+            // screen — no timer, no feedback until the section simply appears below.
+            .contentShape(.rect)
+            .onTapGesture {
+                guard !devToolsVisible else { return }
+                versionTaps += 1
+                if versionTaps >= 7 {
+                    versionTaps = 0
+                    devToolsVisible = true
+                }
+            }
+            #endif
         }
     }
 
@@ -404,6 +427,9 @@ struct JagView: View {
                 SwishFormatTester(number: profile.swishNumber)
             } label: {
                 Label("Testa Swish-format", systemImage: "link")
+            }
+            Button("Stäng av utvecklarläge", role: .destructive) {
+                devToolsVisible = false
             }
         }
     }
