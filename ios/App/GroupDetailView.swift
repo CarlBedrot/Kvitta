@@ -346,7 +346,10 @@ private struct GroupHeroCard: View {
             // below stays the picker for a group that has no picture yet.
             if let photo {
                 Button(action: onShowPhoto) {
-                    GroupPhotoBanner(image: photo, height: 120)
+                    // Adaptive height: a wide photo stays a slim banner, a portrait one gets to
+                    // be tall — the crop should be a trim, not an execution. The whole image is
+                    // still one tap away in the viewer.
+                    GroupPhotoBanner(image: photo, aspect: 1.5...3.0)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Visa gruppbilden")
@@ -381,7 +384,20 @@ private struct GroupHeroCard: View {
 
     private var badge: some View {
         PhotosPicker(selection: $photoItem, matching: .images) {
-            GroupBadge(name: group.name, size: 48)
+            ZStack(alignment: .bottomTrailing) {
+                GroupBadge(name: group.name, size: 48)
+                // The same camera chip as the profile avatar in Jag. The bare badge *was* the
+                // picker before, and read as decoration — a function nobody can find does not
+                // exist. Only shown while the group has no photo, so no clash with the badge's
+                // own emoji corner.
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(4)
+                    .background(Theme.accent, in: .circle)
+                    .overlay(Circle().strokeBorder(Theme.card, lineWidth: 2))
+                    .offset(x: 4, y: 4)
+            }
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Välj gruppbild")

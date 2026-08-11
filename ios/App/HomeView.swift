@@ -362,14 +362,35 @@ private struct GroupCard: View {
 struct GroupPhotoBanner: View {
     let image: UIImage
     var height: CGFloat = 84
+    /// When set, the banner takes its height from the image's own shape — width divided by this
+    /// ratio, clamped to the range — instead of a fixed strip. The group screen's hero uses it so
+    /// a portrait picture shows most of itself rather than a 120 pt sliver; the Grupper list keeps
+    /// the fixed height, because a scrolling list wants even rows more than it wants whole photos.
+    var aspect: ClosedRange<CGFloat>? = nil
 
     var body: some View {
         // Clear frame + overlay, so scaledToFill cannot push the card wider than the screen.
         Color.clear
-            .frame(height: height)
+            .modifier(BannerShape(height: height, aspect: aspect, image: image))
             .overlay { Image(uiImage: image).resizable().scaledToFill() }
             .clipped()
             .accessibilityHidden(true)
+    }
+}
+
+/// The two sizing modes of `GroupPhotoBanner`, kept out of its body.
+private struct BannerShape: ViewModifier {
+    let height: CGFloat
+    let aspect: ClosedRange<CGFloat>?
+    let image: UIImage
+
+    func body(content: Content) -> some View {
+        if let aspect {
+            let own = image.size.width / max(image.size.height, 1)
+            content.aspectRatio(min(max(own, aspect.lowerBound), aspect.upperBound), contentMode: .fit)
+        } else {
+            content.frame(height: height)
+        }
     }
 }
 
