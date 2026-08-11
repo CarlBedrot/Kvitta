@@ -396,15 +396,20 @@ struct JagView: View {
             // For the sideloaded-to-a-friend's-phone trial: their phone must reach the dev
             // backend on your Mac's LAN address, not its own localhost. Read at launch
             // (Bootstrap.syncConfiguration), hence the restart note.
-            HStack {
+            // Label above the field, not beside it: on a real phone the side-by-side version
+            // left the field a few points wide and effectively untappable, which read as "the
+            // address cannot be changed". Saving happens on every keystroke rather than only on
+            // .onSubmit, because the URL keyboard's return key is easy to miss and a typed but
+            // unsaved address looks identical to a saved one.
+            VStack(alignment: .leading, spacing: 4) {
                 Text("Serveradress")
                 TextField("http://192.168.x.x:5142", text: $serverAddress)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .keyboardType(.URL)
-                    .multilineTextAlignment(.trailing)
-                    .onSubmit {
-                        let trimmed = serverAddress.trimmingCharacters(in: .whitespaces)
+                    .textFieldStyle(.roundedBorder)
+                    .onChange(of: serverAddress) { _, value in
+                        let trimmed = value.trimmingCharacters(in: .whitespaces)
                         if trimmed.isEmpty {
                             UserDefaults.standard.removeObject(forKey: "se.kvitta.syncBaseURL")
                         } else if URL(string: trimmed) != nil {
@@ -412,6 +417,10 @@ struct JagView: View {
                         }
                     }
             }
+            // The typed address and the used address are different things until the next launch.
+            // Without this line the two are indistinguishable on a phone, which is exactly how a
+            // correctly-typed address reads as "cannot reach the server".
+            LabeledContent("Kör mot", value: Bootstrap.activeBaseURL?.absoluteString ?? "—")
             Text("Tom = localhost. Kräver omstart av appen.")
                 .font(.caption2)
                 .foregroundStyle(Theme.tertiary)
