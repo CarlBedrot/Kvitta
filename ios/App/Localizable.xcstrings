@@ -136,7 +136,9 @@
         }
       }
     },
-    "%@ personer" : {},
+    "%@ personer" : {
+
+    },
     "%@ ska få" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1011,6 +1013,7 @@
       }
     },
     "ECB:s referenskurser, hämtade %@. Används bara för ungefärlig omräkning — allt sparas exakt i sin egen valuta." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1910,6 +1913,7 @@
       }
     },
     "Oläst" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2042,16 +2046,16 @@
     },
     "Räknas när %@ bekräftar. Utan svar räknas den efter %@ dagar." : {
       "localizations" : {
-        "sv" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Räknas när %1$@ bekräftar. Utan svar räknas den efter %2$@ dagar."
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Counts when %1$@ confirms. Without an answer it counts after %2$@ days."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Räknas när %1$@ bekräftar. Utan svar räknas den efter %2$@ dagar."
           }
         }
       }
@@ -2509,6 +2513,7 @@
       }
     },
     "Valutakurser" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
