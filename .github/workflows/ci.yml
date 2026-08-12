@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend (dotnet test)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: kvitta_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # Points KvittaApiFixture at the service container above instead of Testcontainers,
+      # which would need Docker-in-Docker on the runner. KvittaApiFixture.cs already
+      # documents this env var as "what CI will use".
+      KVITTA_TEST_POSTGRES: "Host=localhost;Port=5432;Username=postgres;Password=postgres;Database=kvitta_test"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - run: dotnet test
+        working-directory: backend
+
+  swift-core:
+    name: ios/Core (swift test)
+    runs-on: ubuntu-latest
+    container: swift:6.0
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift test
+        working-directory: ios/Core
+
+  # Not run in CI:
+  #
+  # - ios/Storage and ios/Sync (swift test): both depend on GRDB, whose Linux support is
+  #   unproven for this project (see CLAUDE.md, "GRDB på Linux är osäkert"). Verify locally
+  #   on Linux before adding a job for them here — a silent gap is worse than a documented
+  #   one, so they're named rather than just missing from this file.
+  # - xcodebuild for App/AppTests: the app target needs a macOS runner and a simulator,
+  #   which isn't worth paying for until TestFlight exists (see CLAUDE.md).
