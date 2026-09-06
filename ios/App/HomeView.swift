@@ -327,7 +327,7 @@ private struct GroupCard: View {
     /// SwiftUI's diffing (CLAUDE.md), and the two callers pass genuinely different shapes.
     private func header<Trailing: View>(@ViewBuilder trailing: () -> Trailing) -> some View {
         HStack(spacing: 14) {
-            GroupBadge(name: group.name, size: 48)
+            GroupBadge(name: group.name, size: 48, groupId: group.id)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(GroupBadge.title(of: group.name))
@@ -433,6 +433,12 @@ struct GroupBadge: View {
     let name: String
     var photo: UIImage? = nil
     var size: CGFloat = 44
+    /// The group's own colour — see `Theme.GroupTint`. Without an id (previews, callers that
+    /// only have a name) the badge falls back to the accent wash it always had.
+    var groupId: GroupID? = nil
+
+    private var wash: Color { groupId.map { Theme.GroupTint.forGroup($0).wash } ?? Theme.accent.opacity(0.1) }
+    private var letters: Color { groupId.map { Theme.GroupTint.forGroup($0).foreground } ?? Theme.accent }
 
     var body: some View {
         Group {
@@ -455,13 +461,13 @@ struct GroupBadge: View {
                 Text(String(emoji))
                     .font(.system(size: size * 0.5))
                     .frame(width: size, height: size)
-                    .background(Theme.accent.opacity(0.1), in: .circle)
+                    .background(wash, in: .circle)
             } else {
                 Text(initials)
                     .font(.system(size: size * 0.36, weight: .semibold))
-                    .foregroundStyle(Theme.accent)
+                    .foregroundStyle(letters)
                     .frame(width: size, height: size)
-                    .background(Theme.accent.opacity(0.1), in: .circle)
+                    .background(wash, in: .circle)
             }
         }
         .accessibilityHidden(true)
