@@ -121,6 +121,17 @@ enum Theme {
 
 /// The flat warm background. The first design layered radial washes here for glass to refract;
 /// there is no glass any more, and the mockups are calmer for it.
+/// The prompt text inside a text field. The system draws placeholders in its own tertiary grey,
+/// which lands at 2.6:1 on a white row by day and 3.0:1 on a card by night — the "what am I
+/// supposed to type here" hint was the least readable text on the screen. `Theme.secondary`
+/// clears 4.5:1 in both halves (5.4:1 on the light card, 6.0:1 on the dark one) and is still
+/// visibly not the typed value, which is the only other thing a placeholder has to be.
+extension Text {
+    func placeholderStyle() -> Text {
+        foregroundStyle(Theme.secondary)
+    }
+}
+
 struct AmbientBackground: View {
     var body: some View {
         Theme.bg.ignoresSafeArea()

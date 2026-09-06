@@ -891,6 +891,16 @@
         }
       }
     },
+    "Delas med dina grupper så att andra kan betala dig." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shared with your groups so people can pay you."
+          }
+        }
+      }
+    },
     "Den går att återställa under Visa borttagna." : {
       "localizations" : {
         "en" : {
@@ -1399,6 +1409,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Has the app"
+          }
+        }
+      }
+    },
+    "Hur numret delas" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How the number is shared"
           }
         }
       }

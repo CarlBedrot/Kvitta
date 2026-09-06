@@ -28,16 +28,21 @@ struct MembersSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                aboutSection
-                membersSection
-                addSection
-                inviteSection
+                // Same rows as Jag: warm cards by night instead of the system's neutral grey,
+                // so a sheet opened from a group looks like it came from the same app.
+                Group {
+                    aboutSection
+                    membersSection
+                    addSection
+                    inviteSection
 
-                if let failure {
-                    Section {
-                        Text(failure).font(.footnote).foregroundStyle(Theme.clay)
+                    if let failure {
+                        Section {
+                            Text(failure).font(.footnote).foregroundStyle(Theme.clay)
+                        }
                     }
                 }
+                .listRowBackground(Theme.card)
             }
             .scrollContentBackground(.hidden)
             .background(AmbientBackground())
