@@ -75,30 +75,16 @@ struct GroupDetailView: View {
                     onPhotoPicked: { jpeg in Task { await photos.stage(jpeg, for: groupId) } },
                     onShowPhoto: { showingPhoto = true },
                     onMode: { displayModes.set($0, for: groupId) },
-                    onAudit: { if let meId { auditingMember = meId } }
+                    onAudit: { if let meId { auditingMember = meId } },
+                    onAddExpense: {
+                        expenseModel = NewExpenseModel(ledger: ledger, userId: userId, groupId: groupId)
+                    },
+                    onMembers: { showingMembers = true }
                 )
 
-                if !canSplit {
-                    SoloGroupCard { showingMembers = true }
-                }
-
-                // The "om gruppen" blurb, when someone has written one. Quiet text, not a card:
-                // it is context, not data.
-                if let about = group.about {
-                    Text(about)
-                        .font(.subheadline)
-                        .foregroundStyle(Theme.secondary)
-                        .padding(.horizontal, 4)
-                }
-
-                // A question outranks the shortcuts: somebody's books are waiting on the answer.
-                PendingPaymentsCard(
-                    group: group,
-                    meId: meId,
-                    failure: confirmFailure,
-                    onAnswer: answer
-                )
-
+                // Straight under the balance, so "how do I add a cost" is answered on the
+                // first screen along with "what do I owe" — the two questions a group screen
+                // exists for. A group of one has these in the hero instead.
                 if canSplit {
                     QuickActionsCard(
                         onAddExpense: {
@@ -107,6 +93,24 @@ struct GroupDetailView: View {
                         onSettle: settleQuickAction(for: group, meId: meId),
                         onMembers: { showingMembers = true }
                     )
+                }
+
+                // Somebody's books are waiting on this answer, so it stays above the fold's
+                // second half: right after the shortcuts, before anything historical.
+                PendingPaymentsCard(
+                    group: group,
+                    meId: meId,
+                    failure: confirmFailure,
+                    onAnswer: answer
+                )
+
+                // The "om gruppen" blurb, when someone has written one. Quiet text, not a card:
+                // it is context, not data.
+                if let about = group.about {
+                    Text(about)
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.secondary)
+                        .padding(.horizontal, 4)
                 }
 
                 TransfersCard(
@@ -137,15 +141,19 @@ struct GroupDetailView: View {
         .background(AmbientBackground())
         // Reaching zero is the thing this whole app is for, and it used to happen in silence —
         // a card changed its wording. Fired on the *transition*, so opening a group that was
-        // already settled is not a party for something you did last week.
+        // already settled is not a party for something you did last week. And only when there
+        // was something to settle: deleting the last expense of a group of one also lands on
+        // zero, and that is not an achievement.
         .onChange(of: group.balances().isSettled) { wasSettled, isSettled in
-            if isSettled && !wasSettled { celebrations += 1 }
+            if isSettled && !wasSettled && canSplit && !group.visibleExpenses.isEmpty {
+                celebrations += 1
+            }
         }
         .overlay { ConfettiBurst(trigger: celebrations) }
         .sensoryFeedback(.success, trigger: celebrations)
         // The same + as on Grupper, but here the group is the screen you stand on, so it goes
         // straight to Ny utgift — no menu, no chooser. Hidden while you are alone in the group;
-        // SoloGroupCard is already pointing at the way forward.
+        // the hero's fresh state is already pointing at the way forward.
         .overlay(alignment: .bottomTrailing) {
             if canSplit {
                 FAB {
@@ -347,8 +355,16 @@ private struct GroupHeroCard: View {
     let onShowPhoto: () -> Void
     let onMode: (CurrencyDisplay) -> Void
     let onAudit: () -> Void
+    /// The two ways forward from a group with no expense yet — see `fresh`.
+    let onAddExpense: () -> Void
+    let onMembers: () -> Void
 
     @State private var photoItem: PhotosPickerItem?
+
+    /// No expense yet. Every group starts here, and the balances are technically zero, but
+    /// "Ni är kvitt 🎉" for a group nothing has happened in is a party for nothing — the
+    /// celebration is saved for balances that were real and got cleared.
+    private var isFresh: Bool { group.visibleExpenses.isEmpty }
 
     var body: some View {
         let isSettled = group.balances().isSettled
@@ -357,21 +373,24 @@ private struct GroupHeroCard: View {
             // below stays the picker for a group that has no picture yet.
             if let photo {
                 Button(action: onShowPhoto) {
-                    // Adaptive height: a wide photo stays a slim banner, a portrait one gets to
-                    // be tall — the crop should be a trim, not an execution. The whole image is
-                    // still one tap away in the viewer.
-                    GroupPhotoBanner(image: photo, aspect: 1.5...3.0)
+                    // Adaptive height, but a strip either way: the widest a photo gets is a
+                    // little taller than a 3:1 letterbox. The old range let a portrait picture
+                    // claim half the screen and push the balance below the fold — the whole
+                    // image is one tap away in the viewer, so the banner only has to say
+                    // "this group", not show the picture.
+                    GroupPhotoBanner(image: photo, aspect: 2.4...3.2)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Visa gruppbilden")
             }
             // The full name, with room to wrap. The navigation bar can only ever truncate a
             // long name, so it drops to an inline label and this becomes the one place the
-            // whole name is actually readable.
+            // whole name is actually readable. One step below the amount on purpose: the
+            // question this card answers is "what do I owe", and the name is the context.
             let title = GroupBadge.title(of: group.name)
             if !title.isEmpty {
                 Text(title)
-                    .font(.title2.weight(.bold))
+                    .font(.title3.weight(.semibold))
                     .foregroundStyle(Theme.ink)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -379,7 +398,9 @@ private struct GroupHeroCard: View {
                     .padding(.top, 24)
             }
             Group {
-                if isSettled {
+                if isFresh {
+                    fresh
+                } else if isSettled {
                     settled
                 } else {
                     open
@@ -389,7 +410,7 @@ private struct GroupHeroCard: View {
             .padding(.top, title.isEmpty ? 24 : 12)
             .padding(.bottom, 24)
         }
-        .flushCardSurface(fill: isSettled ? Theme.positiveWash : Theme.card)
+        .flushCardSurface(fill: isSettled && !isFresh ? Theme.positiveWash : Theme.card)
         .task(id: photoItem) { await loadPhoto() }
     }
 
@@ -423,6 +444,51 @@ private struct GroupHeroCard: View {
            let jpeg = scaled.jpegData(compressionQuality: 0.8) {
             onPhotoPicked(jpeg)
         }
+    }
+
+    /// The state before the first expense: a group of one is told to invite people, a group
+    /// of several is told the first expense is one tap away. Adding an expense needs somebody
+    /// to split with, so alone in the group the button is there but dimmed — the same idiom
+    /// `GroupPickerSheet` uses for a group you cannot split in yet, so the answer to "why is
+    /// it grey" is the sentence right above it.
+    private var fresh: some View {
+        let canSplit = group.activeMembers.count >= 2
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Redo för första utgiften")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(Theme.ink)
+                    // Two `Text`s rather than a ternary inside one: a ternary yields a plain
+                    // String, which skips the string catalog.
+                    Group {
+                        if canSplit {
+                            Text("Lägg till det första ni delade på, så räknar Slice ut resten.")
+                        } else {
+                            Text("Bjud in de andra först — en utgift behöver någon att delas med.")
+                        }
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+                if photo == nil {
+                    badge
+                }
+            }
+            HStack(spacing: 10) {
+                Button("Lägg till personer", action: onMembers)
+                    .buttonStyle(PrimaryButtonStyle(fill: canSplit ? Theme.ink.opacity(0.08) : Theme.accent,
+                                                    label: canSplit ? Theme.ink : .white))
+                Button("Lägg till utgift", action: onAddExpense)
+                    .buttonStyle(PrimaryButtonStyle(fill: canSplit ? Theme.accent : Theme.ink.opacity(0.08),
+                                                    label: canSplit ? .white : Theme.ink))
+                    .disabled(!canSplit)
+                    .opacity(canSplit ? 1 : 0.5)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var settled: some View {
@@ -526,8 +592,8 @@ private struct GroupHeroCard: View {
                         .padding(.top, 8)
 
                         Text("\(settledMembers) av \(members) är kvitt")
-                            .font(.caption)
-                            .foregroundStyle(Theme.tertiary)
+                            .font(.subheadline)
+                            .foregroundStyle(Theme.secondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .contentShape(.rect)
@@ -581,33 +647,6 @@ private struct GroupHeroCard: View {
         case .only(let currency): return currency.code
         case .converted: return "≈ \(group.currency.code)"
         }
-    }
-}
-
-// MARK: - A group of one
-
-/// What a brand-new group shows instead of an expense button.
-///
-/// A group is created with only you in it now, so this is the state every group passes through.
-/// It points at one place — Medlemmar — because that screen already holds both ways forward: the
-/// invite link, and adding somebody by name for the friend who will never install anything.
-private struct SoloGroupCard: View {
-    let onOpenMembers: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Bara du i gruppen än")
-                .font(.body.weight(.semibold))
-                .foregroundStyle(Theme.ink)
-            Text("Bjud in de andra med en länk, eller lägg till dem som namn om de inte tänker skaffa appen.")
-                .font(.subheadline)
-                .foregroundStyle(Theme.secondary)
-            Button("Lägg till eller bjud in", action: onOpenMembers)
-                .buttonStyle(PrimaryButtonStyle())
-                .padding(.top, 6)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .cardSurface()
     }
 }
 

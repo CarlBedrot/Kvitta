@@ -225,14 +225,16 @@ extension View {
     }
 }
 
-/// The primary action: accent fill, white text, radius 22, gentle press scale.
+/// The primary action: accent fill, white text, radius 22, gentle press scale. With a quiet
+/// fill and ink label it is the secondary twin beside a primary — same shape, less voice.
 struct PrimaryButtonStyle: ButtonStyle {
     var fill: Color = Theme.accent
+    var label: Color = .white
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.body.weight(.semibold))
-            .foregroundStyle(.white)
+            .foregroundStyle(label)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
             .background(fill, in: .rect(cornerRadius: 22))
