@@ -132,6 +132,16 @@
         }
       }
     },
+    "%@ var" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ each"
+          }
+        }
+      }
+    },
     "%@ i %@ väntar på att du bekräftar." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -230,6 +240,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld shares"
+          }
+        }
+      }
+    },
+    "%lld olika andelar" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld different shares"
           }
         }
       }

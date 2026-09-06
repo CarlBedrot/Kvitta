@@ -208,18 +208,41 @@ private struct DescriptionSection: View {
 
 // MARK: - Summary row
 
+/// The sentence ("Du betalade · delas lika (4)") and, under it, the split itself: the faces it
+/// lands on and what each carries. The sentence said *how*; this row shows *who* and *how much*,
+/// which is the reassurance people used to open the editor for. Still one tap target — the
+/// whole card opens `SplitEditorSheet`.
 private struct SummaryRow: View {
     let model: NewExpenseModel
     let action: () -> Void
 
+    @Environment(\.myAvatarPhoto) private var myAvatarPhoto
+
     var body: some View {
+        let preview = model.draft.preview(totalMinor: model.amountMinor, members: model.memberIds)
         Button(action: action) {
-            HStack {
-                summaryText.foregroundStyle(Theme.ink)
-                Spacer()
-                Image(systemName: "chevron.right").foregroundStyle(Theme.tertiary)
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    summaryText(count: preview.participants.count).foregroundStyle(Theme.ink)
+                    Spacer()
+                    Image(systemName: "chevron.right").foregroundStyle(Theme.tertiary)
+                }
+                .font(.subheadline.weight(.medium))
+                if !preview.participants.isEmpty {
+                    HStack(spacing: 10) {
+                        ParticipantFaces(members: preview.participants.compactMap(member(for:)),
+                                         meId: model.meId, myPhoto: myAvatarPhoto,
+                                         name: model.name(for:))
+                        Text(perPerson(preview))
+                            .font(.subheadline)
+                            .foregroundStyle(Theme.secondary)
+                            .monospacedDigit()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
+                    .contentTransition(.numericText())
+                }
             }
-            .font(.subheadline.weight(.medium))
             .padding(.horizontal, 16)
             .padding(.vertical, 15)
             .background(Theme.card, in: .rect(cornerRadius: 18))
@@ -228,14 +251,74 @@ private struct SummaryRow: View {
         .buttonStyle(ScaleButtonStyle())
         .padding(.horizontal, 20)
         .padding(.top, 12)
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(spoken(preview))
     }
 
-    private var summaryText: Text {
-        let count = model.draft.participantCount(totalMinor: model.amountMinor, members: model.memberIds)
+    private func summaryText(count: Int) -> Text {
         let payer: Text = model.isPayerMe
             ? Text("Du betalade")
             : Text("\(model.payerMember.map(model.name(for:)) ?? "") betalade")
         return payer + Text(verbatim: " · ") + Text(model.draft.mode.sentenceLabel) + Text(verbatim: " (\(count))")
+    }
+
+    private func member(for id: MemberID) -> Member? {
+        model.members.first { $0.id == id }
+    }
+
+    /// "120 kr var" when everyone carries the same; the actual amounts when they don't and
+    /// there are few enough to read; otherwise just how many differ. Nothing until an amount
+    /// exists — the faces alone say who is in.
+    private func perPerson(_ preview: SplitDraft.Preview) -> String {
+        if let each = preview.perPersonMinor {
+            return String(localized: "\(MoneyFormat.string(each, model.currency)) var")
+        }
+        guard !preview.shares.isEmpty else { return "" }
+        if preview.shares.count <= 3 {
+            return preview.shares
+                .map { MoneyFormat.string($0.amountMinor, model.currency) }
+                .joined(separator: " · ")
+        }
+        return String(localized: "\(preview.shares.count) olika andelar")
+    }
+
+    private func spoken(_ preview: SplitDraft.Preview) -> String {
+        let names = preview.participants.compactMap(member(for:)).map(model.name(for:))
+        return ([names.joined(separator: ", ")] + [perPerson(preview)]).filter { !$0.isEmpty }
+            .joined(separator: ". ")
+    }
+}
+
+/// The participants as one overlapping run of faces — a group sharing a cost is one object,
+/// like the pair in a transfer. You wear your photo; everyone else their initials. Past five the
+/// run ends in a count, because a dinner for twelve is not twelve legible circles.
+private struct ParticipantFaces: View {
+    let members: [Member]
+    let meId: MemberID?
+    let myPhoto: Data?
+    let name: (Member) -> String
+
+    private let size: CGFloat = 28
+    private let shown = 5
+
+    var body: some View {
+        let visible = members.prefix(shown)
+        let overflow = members.count - visible.count
+        HStack(spacing: -8) {
+            ForEach(Array(visible), id: \.id) { member in
+                Avatar(name: name(member), photo: member.id == meId ? myPhoto : nil, size: size)
+                    .overlay(Circle().strokeBorder(Theme.card, lineWidth: 2))
+            }
+            if overflow > 0 {
+                Text(verbatim: "+\(overflow)")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Theme.secondary)
+                    .frame(width: size, height: size)
+                    .background(Theme.bg, in: .circle)
+                    .overlay(Circle().strokeBorder(Theme.card, lineWidth: 2))
+            }
+        }
+        .accessibilityHidden(true)
     }
 }
 

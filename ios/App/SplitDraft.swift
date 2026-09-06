@@ -115,9 +115,47 @@ struct SplitDraft {
 
     /// How many people the cost lands on, for the summary row ("delas lika (4)").
     func participantCount(totalMinor: Int64, members: [MemberID]) -> Int {
-        if let shares = resolvedShares(totalMinor: totalMinor, members: members) {
-            return shares.filter { $0.amountMinor > 0 }.count
+        preview(totalMinor: totalMinor, members: members).participants.count
+    }
+
+    // MARK: - The row under the sentence
+
+    /// The split as the summary row *shows* it: who is in, and what each of them carries.
+    struct Preview: Equatable {
+        /// Everyone with a share, in the group's member order — the faces on the row.
+        let participants: [MemberID]
+        /// The resolved lines behind those faces, same order. Empty until there is an amount
+        /// and the split balances, because then there is nothing honest to show yet.
+        let shares: [MoneyLine]
+        /// Set only when every participant carries the same amount — "120 kr var". 100 kr on
+        /// three people is 33,34 + 33,33 + 33,33, and that has no single "var".
+        let perPersonMinor: Int64?
+    }
+
+    /// Read off `SplitCalculator`'s resolved shares — the same lines the saved expense will
+    /// carry — never from `amount / count`. The preview and the ledger can therefore not
+    /// disagree by an öre, which is the whole point of showing it before Spara.
+    ///
+    /// With no amount yet the row still knows who is included (Lika) or who has been given
+    /// anything (the other modes), so the faces are there before the first digit is typed.
+    func preview(totalMinor: Int64, members: [MemberID]) -> Preview {
+        if let resolved = resolvedShares(totalMinor: totalMinor, members: members) {
+            let byMember = Dictionary(uniqueKeysWithValues: resolved.map { ($0.memberId, $0) })
+            let shares = members.compactMap { byMember[$0] }.filter { $0.amountMinor > 0 }
+            let amounts = Set(shares.map(\.amountMinor))
+            return Preview(
+                participants: shares.map(\.memberId),
+                shares: shares,
+                perPersonMinor: amounts.count == 1 ? amounts.first : nil
+            )
         }
-        return included.count
+        let participants: [MemberID]
+        switch mode {
+        case .equal: participants = members.filter { included.contains($0) }
+        case .exact: participants = members.filter { (exactMinor[$0] ?? 0) > 0 }
+        case .percentage: participants = members.filter { (basisPoints[$0] ?? 0) > 0 }
+        case .shares: participants = members.filter { (weights[$0] ?? 0) > 0 }
+        }
+        return Preview(participants: participants, shares: [], perPersonMinor: nil)
     }
 }
