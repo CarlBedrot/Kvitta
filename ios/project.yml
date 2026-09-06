@@ -62,6 +62,14 @@ targets:
         product: KvittaSync
       - package: Sentry
         product: Sentry
+    # Trial.xcconfig is gitignored and written by tools/trial-config.sh from ~/.kvitta-trial-key.
+    # It carries one build setting, KVITTA_TRIAL_KEY, which lands in the Info.plist below. The
+    # key is a shared gate for a friend group, not a personal credential, but the repo is public
+    # and a committed key is a key for the whole internet. Run the script (trial.sh does) before
+    # xcodegen; an empty file is fine and builds an app that asks for the key in Jag instead.
+    configFiles:
+      Debug: Trial.xcconfig
+      Release: Trial.xcconfig
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: se.kvitta.app
@@ -121,3 +129,11 @@ targets:
         # Unlike the backend's DSN this one is not a secret and belongs in the repo: a client DSN
         # ships inside every copy of the app anyway, and it can only write, never read.
         SentryDSN: ""
+        # The server every build talks to unless the Jag tab overrides it — the hosted trial on
+        # Fly.io since 2026-09-06. Before this landed the default was localhost, which meant
+        # every sideloaded phone had to be configured by hand before it did anything; that was
+        # the right default when the only server was the one on the developer's Mac and the
+        # wrong one the moment there was a real one.
+        KvittaSyncBaseURL: https://slice-api.fly.dev
+        # Substituted from Trial.xcconfig at build time (see configFiles on the App target).
+        KvittaTrialKey: $(KVITTA_TRIAL_KEY)

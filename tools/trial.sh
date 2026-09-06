@@ -122,6 +122,7 @@ printf '%s' "$RESET"
 # ---------------------------------------------------------------------------
 
 step "Genererar Xcode-projektet"
+"$ROOT/tools/trial-config.sh"
 ( cd "$ROOT/ios" && xcodegen generate --quiet )
 open "$ROOT/ios/Kvitta.xcodeproj"
 
