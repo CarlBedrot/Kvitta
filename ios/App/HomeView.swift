@@ -15,6 +15,7 @@ struct HomeView: View {
     let rates: RateStore
     let profiles: ProfileSyncer
     var onNewGroup: () -> Void
+    var onJoin: () -> Void
 
     /// Bumped when the last open debt anywhere closes. See `ConfettiBurst`.
     @State private var celebrations = 0
@@ -39,6 +40,24 @@ struct HomeView: View {
         .overlay { ConfettiBurst(trigger: celebrations) }
         .sensoryFeedback(.success, trigger: celebrations)
         .navigationTitle("Grupper")
+        // Creating and joining live up here, by the title, where iOS users look for "new" —
+        // not under the floating button, which is for the thing you do ten times as often.
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button(action: onNewGroup) {
+                        Label("Ny grupp", systemImage: "person.badge.plus")
+                    }
+                    Button(action: onJoin) {
+                        Label("Gå med via länk", systemImage: "envelope")
+                    }
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title3)
+                        .accessibilityLabel("Ny grupp eller gå med")
+                }
+            }
+        }
     }
 
     private var content: some View {
