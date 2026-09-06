@@ -70,7 +70,7 @@ enum Theme {
     /// in hue in *both* halves, deliberately the same separation the light theme already ships,
     /// because colour is never the only carrier here: every amount also spells its direction out.
     static let negative = adaptive(light: 0xD9503F, dark: 0xE8604F)
-    /// The wash behind the "Alla är kvitt 🎉" celebration card — and, at night, the one thing in
+    /// The wash behind the "Alla är kvitt" celebration card — and, at night, the one thing in
     /// the app that gives off light. See `SettledGlow`.
     static let positiveWash = adaptive(light: 0xDDEDDC, dark: 0x1B3324)
 

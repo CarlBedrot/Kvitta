@@ -149,10 +149,14 @@ private struct StatusCard: View {
     private var settledCard: some View {
         HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Alla är kvitt 🎉")
+                // One celebration per card: the 🙌 on the right is the illustration, so the
+                // title does not carry a 🎉 of its own — and the wording states a balance, not
+                // a mood. "Nobody is waiting on you" put a little guilt into the calmest screen
+                // in the app.
+                Text("Alla är kvitt")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(Theme.ink)
-                Text("Du har inga skulder och ingen ligger ute för dig.")
+                Text("Inga öppna balanser.")
                     .font(.subheadline)
                     .foregroundStyle(Theme.secondary)
             }
@@ -379,6 +383,8 @@ private struct GroupCard: View {
     }
 
     private var subtitle: String {
+        // "%lld personer" is a plural entry in the String Catalog — one person, two personer —
+        // so the count never reads "1 personer" again. Nothing to branch on here.
         let count = String(localized: "\(group.activeMembers.count) personer")
         guard let last = group.lastActivity else { return count }
         return "\(count) · \(last.date.formatted(.relative(presentation: .named)))"

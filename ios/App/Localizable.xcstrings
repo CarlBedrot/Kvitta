@@ -356,9 +356,6 @@
         }
       }
     },
-    "%@ personer" : {
-
-    },
     "%@ ska få" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -425,12 +422,41 @@
       }
     },
     "%lld personer" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld people"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld person"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld people"
+                }
+              }
+            }
+          }
+        },
+        "sv" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld person"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld personer"
+                }
+              }
+            }
           }
         }
       }
@@ -494,12 +520,12 @@
         }
       }
     },
-    "Alla är kvitt 🎉" : {
+    "Alla är kvitt" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "All settled 🎉"
+            "value" : "All settled"
           }
         }
       }
@@ -772,16 +798,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Invite"
-          }
-        }
-      }
-    },
-    "Bjud in de andra med en länk, eller lägg till dem som namn om de inte tänker skaffa appen." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Invite the others with a link, or add them by name if they're never going to get the app."
           }
         }
       }
@@ -1279,12 +1295,12 @@
         }
       }
     },
-    "Du har inga skulder och ingen ligger ute för dig." : {
+    "Inga öppna balanser." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You have no debts and nobody is waiting on you."
+            "value" : "No outstanding balances."
           }
         }
       }
