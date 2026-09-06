@@ -593,6 +593,12 @@ private struct GroupHeroCard: View {
                             }
                         }
 
+                        // The audit was reachable only by knowing the number was a button. A
+                        // link says so — "why do I owe this?" is the question the sheet answers.
+                        Text("Se uträkning ›")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Theme.accent)
+
                         SettleProgressBar(
                             fraction: members == 0 ? 0 : Double(settledMembers) / Double(members),
                             tint: Theme.tint(forSign: lead?.money.amountMinor ?? 0)
