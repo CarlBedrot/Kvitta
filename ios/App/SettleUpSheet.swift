@@ -37,16 +37,31 @@ struct SettleUpSheet: View {
     @State private var swishNumber = ""
     @State private var askingForNumber = false
     @State private var copiedAmount = false
+    /// Set once `PaymentRecorded` is in the log. The sheet stays up and turns into the receipt:
+    /// what just happened, and — when the payee still has to answer — what has *not* happened
+    /// yet. Dismissing straight away was how "why hasn't my balance moved?" got asked.
+    @State private var recorded = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var group: GroupState? { ledger.state[groupId] }
 
     var body: some View {
         VStack(spacing: 0) {
             header
-            amountSection
+            if recorded {
+                recordedSteps
+                    .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
+            } else {
+                amountSection
+            }
             Spacer()
 
-            if copiedAmount {
+            if recorded {
+                Button("Klart") { dismiss() }
+                    .buttonStyle(PrimaryButtonStyle())
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 24)
+            } else if copiedAmount {
                 Text("Beloppet är kopierat — klistra in det i MobilePay.")
                     .font(.footnote)
                     .foregroundStyle(Theme.secondary)
@@ -57,13 +72,16 @@ struct SettleUpSheet: View {
                 Text(failure).font(.footnote).foregroundStyle(Theme.clay).padding(.bottom, 8)
             }
 
-            if askingToConfirm {
+            if recorded {
+                EmptyView()
+            } else if askingToConfirm {
                 confirmReturn
             } else {
                 actions
             }
         }
         .frame(maxWidth: .infinity)
+        .animation(reduceMotion ? nil : .spring(duration: 0.35), value: recorded)
         .background(AmbientBackground())
         .sensoryFeedback(.success, trigger: settleTick)
         .onChange(of: scenePhase) { _, phase in
@@ -199,11 +217,76 @@ struct SettleUpSheet: View {
             }
             ZeroLine(amountMinor: -transfer.amountMinor, scaleMinor: transfer.amountMinor * 2)
                 .padding(.horizontal, 40)
-            Text("Efter betalningen: \(MoneyFormat.string(0, currency, explicit: explicit)) · ni är kvitt i \(currency.code) 🎉")
-                .font(.footnote)
-                .foregroundStyle(Theme.secondary)
+            // Only promise "kvitt" when the books will actually say so the moment the slide
+            // lands. A payee with the app gets to answer first, and until they do the balance
+            // does not move — saying 🎉 here and then showing an unchanged number was the
+            // sequence people read as a bug.
+            if needsConfirmation {
+                Text("Efter betalningen: väntar på att \(name(transfer.to)) bekräftar · sedan kvitt i \(currency.code)")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+            } else {
+                Text("Efter betalningen: \(MoneyFormat.string(0, currency, explicit: explicit)) · ni är kvitt i \(currency.code) 🎉")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.secondary)
+            }
         }
         .padding(.top, 20)
+    }
+
+    /// Where the payment stands now that it is written, as the sequence it will move through.
+    ///
+    /// Three steps when somebody still has to answer — Registrerad, Väntar på <namn>, Kvitt —
+    /// so the frozen balance on the group screen has a name before anyone sees it. Two steps,
+    /// both done, when there is nobody to ask: a payee without a linked account, or a payment
+    /// the payee recorded themselves, is confirmed the instant it exists (`Projector`).
+    private var recordedSteps: some View {
+        VStack(spacing: 16) {
+            Text("Betalningen är registrerad")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(Theme.ink)
+                .padding(.top, 24)
+
+            VStack(spacing: 0) {
+                SettleStepRow(title: String(localized: "Registrerad"), state: .done, isLast: false)
+                if needsConfirmation {
+                    SettleStepRow(
+                        title: String(localized: "Väntar på \(name(transfer.to))"),
+                        state: .current,
+                        isLast: false
+                    )
+                    SettleStepRow(title: String(localized: "Kvitt"), state: .upcoming, isLast: true)
+                } else {
+                    SettleStepRow(title: String(localized: "Kvitt"), state: .done, isLast: true)
+                }
+            }
+            .padding(.horizontal, 4)
+            .cardSurface(padding: 16)
+            .padding(.horizontal, 20)
+
+            if needsConfirmation {
+                Text("Balansen uppdateras när \(name(transfer.to)) bekräftar. Utan svar räknas den efter \(PaymentStatus.autoConfirmAfterDays) dagar.")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    /// Whether the books will wait for the payee's word (M8).
+    ///
+    /// The same rule the projector applies when it decides a payment's birth status: pending
+    /// only when the payee has a linked account and is not the person recording — the one case
+    /// where somebody else can ever press "Ja, jag har fått pengarna". Mirrored here rather
+    /// than shared because the projector's version reads the event's author, which does not
+    /// exist until the slide lands.
+    private var needsConfirmation: Bool {
+        guard let payeeUser = group?.members[transfer.to]?.linkedUserId else { return false }
+        return payeeUser != userId
     }
 
     private func name(_ memberId: MemberID) -> String {
@@ -336,10 +419,71 @@ struct SettleUpSheet: View {
                 in: groupId
             )
             settleTick += 1
-            dismiss()
+            recorded = true
         } catch {
             // A failed local write stays on screen — never a silently lost payment (CLAUDE.md).
             failure = String(describing: error)
+        }
+    }
+}
+
+/// One line of the settle-up receipt: a dot that is filled, ringed or hollow, and a title.
+///
+/// Drawn by hand rather than with a list style so the three states read at a glance without
+/// colour — the filled check, the ring and the hollow circle survive monochrome — and the
+/// connector between rows says "in this order" without a single word.
+private struct SettleStepRow: View {
+    enum State { case done, current, upcoming }
+
+    let title: String
+    let state: State
+    let isLast: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(spacing: 0) {
+                marker
+                if !isLast {
+                    Rectangle()
+                        .fill(state == .done ? Theme.positive : Theme.hairline)
+                        .frame(width: 2, height: 22)
+                }
+            }
+            Text(title)
+                .font(.body.weight(state == .upcoming ? .regular : .semibold))
+                .foregroundStyle(state == .upcoming ? Theme.secondary : Theme.ink)
+                .padding(.top, 1)
+            Spacer(minLength: 0)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityText)
+    }
+
+    @ViewBuilder
+    private var marker: some View {
+        switch state {
+        case .done:
+            Image(systemName: "checkmark")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 22, height: 22)
+                .background(Theme.positive, in: .circle)
+        case .current:
+            Circle()
+                .strokeBorder(Theme.accent, lineWidth: 2.5)
+                .frame(width: 22, height: 22)
+        case .upcoming:
+            Circle()
+                .strokeBorder(Theme.hairline, lineWidth: 2)
+                .frame(width: 22, height: 22)
+        }
+    }
+
+    private var accessibilityText: String {
+        switch state {
+        case .done: return String(localized: "\(title), klart")
+        case .current: return String(localized: "\(title), pågår")
+        case .upcoming: return String(localized: "\(title), återstår")
         }
     }
 }
