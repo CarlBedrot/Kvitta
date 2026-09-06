@@ -1,4 +1,5 @@
 import Foundation
+import KvittaCore
 
 /// A spending category with its default emoji. Emoji is **data** keyed by `categoryId`, not
 /// decoration hardcoded in a view (ui-design.md), so the same id renders the same glyph in a row,
@@ -39,7 +40,8 @@ enum Categories {
 }
 
 /// A description chip on the add sheet: tapping it fills the description and picks the category.
-/// v1 offers a small fixed set; a later round derives these from the user's own history.
+/// The group's own recent descriptions come first (see `suggestions(for:)`); the fixed starters
+/// fill in behind them, so a fresh group still has something to tap.
 ///
 /// The first set was three shop names — ICA, Systembolaget, Taxi — which only helped on the days
 /// you happened to be in one of those. These are the *kinds* of thing a group splits, so a chip is
@@ -61,4 +63,37 @@ struct DescriptionSuggestion: Identifiable {
         DescriptionSuggestion(text: String(localized: "Boende"), categoryId: "boende"),
         DescriptionSuggestion(text: String(localized: "Nöje"), categoryId: "nöje"),
     ]
+
+    /// How many of the group's own descriptions lead the row, and how long the row gets.
+    private static let recentCap = 5
+    private static let totalCap = 8
+
+    /// The chips for one group: what this group actually buys, then the starters.
+    ///
+    /// A household ends up with "Hyra · Internet · ICA" and a trip with "Middag · Taxi · Hotell"
+    /// without anyone configuring anything — the ledger already knows. Ordered by the expense's
+    /// own date, newest first (an old receipt entered today is still an old receipt), with the
+    /// write time as a tiebreak so two expenses on the same day keep a stable order. A text that
+    /// differs only in case or surrounding whitespace is the same chip, and the group's own
+    /// spelling wins over the starter's. Pure: same group, same chips.
+    static func suggestions(for group: GroupState) -> [DescriptionSuggestion] {
+        let recent = group.visibleExpenses
+            .sorted { a, b in
+                a.date != b.date ? a.date > b.date : a.lastModifiedAt > b.lastModifiedAt
+            }
+
+        var seen = Set<String>()
+        var result: [DescriptionSuggestion] = []
+
+        for expense in recent where result.count < recentCap {
+            let text = expense.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty, seen.insert(text.lowercased()).inserted else { continue }
+            result.append(DescriptionSuggestion(text: text, categoryId: expense.categoryId))
+        }
+        for starter in starters where result.count < totalCap {
+            guard seen.insert(starter.text.lowercased()).inserted else { continue }
+            result.append(starter)
+        }
+        return result
+    }
 }
