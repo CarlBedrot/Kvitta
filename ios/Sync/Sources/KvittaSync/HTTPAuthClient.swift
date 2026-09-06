@@ -102,7 +102,8 @@ public struct HTTPAuthClient: SessionRefresher {
         }
 
         do {
-            return try JSONDecoder().decode(SessionResponse.self, from: data).tokens(now: Date())
+            return try JSONDecoder().decode(SessionResponse.self, from: data)
+                .tokens(now: Date(), server: configuration.baseURL)
         } catch {
             throw SyncError.malformedResponse(String(describing: error))
         }
@@ -129,12 +130,13 @@ public struct HTTPAuthClient: SessionRefresher {
         let expiresIn: Int
         let refreshToken: String
 
-        func tokens(now: Date) -> SessionTokens {
+        func tokens(now: Date, server: URL) -> SessionTokens {
             SessionTokens(
                 userId: userId,
                 accessToken: accessToken,
                 refreshToken: refreshToken,
-                expiresAt: now.addingTimeInterval(TimeInterval(expiresIn))
+                expiresAt: now.addingTimeInterval(TimeInterval(expiresIn)),
+                server: server.absoluteString
             )
         }
     }

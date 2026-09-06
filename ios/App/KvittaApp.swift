@@ -1,3 +1,4 @@
+import OSLog
 import SwiftUI
 import KvittaCore
 import KvittaStorage
@@ -49,7 +50,7 @@ struct KvittaApp: App {
                 // system-drawn labels on the wrong ground, which is what the first run on real
                 // hardware turned up.
                 .task {
-                    await session.restore()
+                    await session.restore(server: Bootstrap.activeBaseURL ?? ServerEndpoint.localhost)
                     await Bootstrap.adoptBuiltInServer(session: session, displayName: profile.displayName)
                     // Recomputed at launch, so a debt settled on another device does not
                     // leave a stale reminder queued here.
@@ -187,6 +188,7 @@ enum Bootstrap {
     ///
     ///     xcrun devicectl device process launch --device <udid> se.kvitta.app \
     ///         -- -se.kvitta.syncBaseURL http://192.168.0.155:5142 -se.kvitta.syncEnabled YES
+    ///     and `-se.kvitta.syncBaseURL default` clears the override again.
     ///
     /// which beats reading an IP address aloud to someone holding a phone in another room, and is
     /// how a friend's phone gets configured during the trial without them touching a settings
@@ -195,8 +197,24 @@ enum Bootstrap {
         let defaults = UserDefaults.standard
         let arguments = defaults.volatileDomain(forName: UserDefaults.argumentDomain)
 
-        if let passed = arguments["se.kvitta.syncBaseURL"] as? String, URL(string: passed) != nil {
-            defaults.set(passed, forKey: "se.kvitta.syncBaseURL")
+        if let passed = arguments["se.kvitta.syncBaseURL"] as? String {
+            if passed == "default" {
+                // Back to the built-in server. The LAN trial wrote its Mac address into every
+                // phone this way, and those phones kept talking to a Mac that was no longer
+                // listening long after the hosted server existed.
+                //
+                // Through the persistent domain, not removeObject(forKey:): with the same key
+                // sitting in the argument domain, removeObject left the stored value in place
+                // and the next plain launch came up on the Mac's address again.
+                if let bundle = Bundle.main.bundleIdentifier {
+                    var stored = defaults.persistentDomain(forName: bundle) ?? [:]
+                    stored.removeValue(forKey: "se.kvitta.syncBaseURL")
+                    stored.removeValue(forKey: SyncSettings.trialKeyDefaultsKey)
+                    defaults.setPersistentDomain(stored, forName: bundle)
+                }
+            } else if URL(string: passed) != nil {
+                defaults.set(passed, forKey: "se.kvitta.syncBaseURL")
+            }
         }
         // Read through `bool(forKey:)` so the argument's own spelling — YES, true, 1 — is Apple's
         // problem rather than ours.
@@ -228,6 +246,11 @@ enum Bootstrap {
         )
         activeBaseURL = endpoint.baseURL
         hasBuiltInServer = endpoint.isBuiltIn
+        // The one line that says which server this launch is talking to. It exists because a
+        // phone pointed at a server that is no longer listening looks exactly like a phone
+        // pointed at the right one, from the outside and from the Jag tab alike.
+        Logger(subsystem: "se.kvitta.app", category: "server")
+            .notice("Kör mot \(endpoint.baseURL.absoluteString, privacy: .public), inbyggd: \(endpoint.isBuiltIn), nyckel: \(endpoint.trialKey != nil)")
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
         return SyncConfiguration(
             baseURL: endpoint.baseURL,
