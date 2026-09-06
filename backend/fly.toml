@@ -1,0 +1,45 @@
+# Fly.io shape of the API — the host #49 asked someone to choose. One small machine in Stockholm,
+# the Dockerfile in Api/, Postgres as a separate Fly app attached by ops/fly-setup.sh.
+#
+# Nothing secret lives here. Auth__SigningKey, Auth__TrialKey and Database__ConnectionString are
+# Fly secrets (set by the setup script), and the host refuses to start without the first and last.
+
+app = "slice-api"
+primary_region = "arn"
+
+[build]
+  dockerfile = "Api/Dockerfile"
+
+[env]
+  ASPNETCORE_ENVIRONMENT = "Production"
+  # The image listens on 8080 (Dockerfile); Fly terminates TLS in front of it.
+  ASPNETCORE_URLS = "http://+:8080"
+  Database__MigrateOnStartup = "true"
+  Sync__MinimumClientBuild = "3"
+  # The dev sign-in stays on until Sign in with Apple exists (needs a paid Apple team). Outside
+  # Development the server only boots with it on if Auth__TrialKey is set as well — the guard in
+  # AuthOptionsGuard — and then every sign-in must carry that key. See docs in KvittaOptions.
+  Auth__AllowDevTokens = "true"
+  Auth__Issuer = "https://slice-api.fly.dev"
+  Auth__Audience = "se.kvitta.app"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Kept running rather than stopped between requests: a cold start in front of a sync would be
+  # exactly the backend lag this app exists to never show. One shared-cpu machine is a few
+  # dollars a month.
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "20s"
+    method = "GET"
+    path = "/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

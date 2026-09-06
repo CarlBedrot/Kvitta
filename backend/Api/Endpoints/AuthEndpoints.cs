@@ -28,11 +28,12 @@ public static class AuthEndpoints
         // stronger guarantee than any check inside a handler.
         //
         // The environment half of this condition is belt to AuthOptionsGuard's braces: that guard
-        // runs during startup and so refuses to boot a non-Development host with the option on,
-        // which means this line never actually gets to be the thing that saves us. Both stay,
-        // because the cost is a boolean and the failure mode is handing out accounts.
+        // runs during startup and so refuses to boot a non-Development host with the option on
+        // and no trial key, which means this line never actually gets to be the thing that saves
+        // us. Both stay, because the cost is a boolean and the failure mode is handing out
+        // accounts. Outside Development the trial key is the credential, checked per call below.
         var options = routes.ServiceProvider.GetRequiredService<IOptions<AuthOptions>>().Value;
-        if (environment.IsDevelopment() && options.AllowDevTokens)
+        if (options.AllowDevTokens && (environment.IsDevelopment() || options.RequiresTrialKey))
         {
             group.MapPost("/dev", DevSignInAsync);
         }
@@ -138,14 +139,29 @@ public static class AuthEndpoints
     /// exercise the authenticated app locally. It refuses any user that has an Apple identity, so
     /// even in Development it cannot be pointed at a real account.
     /// </remarks>
+    /// <summary>The header a trial phone presents its shared key in.</summary>
+    public const string TrialKeyHeader = "X-Kvitta-Trial-Key";
+
     private static async Task<IResult> DevSignInAsync(
         DevSignInRequest request,
+        HttpContext http,
+        IOptions<AuthOptions> auth,
         KvittaDbContext db,
         TokenIssuer issuer,
         RefreshTokenService refreshTokens,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
+        if (auth.Value.RequiresTrialKey && !PresentsTrialKey(http.Request, auth.Value.TrialKey))
+        {
+            // 401 and nothing else: not whether a key is expected, not whether one was sent. This
+            // is the one place on a hosted server that can hand out any account, and it should
+            // give a stranger nothing to work with.
+            return Results.Problem(
+                title: "Trial key required",
+                statusCode: StatusCodes.Status401Unauthorized);
+        }
+
         var now = time.GetUtcNow();
         var userId = request.UserId ?? Guid.NewGuid();
 
@@ -174,6 +190,23 @@ public static class AuthEndpoints
         }
 
         return Results.Ok(await IssueSessionAsync(user.Id, issuer, refreshTokens, now, cancellationToken));
+    }
+
+    /// <summary>
+    /// Constant-time so the comparison leaks nothing about how much of a guess was right. The
+    /// auth rate limiter is what makes guessing a 32+ character key hopeless; this keeps the
+    /// per-attempt signal at zero as well.
+    /// </summary>
+    private static bool PresentsTrialKey(HttpRequest request, string expected)
+    {
+        if (!request.Headers.TryGetValue(TrialKeyHeader, out var values) || values.Count != 1)
+        {
+            return false;
+        }
+
+        var presented = System.Text.Encoding.UTF8.GetBytes(values[0] ?? "");
+        var wanted = System.Text.Encoding.UTF8.GetBytes(expected);
+        return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(presented, wanted);
     }
 
     private static async Task<SessionResponse> IssueSessionAsync(

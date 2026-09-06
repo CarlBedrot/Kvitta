@@ -27,24 +27,37 @@ public struct HTTPAuthClient: SessionRefresher {
         )
     }
 
-    /// Signs in without Apple. Only works against a server running in Development.
+    /// Signs in without Apple. Only works against a server that has deliberately switched it on.
     ///
     /// Sign in with Apple needs the `com.apple.developer.applesignin` entitlement, which needs a
     /// paid Apple Developer team. Until there is one, this is the only way to exercise the
     /// authenticated app at all — and it fails with a plain 404 against any server where it is not
-    /// deliberately switched on.
+    /// deliberately switched on. A hosted trial server keeps it on behind a shared key, which goes
+    /// in the `X-Kvitta-Trial-Key` header; without the right one the answer is a bare 401.
     public func signInAsDeveloper(userId: UserID?, displayName: String?) async throws -> SessionTokens {
         try await post(
             path: "api/v1/auth/dev",
-            body: DevRequest(userId: userId, displayName: displayName)
+            body: DevRequest(userId: userId, displayName: displayName),
+            headers: configuration.trialKey.map { [Self.trialKeyHeader: $0] } ?? [:]
         )
+    }
+
+    static let trialKeyHeader = "X-Kvitta-Trial-Key"
+
+    /// The fields to send in a dev sign-in, exposed so a test can see the header without a server.
+    public static func devSignInHeaders(for configuration: SyncConfiguration) -> [String: String] {
+        configuration.trialKey.map { [trialKeyHeader: $0] } ?? [:]
     }
 
     public func refresh(using refreshToken: String) async throws -> SessionTokens {
         try await post(path: "api/v1/auth/refresh", body: RefreshRequest(refreshToken: refreshToken))
     }
 
-    private func post(path: String, body: some Encodable) async throws -> SessionTokens {
+    private func post(
+        path: String,
+        body: some Encodable,
+        headers: [String: String] = [:]
+    ) async throws -> SessionTokens {
         guard configuration.isTrustworthy else {
             throw SyncError.malformedResponse(
                 "Refusing to send credentials to \(configuration.baseURL.absoluteString) over plaintext."
@@ -58,6 +71,9 @@ public struct HTTPAuthClient: SessionRefresher {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(String(configuration.buildNumber), forHTTPHeaderField: "X-Kvitta-Build")
+        for (field, value) in headers {
+            request.setValue(value, forHTTPHeaderField: field)
+        }
         request.httpBody = try JSONEncoder().encode(body)
 
         let data: Data

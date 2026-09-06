@@ -135,8 +135,27 @@ public sealed class AuthOptions
 
     /// <summary>
     /// Enables <c>POST /api/v1/auth/dev</c>, which mints a token without an Apple round-trip.
-    /// Only honoured in the Development environment, and <see cref="AuthOptionsGuard"/> refuses to
-    /// let the host start anywhere else with it on.
+    /// In Development it is open on its own. Anywhere else <see cref="AuthOptionsGuard"/> refuses
+    /// to let the host start with it on unless <see cref="TrialKey"/> is set as well.
     /// </summary>
     public bool AllowDevTokens { get; init; }
+
+    /// <summary>
+    /// A shared secret that the dev sign-in demands in the <c>X-Kvitta-Trial-Key</c> header.
+    /// </summary>
+    /// <remarks>
+    /// This is what lets the friend-phone trial leave the home network before there is a paid
+    /// Apple team to unlock Sign in with Apple: the server can be hosted on the open internet with
+    /// the dev sign-in on, and only phones that were handed the key can mint a session. It is a
+    /// gate, not an identity — everyone with the key can still sign in as any user id — so it is
+    /// deliberately never a default, never in a committed file, and at least 32 characters so the
+    /// auth rate limiter makes guessing it pointless. Empty means no header is required, which
+    /// the guard only allows in Development.
+    /// </remarks>
+    public string TrialKey { get; init; } = "";
+
+    /// <summary>Whether sign-ins through the dev shortcut must present <see cref="TrialKey"/>.</summary>
+    public bool RequiresTrialKey => !string.IsNullOrEmpty(TrialKey);
+
+    public const int MinimumTrialKeyLength = 32;
 }

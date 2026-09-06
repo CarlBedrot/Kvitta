@@ -38,6 +38,8 @@ Full architecture: docs/expense-app-sync-design.md. Read it before touching sync
 - Backend first run on a machine: dotnet user-secrets set "Auth:SigningKey" "$(openssl rand -base64 48)" --project backend/Api
   There is no signing key in any committed file and the host refuses to start without one. That is deliberate — a checked-in key is a backdoor — so a fresh clone must do this once.
 - Backend error reporting, optional: dotnet user-secrets set "Observability:SentryDsn" "<dsn>" --project backend/Api
+- Backend on Fly.io (the hosted trial): one-time backend/ops/fly-setup.sh after `fly auth login` — creates app `slice-api` + Postgres `slice-db` in Stockholm, sets Auth__SigningKey / Auth__TrialKey / Database__ConnectionString as secrets, deploys, prints the trial key once. After that: backend/ops/fly-deploy.sh. Config is backend/fly.toml; nothing secret is in it.
+- Trial key: outside Development the dev sign-in only boots behind `Auth:TrialKey` (≥32 chars, AuthOptionsGuard) and then demands it in `X-Kvitta-Trial-Key` on every `POST /api/v1/auth/dev` — bare 401 without it. The phone enters it under Jag → Utvecklarverktyg → Trial-nyckel (`se.kvitta.trialKey`, read at launch next to the server address). It is a gate for a friend group, not an identity: everyone with the key can sign in as any user id. It exists so the trial can leave the home network before a paid Apple team unlocks Sign in with Apple, and it goes away with it.
   Without it the host runs with no Sentry in its pipeline at all and says so on the first line of its startup log. The app's DSN is the `SentryDSN` key in ios/project.yml; blank there means the same thing.
 - Backend tests: dotnet test (from backend/; Testcontainers spins up postgres:17, so a container runtime must be running. KVITTA_TEST_POSTGRES overrides with a connection string if not.)
 - Backend local deps: colima start, then docker compose up -d (from backend/)
@@ -114,7 +116,7 @@ Multi-currency (M7):
 
 Shipping (M6):
 - Blocked on a paid Apple Developer account: TestFlight, App Store Connect, Sign in with Apple, APNs. Sorting the account out unblocks all four at once.
-- Blocked on decisions that are Carl's to make, not a script's: choosing a host and deploying, wiring an uptime monitor. The Dockerfile builds the artefact; nothing deploys it.
+- Host chosen 2026-09-06: Fly.io (backend/fly.toml, ops/fly-setup.sh). Still Carl's: `fly auth login` + card on the Fly account, and wiring an uptime monitor (cron-job.org against https://slice-api.fly.dev/health).
 - backend/backups/ is gitignored. Never commit a dump — it is the friend group's real money history.
 - PrivacyInfo.xcprivacy is required for App Store submission and declares no tracking, because there is none: no analytics SDK, no ad identifier, no third party.
 

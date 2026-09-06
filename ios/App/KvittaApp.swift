@@ -222,7 +222,13 @@ enum Bootstrap {
         let url = stored.flatMap(URL.init(string:)) ?? URL(string: "http://localhost:5142")!
         activeBaseURL = url
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
-        return SyncConfiguration(baseURL: url, buildNumber: Int(build ?? "1") ?? 1)
+        let trialKey = UserDefaults.standard.string(forKey: SyncSettings.trialKeyDefaultsKey)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return SyncConfiguration(
+            baseURL: url,
+            buildNumber: Int(build ?? "1") ?? 1,
+            trialKey: trialKey.flatMap { $0.isEmpty ? nil : $0 }
+        )
     }
 }
 

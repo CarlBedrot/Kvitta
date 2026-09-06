@@ -8,17 +8,22 @@ public struct SyncConfiguration: Hashable, Sendable {
     public let buildNumber: Int
     public let pageLimit: Int
     public let requestTimeout: TimeInterval
+    /// The shared secret a hosted trial server demands on the dev sign-in, sent as
+    /// `X-Kvitta-Trial-Key`. Nil against a home-network server, which asks for none.
+    public let trialKey: String?
 
     public init(
         baseURL: URL,
         buildNumber: Int = 1,
         pageLimit: Int = 500,
-        requestTimeout: TimeInterval = 15
+        requestTimeout: TimeInterval = 15,
+        trialKey: String? = nil
     ) {
         self.baseURL = baseURL
         self.buildNumber = buildNumber
         self.pageLimit = pageLimit
         self.requestTimeout = requestTimeout
+        self.trialKey = trialKey
     }
 
     /// Whether it is safe to send a bearer token to this host.
