@@ -1,6 +1,46 @@
 {
   "sourceLanguage" : "sv",
   "strings" : {
+    "Gå med" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join"
+          }
+        }
+      }
+    },
+    "Gå med via länk" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join with a link"
+          }
+        }
+      }
+    },
+    "Ny grupp eller gå med" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New group or join one"
+          }
+        }
+      }
+    },
+    "Länken du fick, eller bara koden i den — båda fungerar." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The link you were sent, or just the code inside it — both work."
+          }
+        }
+      }
+    },
     "Redo för första utgiften" : {
       "localizations" : {
         "en" : {
