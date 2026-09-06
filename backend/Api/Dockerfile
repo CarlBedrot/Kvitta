@@ -17,6 +17,14 @@ RUN dotnet publish Api/Kvitta.Api.csproj -c Release -o /app --no-restore
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
+# Npgsql probes for GSSAPI when it opens a connection and logs "Cannot load library
+# libgssapi_krb5.so.2" on the slim aspnet image when it is absent. Harmless, but it is the first
+# line of every boot log and looks like the reason for whatever comes next — it was, on the first
+# Fly deploy, mistaken for the cause of a database timeout that was actually a stopped machine.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Non-root. The API talks to Postgres and writes nothing to disk, so there is no reason for it to
 # be able to.
 RUN useradd --uid 10001 --create-home --shell /usr/sbin/nologin kvitta
