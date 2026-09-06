@@ -165,4 +165,25 @@ struct AuthTokenProviderTests {
         #expect(await provider.accessToken() == nil)
         #expect(await provider.isSignedIn == false)
     }
+
+    // MARK: Sessions belong to a server
+
+    @Test("tokens know which server issued them, and a legacy session without one is foreign")
+    func sessionServer() throws {
+        let fly = URL(string: "https://slice-api.fly.dev")!
+        let lan = URL(string: "http://192.168.0.155:5142")!
+        let issued = SessionTokens(
+            userId: Fixtures.authorId, accessToken: "a", refreshToken: "r", expiresAt: .distantFuture,
+            server: "https://slice-api.fly.dev"
+        )
+        #expect(issued.belongs(to: fly))
+        #expect(issued.belongs(to: URL(string: "https://slice-api.fly.dev/")!))
+        #expect(!issued.belongs(to: lan))
+
+        // What the Keychain holds from before the field existed still decodes — and is foreign.
+        let legacy = Data(#"{"userId":"6F9619FF-8B86-D011-B42D-00C04FC964FF","accessToken":"a","refreshToken":"r","expiresAt":0}"#.utf8)
+        let decoded = try JSONDecoder().decode(SessionTokens.self, from: legacy)
+        #expect(decoded.server == nil)
+        #expect(!decoded.belongs(to: fly))
+    }
 }

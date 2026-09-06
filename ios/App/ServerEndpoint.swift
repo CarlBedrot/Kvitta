@@ -20,7 +20,7 @@ struct ServerEndpoint: Equatable {
         builtInURL: String?,
         builtInKey: String?
     ) -> ServerEndpoint {
-        let typedURL = overrideURL.flatMap(URL.init(string:))
+        let typedURL = clean(overrideURL).flatMap(URL.init(string:))
         let shippedURL = clean(builtInURL).flatMap(URL.init(string:))
         let typedKey = clean(overrideKey)
         let shippedKey = clean(builtInKey)
@@ -41,10 +41,14 @@ struct ServerEndpoint: Equatable {
     }
 
     /// Empty and unsubstituted build-setting placeholders both mean "none": an xcconfig that was
-    /// never written leaves the plist holding the literal `$(KVITTA_TRIAL_KEY)`.
+    /// never written leaves the plist holding the literal `$(KVITTA_TRIAL_KEY)`. So does the
+    /// word `default`, which is what a launch argument says to go back to the built-in server —
+    /// and which `UserDefaults` keeps answering with for the rest of that launch, because the
+    /// argument domain overlays the stored one even after the stored value is removed.
     private static func clean(_ value: String?) -> String? {
         guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines),
               !trimmed.isEmpty,
+              trimmed != "default",
               !trimmed.hasPrefix("$(") else { return nil }
         return trimmed
     }

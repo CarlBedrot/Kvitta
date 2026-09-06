@@ -34,9 +34,19 @@ final class SessionModel {
 
     var isSignedIn: Bool { userId != nil }
 
-    /// Reads the session the Keychain already holds, at launch.
-    func restore() async {
+    /// Reads the session the Keychain already holds, at launch — unless it was issued by a
+    /// different server than the one this launch is talking to, in which case it is dropped.
+    ///
+    /// A session from another server is not a session: its tokens will be refused, the refresh
+    /// will be refused, and until then the Jag tab says "Inloggad" over a sync that never
+    /// happens. Sessions stored before they recorded their server count as foreign too; that
+    /// costs one re-sign-in, which a build with a built-in server does by itself.
+    func restore(server baseURL: URL) async {
         guard let existing = await tokens.userId else { return }
+        guard await tokens.sessionBelongs(to: baseURL) else {
+            await tokens.signOut()
+            return
+        }
         adopt(existing)
     }
 

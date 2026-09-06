@@ -30,6 +30,11 @@ public actor AuthTokenProvider {
         store.load()?.userId
     }
 
+    /// Whether the stored session was issued by `baseURL`'s server. False when signed out.
+    public func sessionBelongs(to baseURL: URL) -> Bool {
+        store.load()?.belongs(to: baseURL) ?? false
+    }
+
     /// The token to put on the next request, or nil when signed out.
     public func accessToken() -> String? {
         store.load()?.accessToken

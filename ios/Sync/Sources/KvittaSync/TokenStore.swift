@@ -8,12 +8,35 @@ public struct SessionTokens: Hashable, Sendable, Codable {
     public let refreshToken: String
     /// When the access token stops being accepted. Advisory: the server decides, not us.
     public let expiresAt: Date
+    /// The base URL these tokens were issued by. A session is only good against the server that
+    /// made it, and the app can change servers underneath a stored session — it did, the day
+    /// the hosted server replaced the one on the developer's Mac, and every phone from the LAN
+    /// trial came up "Inloggad" with tokens the new server had never seen. Nil on sessions
+    /// stored before this field existed, which the app treats as "unknown", not "any".
+    public let server: String?
 
-    public init(userId: UserID, accessToken: String, refreshToken: String, expiresAt: Date) {
+    public init(
+        userId: UserID,
+        accessToken: String,
+        refreshToken: String,
+        expiresAt: Date,
+        server: String? = nil
+    ) {
         self.userId = userId
         self.accessToken = accessToken
         self.refreshToken = refreshToken
         self.expiresAt = expiresAt
+        self.server = server
+    }
+
+    /// Whether these tokens belong to `baseURL`'s server. Unknown origin counts as a mismatch
+    /// when the app knows where it is going — a stale session that looks signed in is worse than
+    /// a fresh sign-in.
+    public func belongs(to baseURL: URL) -> Bool {
+        guard let server, let issued = URL(string: server) else { return false }
+        return issued.host()?.lowercased() == baseURL.host()?.lowercased()
+            && issued.port == baseURL.port
+            && issued.scheme?.lowercased() == baseURL.scheme?.lowercased()
     }
 }
 

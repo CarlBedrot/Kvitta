@@ -44,6 +44,14 @@ struct ServerEndpointTests {
         #expect(!endpoint.isBuiltIn)
     }
 
+    @Test("the word default as an override means the built-in server, key and all")
+    func defaultWord() {
+        let endpoint = ServerEndpoint.resolve(overrideURL: "default", overrideKey: nil, builtInURL: fly, builtInKey: key)
+        #expect(endpoint.baseURL.absoluteString == fly)
+        #expect(endpoint.trialKey == key)
+        #expect(endpoint.isBuiltIn)
+    }
+
     @Test("no server anywhere means localhost, the fresh-clone shape")
     func nothing() {
         let endpoint = ServerEndpoint.resolve(overrideURL: nil, overrideKey: nil, builtInURL: nil, builtInKey: nil)
