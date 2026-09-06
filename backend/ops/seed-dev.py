@@ -77,7 +77,7 @@ class Api:
     def call(self, method: str, path: str, body=None, token: str | None = None):
         request = urllib.request.Request(self.base + path, method=method)
         request.add_header("Content-Type", "application/json")
-        request.add_header("X-Kvitta-Build", "2")
+        request.add_header("X-Kvitta-Build", "3")
         if token:
             request.add_header("Authorization", f"Bearer {token}")
         data = json.dumps(body).encode() if body is not None else None
