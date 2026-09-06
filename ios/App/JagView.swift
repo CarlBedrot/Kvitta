@@ -38,25 +38,37 @@ struct JagView: View {
     var body: some View {
         NavigationStack {
             Form {
-                profileSection
-                accountSection
-                remindersSection
-                backupSection
-                aboutSection
-                helpSection
-                #if DEBUG
-                if devToolsVisible {
-                    developerSection
-                }
-                #endif
-                if let failure {
-                    Section {
-                        Text(failure).font(.footnote).foregroundStyle(Theme.clay)
+                // One background for every row, in both halves. Left alone, a Form paints its rows
+                // in the system's grouped colours: white by day — indistinguishable from
+                // `Theme.card` — but neutral charcoal by night, while Grupper's cards stay warm.
+                // That is the whole "Jag looks like a different app in the dark" report: the
+                // ground matched, the rows did not.
+                Group {
+                    profileSection
+                    accountSection
+                    remindersSection
+                    backupSection
+                    aboutSection
+                    helpSection
+                    #if DEBUG
+                    if devToolsVisible {
+                        developerSection
+                    }
+                    #endif
+                    if let failure {
+                        Section {
+                            Text(failure).font(.footnote).foregroundStyle(Theme.clay)
+                        }
                     }
                 }
+                .listRowBackground(Theme.card)
             }
             .scrollContentBackground(.hidden)
             .background(AmbientBackground())
+            // The tab bar floats over the bottom of the list. Without this the last row can only
+            // ever be read through glass; with it the list scrolls a little further so every row
+            // gets clear air at the bottom of the scroll.
+            .contentMargins(.bottom, 32, for: .scrollContent)
             .navigationTitle("Jag")
             .task(id: photoItem) { await loadPhoto() }
         }
@@ -84,7 +96,7 @@ struct JagView: View {
                 .buttonStyle(.plain)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    TextField("Ditt namn", text: $profile.displayName)
+                    TextField("", text: $profile.displayName, prompt: Text("Ditt namn").placeholderStyle())
                         .font(.title2.weight(.semibold))
                         .foregroundStyle(Theme.ink)
                     Text("Visas som du i nya grupper.")
@@ -118,7 +130,7 @@ struct JagView: View {
                 SettingsIcon(systemImage: "creditcard.fill", fill: Color(hex: 0xEE4A9B))
                 Text("Swish-nummer")
                 Spacer()
-                TextField("07XX XXX XX XX", text: $profile.swishNumber)
+                TextField("", text: $profile.swishNumber, prompt: Text("07XX XXX XX XX").placeholderStyle())
                     .keyboardType(.phonePad)
                     .multilineTextAlignment(.trailing)
                     .foregroundStyle(Theme.ink)
@@ -129,8 +141,21 @@ struct JagView: View {
                     .font(.footnote)
                     .foregroundStyle(Theme.clay)
             }
+
+            // The footer says the one thing everyone needs; the three sentences about withdrawal
+            // and what happens without an account were doing three jobs in one breath. They are
+            // still here, one tap down, for the person who actually wonders.
+            DisclosureGroup {
+                Text("Delas med medlemmarna i dina grupper så att de kan swisha rätt nummer. Tar du bort det slutar det delas. Utan konto sparas det bara på den här telefonen.")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.secondary)
+            } label: {
+                Text("Hur numret delas")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.secondary)
+            }
         } footer: {
-            Text("Delas med medlemmarna i dina grupper så att de kan swisha rätt nummer. Tar du bort det slutar det delas. Utan konto sparas det bara på den här telefonen.")
+            Text("Delas med dina grupper så att andra kan betala dig.")
         }
     }
 
@@ -347,7 +372,7 @@ struct JagView: View {
             // unsaved address looks identical to a saved one.
             VStack(alignment: .leading, spacing: 4) {
                 Text("Serveradress")
-                TextField("http://192.168.x.x:5142", text: $serverAddress)
+                TextField("", text: $serverAddress, prompt: Text("http://192.168.x.x:5142").placeholderStyle())
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .keyboardType(.URL)
@@ -387,7 +412,7 @@ struct JagView: View {
             LabeledContent("Kör mot", value: Bootstrap.activeBaseURL?.absoluteString ?? "—")
             Text("Tom adress = localhost. Nyckeln behövs bara mot den hostade servern. Kräver omstart av appen.")
                 .font(.caption2)
-                .foregroundStyle(Theme.tertiary)
+                .foregroundStyle(Theme.secondary)
             LabeledContent("I kö för uppladdning", value: "\((try? ledger.pendingPushCount()) ?? -1)")
             LabeledContent("Överhoppade händelser", value: "\(ledger.state.skipped.count)")
             LabeledContent("Oläsbara rader", value: "\(ledger.rejected.count)")
@@ -493,7 +518,7 @@ private struct SwishFormatTester: View {
     var body: some View {
         Form {
             Section {
-                TextField("07XX XXX XX XX", text: $number)
+                TextField("", text: $number, prompt: Text("07XX XXX XX XX").placeholderStyle())
                     .keyboardType(.phonePad)
                 LabeledContent("Normaliserat", value: SwishNumber.normalised(number) ?? "—")
             } header: {
