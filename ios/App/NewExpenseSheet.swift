@@ -166,6 +166,11 @@ private struct AmountDisplay: View {
 private struct DescriptionSection: View {
     @Bindable var model: NewExpenseModel
 
+    /// This group's chips; the starters alone while the group is still loading.
+    private var suggestions: [DescriptionSuggestion] {
+        model.group.map(DescriptionSuggestion.suggestions(for:)) ?? DescriptionSuggestion.starters
+    }
+
     var body: some View {
         VStack(spacing: 12) {
             TextField("Beskrivning…", text: $model.descriptionText)
@@ -176,7 +181,7 @@ private struct DescriptionSection: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(DescriptionSuggestion.starters) { suggestion in
+                    ForEach(suggestions) { suggestion in
                         Button {
                             model.descriptionText = suggestion.text
                             model.categoryId = suggestion.categoryId
