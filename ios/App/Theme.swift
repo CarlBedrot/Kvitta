@@ -84,6 +84,22 @@ enum Theme {
             : UIColor(Color(hex: 0x1F1D1A)).withAlphaComponent(0.07)
     })
 
+    // MARK: The attestation control
+
+    /// The track of `SlideToConfirm`, and whatever it carries.
+    ///
+    /// The control used to be `ink` with a white label — a pairing that only works by day. At
+    /// night `ink` is the cream, and white on cream is 1.16:1: the one gesture in the app that
+    /// writes money into the books became an unlabelled bar. The fix is not a different colour
+    /// but a *pair*: the fill is still the ink of its half, and the label is always the ground of
+    /// that half — white by day (16.81:1), the deep warm black by night (16.01:1 on the cream).
+    /// Both halves end up with more contrast than a button ever had, and the control keeps
+    /// reading as the heaviest object on the sheet, which is the point of it.
+    static let controlFill = ink
+    /// What sits on `controlFill`: the label, and the knob. Never `.white` — that is the light
+    /// half's value leaking into the dark one, which is exactly the bug this token retires.
+    static let controlLabel = adaptive(light: 0xFFFFFF, dark: 0x151310)
+
     /// The colour an amount takes from its sign. Never the only carrier of meaning — every amount
     /// on screen also spells its direction in words.
     static func tint(forSign amountMinor: Int64) -> Color {

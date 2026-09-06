@@ -7,9 +7,13 @@ import SwiftUI
 /// drag is the weight: something you perform, not a target you graze on the way to dismissing
 /// a sheet. The ritual must never gate accessibility, so VoiceOver users get the same action
 /// as a plain button, and with Reduce Motion on a tap works too.
+///
+/// Colour is not a parameter. The track is `Theme.controlFill` and everything on it is
+/// `Theme.controlLabel` — a pair that inverts together between the halves. A caller passing its
+/// own fill would have to know the label's colour too, and the first one that did not is how
+/// this came to be white-on-cream in the dark.
 struct SlideToConfirm: View {
     let label: String
-    var fill: Color = Theme.ink
     let action: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -23,20 +27,20 @@ struct SlideToConfirm: View {
             let travel = geometry.size.width - height + 8
             let offset = completed ? travel : min(max(dragX, 0), travel)
             ZStack(alignment: .leading) {
-                Capsule().fill(fill)
+                Capsule().fill(Theme.controlFill)
                 Text(label)
                     .font(.body.weight(.semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Theme.controlLabel)
                     .frame(maxWidth: .infinity)
                     // Gone by two-thirds of the way — the label is an instruction, and by then
                     // the person is already following it.
                     .opacity(1 - Double(offset / max(travel, 1)) * 1.5)
                 Circle()
-                    .fill(.white)
+                    .fill(Theme.controlLabel)
                     .overlay {
                         Image(systemName: "arrow.right")
                             .font(.body.weight(.bold))
-                            .foregroundStyle(fill)
+                            .foregroundStyle(Theme.controlFill)
                     }
                     .padding(4)
                     .offset(x: offset)
