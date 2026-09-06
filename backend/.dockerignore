@@ -1,0 +1,7 @@
+# Build outputs from the host would overwrite the restore the image just did (NETSDK1064 on
+# publish — the first Fly deploy, 2026-09-06). Everything the image needs is source.
+**/bin/
+**/obj/
+**/backups/
+**/.vs/
+**/*.user
