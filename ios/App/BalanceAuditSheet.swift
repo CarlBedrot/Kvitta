@@ -6,7 +6,9 @@ import KvittaStorage
 /// oldest first, with a running total whose last line is exactly the number that was tapped.
 /// This is what makes a balance auditable rather than a number you have to trust.
 ///
-/// All the arithmetic is `GroupState.breakdown(for:)`; this view only renders it. One deliberate
+/// All the arithmetic is `GroupState.breakdown(for:)`; this view only renders it — and, since the
+/// design review, leads with `BalanceSummary`'s regrouping of the same entries: "din andel − det
+/// du betalade = …" is the sentence people came for, the list is the proof. One deliberate
 /// deviation from the mockup: the mockup sketches a pairwise "Din balans med Jonas", but the
 /// audited quantity in this app is a member's balance against the group — that is what the
 /// balance card and the transfers are derived from, so it is what tapping them must explain.
@@ -56,6 +58,12 @@ struct BalanceAuditSheet: View {
                         if perCurrency.count > 1 {
                             SectionHeader(title: currency.code)
                         }
+                        // The answer first: share − paid = result. Then the receipts.
+                        if let summary = BalanceSummary(group: group, memberId: memberId, currency: currency) {
+                            SummaryCard(summary: summary, explicit: currency != group.currency,
+                                        isMe: isMe, memberName: memberName)
+                        }
+                        SectionHeader(title: String(localized: "Så här räknade vi"))
                         entriesCard(entries, group: group, currency: currency,
                                     isMe: isMe, memberName: memberName)
                     }
@@ -93,6 +101,71 @@ struct BalanceAuditSheet: View {
             )
         }
         .cardSurface(padding: 14)
+    }
+}
+
+// MARK: - Summary
+
+/// The calculation as a person would say it, one line per side, tabular digits so the column
+/// scans. Settle-ups get their own lines rather than hiding inside "paid": a payment you sent is
+/// money that moved, and naming it is what lets someone check it against their Swish history.
+private struct SummaryCard: View {
+    let summary: BalanceSummary
+    let explicit: Bool
+    let isMe: Bool
+    let memberName: String
+
+    var body: some View {
+        VStack(spacing: 0) {
+            line(
+                isMe ? String(localized: "Din andel av utgifterna") : String(localized: "Andel av utgifterna"),
+                amountMinor: summary.shareMinor
+            )
+            if summary.receivedMinor > 0 {
+                line(
+                    isMe ? String(localized: "Betalningar du fått") : String(localized: "Betalningar mottagna"),
+                    amountMinor: summary.receivedMinor
+                )
+            }
+            line(
+                isMe ? String(localized: "Det du betalade") : String(localized: "Betalade"),
+                amountMinor: -summary.paidMinor
+            )
+            if summary.sentMinor > 0 {
+                line(
+                    isMe ? String(localized: "Betalningar du skickat") : String(localized: "Betalningar skickade"),
+                    amountMinor: -summary.sentMinor
+                )
+            }
+            TotalRow(
+                // Sign flipped on purpose: the lines above read as "what you owe", so a positive
+                // running result is a debt in that column. The phrase and colour still follow
+                // the balance's own convention, which is what the hero card shows.
+                totalMinor: summary.resultMinor,
+                currency: summary.currency,
+                explicit: explicit,
+                isMe: isMe,
+                memberName: memberName
+            )
+        }
+        .cardSurface(padding: 14)
+    }
+
+    private func line(_ label: String, amountMinor: Int64) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(label)
+                .font(.subheadline)
+                .foregroundStyle(Theme.ink)
+            Spacer()
+            // Zero has no sign to show; a negative line reads "−900 kr" so the subtraction is
+            // visible on the page rather than implied by the label.
+            Text(MoneyFormat.string(amountMinor, summary.currency, sign: amountMinor < 0 ? .always : .none, explicit: explicit))
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(Theme.ink)
+                .monospacedDigit()
+        }
+        .padding(.vertical, 7)
+        .accessibilityElement(children: .combine)
     }
 }
 

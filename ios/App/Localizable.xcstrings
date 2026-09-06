@@ -41,6 +41,26 @@
         }
       }
     },
+    "Se uträkning ›" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See the calculation ›"
+          }
+        }
+      }
+    },
+    "Så här räknade vi" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How we worked it out"
+          }
+        }
+      }
+    },
     "Väntar på %@" : {
       "localizations" : {
         "en" : {
@@ -548,6 +568,16 @@
         }
       }
     },
+    "Andel av utgifterna" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share of the expenses"
+          }
+        }
+      }
+    },
     "Avbryt" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -664,6 +694,16 @@
         }
       }
     },
+    "Betalade" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paid"
+          }
+        }
+      }
+    },
     "Betalning" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -671,6 +711,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Payment"
+          }
+        }
+      }
+    },
+    "Betalningar du fått" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Payments you received"
+          }
+        }
+      }
+    },
+    "Betalningar du skickat" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Payments you sent"
+          }
+        }
+      }
+    },
+    "Betalningar mottagna" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Payments received"
+          }
+        }
+      }
+    },
+    "Betalningar skickade" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Payments sent"
           }
         }
       }
@@ -953,6 +1033,16 @@
         }
       }
     },
+    "Det du betalade" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What you paid"
+          }
+        }
+      }
+    },
     "Det där ser inte ut som en inbjudningskod." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -981,6 +1071,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Diagnostics"
+          }
+        }
+      }
+    },
+    "Din andel av utgifterna" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your share of the expenses"
           }
         }
       }
