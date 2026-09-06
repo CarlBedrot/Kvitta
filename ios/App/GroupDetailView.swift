@@ -294,6 +294,11 @@ private struct PendingPaymentsCard: View {
             }
 
             if payment.toMemberId == meId {
+                // Your word is what everyone is waiting on — say what it does before the
+                // buttons, so "Ja" is understood as the thing that moves the balance.
+                Text("Balansen uppdateras när du svarar.")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.secondary)
                 HStack(spacing: 10) {
                     Button(String(localized: "Ja, jag har fått pengarna")) {
                         onAnswer(payment, true)
@@ -318,8 +323,8 @@ private struct PendingPaymentsCard: View {
             } else {
                 // Not yours to answer — but showing *whose* answer is missing is what keeps the
                 // frozen balance from looking like a bug.
-                Text("Räknas när \(name(payment.toMemberId)) bekräftar. Utan svar räknas den efter \(PaymentStatus.autoConfirmAfterDays) dagar.")
-                    .font(.caption)
+                Text("Balansen uppdateras när \(name(payment.toMemberId)) bekräftar. Utan svar räknas den efter \(PaymentStatus.autoConfirmAfterDays) dagar.")
+                    .font(.footnote)
                     .foregroundStyle(Theme.secondary)
             }
         }

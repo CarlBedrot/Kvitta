@@ -1,6 +1,106 @@
 {
   "sourceLanguage" : "sv",
   "strings" : {
+    "Efter betalningen: väntar på att %@ bekräftar · sedan kvitt i %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After the payment: waiting for %1$@ to confirm · then settled in %2$@"
+          }
+        }
+      }
+    },
+    "Betalningen är registrerad" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The payment is recorded"
+          }
+        }
+      }
+    },
+    "Registrerad" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recorded"
+          }
+        }
+      }
+    },
+    "Väntar på %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for %@"
+          }
+        }
+      }
+    },
+    "Klart" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        }
+      }
+    },
+    "Balansen uppdateras när %@ bekräftar. Utan svar räknas den efter %lld dagar." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The balance updates when %1$@ confirms. Without an answer it counts after %2$lld days."
+          }
+        }
+      }
+    },
+    "Balansen uppdateras när du svarar." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The balance updates when you answer."
+          }
+        }
+      }
+    },
+    "%@, klart" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, done"
+          }
+        }
+      }
+    },
+    "%@, pågår" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, in progress"
+          }
+        }
+      }
+    },
+    "%@, återstår" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, to come"
+          }
+        }
+      }
+    },
     "Gå med" : {
       "localizations" : {
         "en" : {
