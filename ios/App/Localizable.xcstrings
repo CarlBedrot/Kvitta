@@ -1,6 +1,46 @@
 {
   "sourceLanguage" : "sv",
   "strings" : {
+    "Redo för första utgiften" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ready for your first expense"
+          }
+        }
+      }
+    },
+    "Lägg till det första ni delade på, så räknar Slice ut resten." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add the first thing you shared, and Slice works out the rest."
+          }
+        }
+      }
+    },
+    "Bjud in de andra först — en utgift behöver någon att delas med." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invite the others first — an expense needs someone to share it with."
+          }
+        }
+      }
+    },
+    "Lägg till personer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add people"
+          }
+        }
+      }
+    },
     "%@" : {
       "shouldTranslate" : false
     },
