@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import KvittaCore
 
 /// The design system for the 2026 redesign: warm off-white behind pure-white floating cards,
 /// one burnt-orange accent, and colour otherwise reserved for the direction of money. The aim is
@@ -72,6 +73,61 @@ enum Theme {
     /// The wash behind the "Alla är kvitt 🎉" celebration card — and, at night, the one thing in
     /// the app that gives off light. See `SettledGlow`.
     static let positiveWash = adaptive(light: 0xDDEDDC, dark: 0x1B3324)
+
+    // MARK: Group identity
+
+    /// The colour a group wears when it has no photo: a wash behind its badge, and a faint tint
+    /// on its hero card. Chosen by the group's id, so a group is the same colour on every phone
+    /// and after every reinstall without anyone picking it — and two groups side by side stop
+    /// looking like the same grey circle with different letters in it.
+    ///
+    /// Eight warm tones only. Nothing blue, because blue is the accent and means "do this";
+    /// nothing as green as `positiveWash`, because that green means "settled". Each tone is a
+    /// pair per half: the wash the badge sits on, and the deeper voice of the same hue the
+    /// initials are written in. Contrast of initials on wash, light / dark:
+    /// peach 5.27 / 7.81 · rose 5.08 / 7.45 · mauve 5.52 / 7.40 · honey 5.35 / 6.96 ·
+    /// olive 5.01 / 7.36 · sand 5.16 / 7.06 · terracotta 4.69 / 7.19 · plum 5.63 / 6.71.
+    /// The hero tint is the wash at 45% over the card of its half; ink stays above 11:1 on
+    /// every one of them, so the card is coloured without the numbers paying for it.
+    struct GroupTint: Equatable, Sendable {
+        /// Behind the badge.
+        let wash: Color
+        /// Initials, and anything else written on the wash.
+        let foreground: Color
+        /// The hero card, when there is no photo to crown it.
+        let hero: Color
+
+        private init(wash: (UInt32, UInt32), foreground: (UInt32, UInt32), hero: (UInt32, UInt32)) {
+            self.wash = adaptive(light: wash.0, dark: wash.1)
+            self.foreground = adaptive(light: foreground.0, dark: foreground.1)
+            self.hero = adaptive(light: hero.0, dark: hero.1)
+        }
+
+        static let palette: [GroupTint] = [
+            GroupTint(wash: (0xF7DFC9, 0x4A3120), foreground: (0x8A4B1E, 0xF2C9A5), hero: (0xFBF1E7, 0x34271D)), // peach
+            GroupTint(wash: (0xF7D6D6, 0x4A2626), foreground: (0x9A3B3B, 0xF0B4B4), hero: (0xFBEDED, 0x342220)), // rose
+            GroupTint(wash: (0xEBDDF0, 0x3E2E44), foreground: (0x6E4A7A, 0xD9BEE3), hero: (0xF6F0F8, 0x2F262D)), // mauve
+            GroupTint(wash: (0xF7EBC4, 0x4A3E1A), foreground: (0x7A5A10, 0xEAD08A), hero: (0xFBF6E4, 0x342D1B)), // honey
+            GroupTint(wash: (0xE6E7C8, 0x3A3B22), foreground: (0x5E6420, 0xD0D39A), hero: (0xF4F4E6, 0x2D2C1E)), // olive
+            GroupTint(wash: (0xEDE3D2, 0x3F372B), foreground: (0x6F5A3A, 0xD8C7A8), hero: (0xF7F2EB, 0x2F2A22)), // sand
+            GroupTint(wash: (0xF3D6CB, 0x4B2C22), foreground: (0x96482E, 0xEDB9A6), hero: (0xFAEDE8, 0x34251E)), // terracotta
+            GroupTint(wash: (0xE9D8E0, 0x44303C), foreground: (0x7C3F5E, 0xDDB6CB), hero: (0xF5EDF1, 0x31272A)), // plum
+        ]
+
+        /// Which of the eight a group gets. Over the id's raw bytes rather than `hashValue`,
+        /// which Swift seeds differently on every launch — a colour that changed each time the
+        /// app opened would be worse than no colour at all.
+        nonisolated static func index(for id: GroupID) -> Int {
+            let sum = withUnsafeBytes(of: id.rawValue.uuid) { bytes in
+                bytes.reduce(0) { $0 &+ Int($1) }
+            }
+            return sum % palette.count
+        }
+
+        static func forGroup(_ id: GroupID) -> GroupTint {
+            palette[index(for: id)]
+        }
+    }
 
     /// Hairline separator inside cards. Used for row dividers only — never around a card.
     ///

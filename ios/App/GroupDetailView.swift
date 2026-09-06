@@ -415,14 +415,17 @@ private struct GroupHeroCard: View {
             .padding(.top, title.isEmpty ? 24 : 12)
             .padding(.bottom, 24)
         }
-        .flushCardSurface(fill: isSettled && !isFresh ? Theme.positiveWash : Theme.card)
+        // Settled keeps its green; otherwise a group without a photo wears its own tint, so the
+        // card says which group this is before the name does. A photo already does that job.
+        .flushCardSurface(fill: isSettled && !isFresh ? Theme.positiveWash
+                          : photo == nil ? Theme.GroupTint.forGroup(group.id).hero : Theme.card)
         .task(id: photoItem) { await loadPhoto() }
     }
 
     private var badge: some View {
         PhotosPicker(selection: $photoItem, matching: .images) {
             ZStack(alignment: .bottomTrailing) {
-                GroupBadge(name: group.name, size: 48)
+                GroupBadge(name: group.name, size: 48, groupId: group.id)
                 // The same camera chip as the profile avatar in Jag. The bare badge *was* the
                 // picker before, and read as decoration — a function nobody can find does not
                 // exist. Only shown while the group has no photo, so no clash with the badge's

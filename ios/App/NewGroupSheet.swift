@@ -26,6 +26,20 @@ struct NewGroupSheet: View {
 
     private static let currencies: [CurrencyCode] = [.sek, .dkk, .nok, .eur]
 
+    /// The icon lives *in the name* — "🏔️ Fjällresan" — because that is what `GroupBadge` already
+    /// reads, and a name syncs to every phone for free where a separate field would need an
+    /// event of its own. The row is just a faster way to type the first character.
+    private static let emojiSuggestions: [Character] = ["✈️", "🏠", "🍕", "🎾", "⛰️", "🎉", "🚗", "🛒", "💑", "🎓"]
+
+    /// Whatever emoji the name currently opens with — typed or tapped, the badge treats them alike.
+    private var chosenEmoji: Character? { GroupBadge.emoji(of: name) }
+
+    /// Tap to set, tap again to clear; either way the rest of the name is left alone.
+    private func choose(_ emoji: Character) {
+        let title = GroupBadge.title(of: name)
+        name = chosenEmoji == emoji ? title : "\(emoji) \(title)"
+    }
+
     private var canCreate: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty
     }
@@ -34,6 +48,25 @@ struct NewGroupSheet: View {
         NavigationStack {
             Form {
                 Section("Grupp") {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(Self.emojiSuggestions, id: \.self) { emoji in
+                                let isChosen = chosenEmoji == emoji
+                                Button { choose(emoji) } label: {
+                                    Text(String(emoji))
+                                        .font(.system(size: 22))
+                                        .frame(width: 44, height: 44)
+                                        .background(isChosen ? Theme.accent.opacity(0.18) : Theme.bg, in: .circle)
+                                        .overlay(Circle().strokeBorder(isChosen ? Theme.accent : .clear, lineWidth: 2))
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(Text("Ikon \(String(emoji))"))
+                                .accessibilityAddTraits(isChosen ? .isSelected : [])
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                     TextField("Namn (t.ex. 🏔️ Fjällresan)", text: $name)
                     Picker("Valuta", selection: $currency) {
                         ForEach(Self.currencies, id: \.self) { code in
