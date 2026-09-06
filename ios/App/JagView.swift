@@ -410,7 +410,7 @@ struct JagView: View {
             // Without this line the two are indistinguishable on a phone, which is exactly how a
             // correctly-typed address reads as "cannot reach the server".
             LabeledContent("Kör mot", value: Bootstrap.activeBaseURL?.absoluteString ?? "—")
-            Text("Tom adress = localhost. Nyckeln behövs bara mot den hostade servern. Kräver omstart av appen.")
+            Text("Tomt = den inbyggda servern och nyckeln. Fyll i bara för att köra mot en annan server. Kräver omstart av appen.")
                 .font(.caption2)
                 .foregroundStyle(Theme.secondary)
             LabeledContent("I kö för uppladdning", value: "\((try? ledger.pendingPushCount()) ?? -1)")

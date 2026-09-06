@@ -50,6 +50,7 @@ struct KvittaApp: App {
                 // hardware turned up.
                 .task {
                     await session.restore()
+                    await Bootstrap.adoptBuiltInServer(session: session, displayName: profile.displayName)
                     // Recomputed at launch, so a debt settled on another device does not
                     // leave a stale reminder queued here.
                     await reminders.reschedule(ledger: ledger, userId: session.userId ?? DeviceIdentity.userId)
@@ -215,20 +216,43 @@ enum Bootstrap {
     /// build that "could not reach the server" with the right address sitting in the field.
     private(set) static var activeBaseURL: URL?
 
-    /// Points at the local server by default. A real host lands with the deploy in M6.
+    /// The hosted server by default (`KvittaSyncBaseURL` in the Info.plist), the Jag tab's
+    /// override when there is one, localhost only when the build carries no server at all.
     static var syncConfiguration: SyncConfiguration {
         adoptLaunchArgumentOverride()
-        let stored = UserDefaults.standard.string(forKey: "se.kvitta.syncBaseURL")
-        let url = stored.flatMap(URL.init(string:)) ?? URL(string: "http://localhost:5142")!
-        activeBaseURL = url
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
-        let trialKey = UserDefaults.standard.string(forKey: SyncSettings.trialKeyDefaultsKey)?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return SyncConfiguration(
-            baseURL: url,
-            buildNumber: Int(build ?? "1") ?? 1,
-            trialKey: trialKey.flatMap { $0.isEmpty ? nil : $0 }
+        let endpoint = ServerEndpoint.resolve(
+            overrideURL: UserDefaults.standard.string(forKey: "se.kvitta.syncBaseURL"),
+            overrideKey: UserDefaults.standard.string(forKey: SyncSettings.trialKeyDefaultsKey),
+            builtInURL: Bundle.main.object(forInfoDictionaryKey: "KvittaSyncBaseURL") as? String,
+            builtInKey: Bundle.main.object(forInfoDictionaryKey: "KvittaTrialKey") as? String
         )
+        activeBaseURL = endpoint.baseURL
+        hasBuiltInServer = endpoint.isBuiltIn
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+        return SyncConfiguration(
+            baseURL: endpoint.baseURL,
+            buildNumber: Int(build ?? "1") ?? 1,
+            trialKey: endpoint.trialKey
+        )
+    }
+
+    /// True when the build shipped with a server and a key, so a fresh install can sync and sign
+    /// in on its own instead of waiting for someone to type an address into the Jag tab.
+    private(set) static var hasBuiltInServer = false
+
+    /// Signs in without being asked, once, when the build knows where its server is.
+    ///
+    /// The account is optional by design and the copy in Jag still says so — but that promise
+    /// was written for a world where signing in meant an Apple round-trip. Against the hosted
+    /// trial it is one silent request with the built-in key, and a phone that has to be told to
+    /// press "Logga in" before its expenses reach anyone is a phone that looks broken to the
+    /// friend holding it. Sync is registered on for the same reason: `register(defaults:)` only
+    /// fills the gap, so a toggle someone actually flipped still wins.
+    static func adoptBuiltInServer(session: SessionModel, displayName: String?) async {
+        guard hasBuiltInServer else { return }
+        UserDefaults.standard.register(defaults: [SyncSettings.defaultsKey: true])
+        guard !session.isSignedIn else { return }
+        await session.signIn(displayName: displayName)
     }
 }
 
