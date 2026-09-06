@@ -29,19 +29,21 @@ struct KvittaApp: App {
             // A switch over an enum returning concrete views, not AnyView (CLAUDE.md) — the
             // WindowGroup body is already a @ViewBuilder, so this costs nothing.
             switch startup {
-            case .ready(let ledger, let sync, let session, let invites, let profiles, let photos):
-                RootView(
-                    ledger: ledger,
-                    userId: session.userId ?? DeviceIdentity.userId,
-                    sync: sync,
-                    profile: profile,
-                    session: session,
-                    invites: invites,
-                    reminders: reminders,
-                    rates: rates,
-                    profiles: profiles,
-                    photos: photos
-                )
+            case .ready(let ledger, let sync, let session, let invites, let profiles, let photos, let isFirstLaunch):
+                LaunchTransitionView(playFullAnimation: isFirstLaunch) {
+                    RootView(
+                        ledger: ledger,
+                        userId: session.userId ?? DeviceIdentity.userId,
+                        sync: sync,
+                        profile: profile,
+                        session: session,
+                        invites: invites,
+                        reminders: reminders,
+                        rates: rates,
+                        profiles: profiles,
+                        photos: photos
+                    )
+                }
                 // Follows the phone. `Theme` has both halves now, so this and the plist's
                 // UIUserInterfaceStyle came out together — either one alone would leave
                 // system-drawn labels on the wrong ground, which is what the first run on real
@@ -95,7 +97,7 @@ struct KvittaApp: App {
 }
 
 enum Startup {
-    case ready(LedgerStore, SyncEngine, SessionModel, InviteModel, ProfileSyncer, GroupPhotoSyncer)
+    case ready(LedgerStore, SyncEngine, SessionModel, InviteModel, ProfileSyncer, GroupPhotoSyncer, isFirstLaunch: Bool)
     case failed(String)
 }
 
@@ -122,6 +124,11 @@ enum Bootstrap {
                 authorId: DeviceIdentity.userId
             )
             try ledger.rebuild()
+
+            // Captured right here, before anything below can pull or write a single event —
+            // an empty log is the one honest signal that this device has never opened the app,
+            // and it has to be read before sync gets a chance to change it (LaunchTransitionView).
+            let isFirstLaunch = ledger.state.appliedEventIds.isEmpty
 
             // Constructed unconditionally, but inert until the flag is on. Note that nothing
             // about opening the database or replaying the log depends on any of it — if every
@@ -163,7 +170,7 @@ enum Bootstrap {
             let profiles = ProfileSyncer(transport: transport, session: session)
             let photos = GroupPhotoSyncer(transport: transport, session: session)
 
-            return .ready(ledger, sync, session, invites, profiles, photos)
+            return .ready(ledger, sync, session, invites, profiles, photos, isFirstLaunch: isFirstLaunch)
         } catch {
             // Deliberately not a silent fallback to an in-memory store: that would look like a
             // working app that quietly forgets everything, which is worse than saying so.
