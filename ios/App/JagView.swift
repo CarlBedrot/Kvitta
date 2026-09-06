@@ -28,6 +28,7 @@ struct JagView: View {
     @State private var inviteCode = ""
     #if DEBUG
     @State private var serverAddress = UserDefaults.standard.string(forKey: "se.kvitta.syncBaseURL") ?? ""
+    @State private var trialKey = UserDefaults.standard.string(forKey: SyncSettings.trialKeyDefaultsKey) ?? ""
     // Compile-time gating alone stopped meaning "developers only" the day the app reached real
     // phones: every build anyone actually runs is a Debug build (Xcode sideload, simulator) and
     // will be until TestFlight exists. So even in Debug the toolbox hides until deliberately
@@ -407,11 +408,31 @@ struct JagView: View {
                         }
                     }
             }
+            // The hosted trial server keeps the dev sign-in on behind a shared key (Auth:TrialKey
+            // on the server). A phone without it gets a bare 401 on "Logga in", which is the
+            // intended answer to a stranger and a confusing one to a friend who was never given
+            // the key — hence a field, not a launch argument. Saved on every keystroke for the
+            // same reason as the address above.
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Trial-nyckel")
+                SecureField("Nyckeln du fick av Carl", text: $trialKey)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .textFieldStyle(.roundedBorder)
+                    .onChange(of: trialKey) { _, value in
+                        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if trimmed.isEmpty {
+                            UserDefaults.standard.removeObject(forKey: SyncSettings.trialKeyDefaultsKey)
+                        } else {
+                            UserDefaults.standard.set(trimmed, forKey: SyncSettings.trialKeyDefaultsKey)
+                        }
+                    }
+            }
             // The typed address and the used address are different things until the next launch.
             // Without this line the two are indistinguishable on a phone, which is exactly how a
             // correctly-typed address reads as "cannot reach the server".
             LabeledContent("Kör mot", value: Bootstrap.activeBaseURL?.absoluteString ?? "—")
-            Text("Tom = localhost. Kräver omstart av appen.")
+            Text("Tom adress = localhost. Nyckeln behövs bara mot den hostade servern. Kräver omstart av appen.")
                 .font(.caption2)
                 .foregroundStyle(Theme.tertiary)
             LabeledContent("I kö för uppladdning", value: "\((try? ledger.pendingPushCount()) ?? -1)")

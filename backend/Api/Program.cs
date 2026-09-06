@@ -251,7 +251,18 @@ app.Lifetime.ApplicationStarted.Register(() =>
             observability.Environment ?? app.Environment.EnvironmentName);
     }
 
-    if (exposed.Count > 0)
+    var auth = app.Services.GetRequiredService<IOptions<AuthOptions>>().Value;
+    if (exposed.Count > 0 && auth.RequiresTrialKey)
+    {
+        // Reachable, but gated: every dev sign-in must carry the trial key. This is the hosted
+        // friend-trial shape, and the line exists so a log with no warning in it is not mistaken
+        // for a server with the shortcut off.
+        logger.LogInformation(
+            "POST /api/v1/auth/dev is on and reachable on {Addresses}, behind Auth:TrialKey. Only "
+            + "phones given the key can sign in; everyone with it can sign in as any user.",
+            string.Join(", ", exposed));
+    }
+    else if (exposed.Count > 0)
     {
         logger.LogWarning(
             "POST /api/v1/auth/dev is reachable from the network on {Addresses}. It mints a "
@@ -260,7 +271,7 @@ app.Lifetime.ApplicationStarted.Register(() =>
             + "do not run this on public Wi-Fi.",
             string.Join(", ", exposed));
     }
-    else if (app.Services.GetRequiredService<IOptions<AuthOptions>>().Value.AllowDevTokens)
+    else if (auth.AllowDevTokens)
     {
         // The other half of the same confusion. Loopback is the safe default, and it is also the
         // setting under which a friend's phone gets connection refused while this machine's own

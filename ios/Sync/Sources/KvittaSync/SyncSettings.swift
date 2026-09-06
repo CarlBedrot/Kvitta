@@ -24,6 +24,12 @@ public struct SyncSettings: Sendable {
 
     public static let defaultsKey = "se.kvitta.syncEnabled"
 
+    /// Where the Jag tab keeps the trial key a hosted server asks for on dev sign-in. Read once
+    /// at launch by the app's bootstrap, alongside the server address. Not the Keychain: it is a
+    /// shared gate for a friend group, not a personal credential, and it lives next to the
+    /// address it belongs to so the two are set and cleared together.
+    public static let trialKeyDefaultsKey = "se.kvitta.trialKey"
+
     public static func setEnabled(_ enabled: Bool, in defaults: UserDefaults = .standard) {
         defaults.set(enabled, forKey: defaultsKey)
     }

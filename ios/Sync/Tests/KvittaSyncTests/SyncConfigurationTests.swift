@@ -29,4 +29,20 @@ struct SyncConfigurationTests {
     func trustBoundary(url: String, trusted: Bool) {
         #expect(configuration(url).isTrustworthy == trusted)
     }
+
+    // MARK: Trial key
+
+    @Test("a configured trial key rides the dev sign-in as a header, and only then")
+    func trialKeyHeader() {
+        let without = SyncConfiguration(baseURL: URL(string: "https://api.example.com")!)
+        #expect(HTTPAuthClient.devSignInHeaders(for: without).isEmpty)
+
+        let with = SyncConfiguration(
+            baseURL: URL(string: "https://api.example.com")!,
+            trialKey: "friend-trial-key-that-is-long-enough-to-count-as-one"
+        )
+        #expect(HTTPAuthClient.devSignInHeaders(for: with) == [
+            "X-Kvitta-Trial-Key": "friend-trial-key-that-is-long-enough-to-count-as-one"
+        ])
+    }
 }
