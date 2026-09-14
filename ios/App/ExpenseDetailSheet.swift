@@ -89,10 +89,7 @@ private struct ExpenseHeader: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            Text(Categories.emoji(for: expense.categoryId))
-                .font(.system(size: 30))
-                .frame(width: 64, height: 64)
-                .background(Color(.tertiarySystemFill), in: .circle)
+            CategoryGlyph(categoryId: expense.categoryId, size: 64)
             Text(expense.title)
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(Theme.ink)

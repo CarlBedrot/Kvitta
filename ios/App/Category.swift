@@ -32,6 +32,24 @@ enum Categories {
 
     static let fallbackId = "övrigt"
 
+    /// The SF Symbol for a category — what a row shows, the way Steven marks each expense with
+    /// a small glyph. Emoji read as decoration; a symbol in the system's fill reads as the app.
+    static func symbol(for categoryId: String) -> String {
+        switch categoryId {
+        case "groceries": return "cart"
+        case "alkohol": return "wineglass"
+        case "restaurang": return "fork.knife"
+        case "fika": return "cup.and.saucer"
+        case "brunch": return "cup.and.saucer"
+        case "taxi": return "car"
+        case "resa": return "airplane"
+        case "boende": return "house"
+        case "sport": return "figure.run"
+        case "nöje": return "ticket"
+        default: return "receipt"
+        }
+    }
+
     /// The emoji for a stored `categoryId`, or the "övrigt" receipt for anything unrecognised —
     /// tolerating unknown values rather than crashing, the same stance the event layer takes.
     static func emoji(for categoryId: String) -> String {

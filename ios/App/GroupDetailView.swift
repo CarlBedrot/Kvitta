@@ -64,22 +64,20 @@ struct GroupDetailView: View {
         // transfers, every member row — instead of asking the projection again.
         let balances = group.balances()
         let transfers = balances.suggestedTransfers
-        // Your expenses, everyone else's, and where the group stands — three screens behind
-        // one toggle at the bottom, the way Steven does it, instead of one long scroll.
-        let mine = group.visibleExpenses.filter { $0.payload.involves(meId) }
-        let others = group.visibleExpenses.filter { !$0.payload.involves(meId) }
+        // What was spent, and where the group stands — two screens behind one toggle at the
+        // bottom, the way Steven does it, instead of one long scroll.
         return ScrollView {
             // Lazy: the expense months are built as they scroll in, not all on first paint.
             LazyVStack(alignment: .leading, spacing: 16) {
                 switch segment {
                 case .expenses:
-                    if mine.isEmpty {
+                    if group.visibleExpenses.isEmpty {
                         EmptySegment(
                             text: canSplit ? "Inga utgifter än" : "Bjud in någon först",
                             button: canSplit ? nil : ("Bjud in", { showingMembers = true })
                         )
                     }
-                    ExpenseList(group: group, expenses: mine, meId: meId, mode: mode) { viewingExpense = $0 }
+                    ExpenseList(group: group, expenses: group.visibleExpenses, meId: meId, mode: mode) { viewingExpense = $0 }
                     DeletedExpensesSection(
                         group: group,
                         showingDeleted: $showingDeleted,
@@ -138,11 +136,6 @@ struct GroupDetailView: View {
                         auditingMember = $0
                     }
 
-                case .withoutMe:
-                    if others.isEmpty {
-                        EmptySegment(text: "Alla utgifter har dig med", button: nil)
-                    }
-                    ExpenseList(group: group, expenses: others, meId: meId, mode: mode) { viewingExpense = $0 }
                 }
                 Color.clear.frame(height: 24)
             }
@@ -794,16 +787,14 @@ private struct MembersCard: View {
 
 // MARK: - The three views
 
-/// The three ways to look at a group. `withoutMe` is the rest of the ledger: what the others
-/// split among themselves, kept out of your list so yours stays yours.
+/// The two ways to look at a group: what was spent, and where everyone stands.
 enum GroupSegment: CaseIterable, Hashable {
-    case expenses, standing, withoutMe
+    case expenses, standing
 
     var title: LocalizedStringKey {
         switch self {
         case .expenses: return "Utgifter"
         case .standing: return "Ställning"
-        case .withoutMe: return "Utan mig"
         }
     }
 }
@@ -827,8 +818,8 @@ private struct GroupBottomBar: View {
                         Text(candidate.title)
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(isOn ? Theme.ink : Theme.secondary)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
+                            .padding(.horizontal, 22)
+                            .padding(.vertical, 11)
                             .background(isOn ? Theme.ink.opacity(0.08) : .clear, in: .capsule)
                             .contentShape(.capsule)
                     }
@@ -1014,10 +1005,7 @@ private struct ExpenseRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            Text(Categories.emoji(for: expense.categoryId))
-                .font(.system(size: 17))
-                .frame(width: 36, height: 36)
-                .background(Color(.tertiarySystemFill), in: .circle)
+            CategoryGlyph(categoryId: expense.categoryId)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(expense.title).font(.body.weight(.medium)).foregroundStyle(Theme.ink)
