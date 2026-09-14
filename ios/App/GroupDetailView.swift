@@ -31,6 +31,8 @@ struct GroupDetailView: View {
     /// Adding an expense from inside the group it belongs to — the group is the screen you are
     /// standing on, so there is nothing to guess.
     @State private var expenseModel: NewExpenseModel?
+    /// Which of the three views of the group is up. Per visit: a group opens on its expenses.
+    @State private var segment: GroupSegment = .expenses
     /// The live group out of the projection. `nil` only if the group vanished mid-navigation,
     /// which a rebuild from a bad log could theoretically produce — show nothing rather than crash.
     private var group: GroupState? { ledger.state[groupId] }
@@ -62,83 +64,98 @@ struct GroupDetailView: View {
         // transfers, every member row — instead of asking the projection again.
         let balances = group.balances()
         let transfers = balances.suggestedTransfers
+        // Your expenses, everyone else's, and where the group stands — three screens behind
+        // one toggle at the bottom, the way Steven does it, instead of one long scroll.
+        let mine = group.visibleExpenses.filter { $0.payload.involves(meId) }
+        let others = group.visibleExpenses.filter { !$0.payload.involves(meId) }
         return ScrollView {
             // Lazy: the expense months are built as they scroll in, not all on first paint.
             LazyVStack(alignment: .leading, spacing: 16) {
-                // The trust rule (product principles): every balance on screen opens the exact
-                // lines behind it. The card audits you; a member row audits that member.
-                GroupHeroCard(
-                    group: group,
-                    balances: balances,
-                    userId: userId,
-                    mode: mode,
-                    rates: rates.rates,
-                    photo: photos.images.uiImage(for: groupId),
-                    onPhotoPicked: { jpeg in Task { await photos.stage(jpeg, for: groupId) } },
-                    onShowPhoto: { showingPhoto = true },
-                    onMode: { displayModes.set($0, for: groupId) },
-                    onAudit: { if let meId { auditingMember = meId } },
-                    onAddExpense: {
-                        expenseModel = NewExpenseModel(ledger: ledger, userId: userId, groupId: groupId)
-                    },
-                    onMembers: { showingMembers = true }
-                )
+                switch segment {
+                case .expenses:
+                    if mine.isEmpty {
+                        EmptySegment(
+                            text: canSplit ? "Inga utgifter än" : "Bjud in någon först",
+                            button: canSplit ? nil : ("Bjud in", { showingMembers = true })
+                        )
+                    }
+                    ExpenseList(group: group, expenses: mine, meId: meId, mode: mode) { viewingExpense = $0 }
+                    DeletedExpensesSection(
+                        group: group,
+                        showingDeleted: $showingDeleted,
+                        failure: restoreFailure,
+                        onRestore: restore
+                    )
 
-                // Somebody's books are waiting on this answer, so it stays above the fold's
-                // second half: right after the shortcuts, before anything historical.
-                PendingPaymentsCard(
-                    group: group,
-                    meId: meId,
-                    failure: confirmFailure,
-                    onAnswer: answer
-                )
+                case .standing:
+                    // The trust rule (product principles): every balance on screen opens the
+                    // exact lines behind it. The card audits you; a member row audits that member.
+                    GroupHeroCard(
+                        group: group,
+                        balances: balances,
+                        userId: userId,
+                        mode: mode,
+                        rates: rates.rates,
+                        photo: photos.images.uiImage(for: groupId),
+                        onPhotoPicked: { jpeg in Task { await photos.stage(jpeg, for: groupId) } },
+                        onShowPhoto: { showingPhoto = true },
+                        onMode: { displayModes.set($0, for: groupId) },
+                        onAudit: { if let meId { auditingMember = meId } },
+                        onAddExpense: {
+                            expenseModel = NewExpenseModel(ledger: ledger, userId: userId, groupId: groupId)
+                        },
+                        onMembers: { showingMembers = true }
+                    )
 
-                // The "om gruppen" blurb, when someone has written one. Quiet text, not a card:
-                // it is context, not data.
-                if let about = group.about {
-                    Text(about)
-                        .font(.subheadline)
-                        .foregroundStyle(Theme.secondary)
-                        .padding(.horizontal, 4)
+                    // Somebody's books are waiting on this answer, so it comes before anything
+                    // historical.
+                    PendingPaymentsCard(
+                        group: group,
+                        meId: meId,
+                        failure: confirmFailure,
+                        onAnswer: answer
+                    )
+
+                    // The "om gruppen" blurb, when someone has written one. Quiet text, not a
+                    // card: it is context, not data.
+                    if let about = group.about {
+                        Text(about)
+                            .font(.subheadline)
+                            .foregroundStyle(Theme.secondary)
+                            .padding(.horizontal, 4)
+                    }
+
+                    TransfersCard(
+                        group: group,
+                        transfers: transfers,
+                        meId: meId,
+                        mode: mode,
+                        onSettle: { settlingTransfer = TransferPresentation(transfer: $0) }
+                    )
+
+                    MembersCard(group: group, balances: balances, meId: meId, mode: mode,
+                                rates: rates.rates, myPhoto: profile.avatarData) {
+                        auditingMember = $0
+                    }
+
+                case .withoutMe:
+                    if others.isEmpty {
+                        EmptySegment(text: "Alla utgifter har dig med", button: nil)
+                    }
+                    ExpenseList(group: group, expenses: others, meId: meId, mode: mode) { viewingExpense = $0 }
                 }
-
-                TransfersCard(
-                    group: group,
-                    transfers: transfers,
-                    meId: meId,
-                    mode: mode,
-                    onSettle: { settlingTransfer = TransferPresentation(transfer: $0) }
-                )
-
-                MembersCard(group: group, balances: balances, meId: meId, mode: mode,
-                            rates: rates.rates, myPhoto: profile.avatarData) {
-                    auditingMember = $0
-                }
-
-                ExpenseList(group: group, meId: meId, mode: mode) { viewingExpense = $0 }
-                DeletedExpensesSection(
-                    group: group,
-                    showingDeleted: $showingDeleted,
-                    failure: restoreFailure,
-                    onRestore: restore
-                )
-                Color.clear.frame(height: 100)
+                Color.clear.frame(height: 24)
             }
             .padding(.horizontal, 20)
             .padding(.top, 4)
         }
         .background(AmbientBackground())
-        // The same + as on Grupper, but here the group is the screen you stand on, so it goes
-        // straight to Ny utgift — no menu, no chooser. Hidden while you are alone in the group;
-        // the hero's fresh state is already pointing at the way forward.
-        .overlay(alignment: .bottomTrailing) {
-            if canSplit {
-                FAB {
-                    expenseModel = NewExpenseModel(ledger: ledger, userId: userId, groupId: groupId)
-                }
-                .accessibilityLabel("Lägg till utgift")
-                .padding(.trailing, 20)
-                .padding(.bottom, 80)
+        // The app's own tab bar steps aside inside a group; this bar takes its place — the
+        // three views on the left, the one action on the right.
+        .toolbarVisibility(.hidden, for: .tabBar)
+        .safeAreaInset(edge: .bottom) {
+            GroupBottomBar(segment: $segment, canAdd: canSplit) {
+                expenseModel = NewExpenseModel(ledger: ledger, userId: userId, groupId: groupId)
             }
         }
         .navigationTitle(GroupBadge.title(of: group.name))
@@ -814,10 +831,99 @@ private struct MembersCard: View {
     }
 }
 
+// MARK: - The three views
+
+/// The three ways to look at a group. `withoutMe` is the rest of the ledger: what the others
+/// split among themselves, kept out of your list so yours stays yours.
+enum GroupSegment: CaseIterable, Hashable {
+    case expenses, standing, withoutMe
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .expenses: return "Utgifter"
+        case .standing: return "Ställning"
+        case .withoutMe: return "Utan mig"
+        }
+    }
+}
+
+/// The floating bar at the foot of a group: the segment toggle, and the plus. Glass, so it sits
+/// where the app's tab bar sat and reads as the same kind of thing.
+private struct GroupBottomBar: View {
+    @Binding var segment: GroupSegment
+    /// Alone in the group there is nobody to split with; the plus waits until there is.
+    let canAdd: Bool
+    let onAdd: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 2) {
+                ForEach(GroupSegment.allCases, id: \.self) { candidate in
+                    let isOn = segment == candidate
+                    Button {
+                        withAnimation(.snappy(duration: 0.25)) { segment = candidate }
+                    } label: {
+                        Text(candidate.title)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(isOn ? Theme.ink : Theme.secondary)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(isOn ? Theme.ink.opacity(0.08) : .clear, in: .capsule)
+                            .contentShape(.capsule)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(isOn ? .isSelected : [])
+                }
+            }
+            .padding(4)
+            .glassEffect(.regular, in: .capsule)
+
+            if canAdd {
+                Button(action: onAdd) {
+                    Image(systemName: "plus")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 48, height: 48)
+                        .background(Theme.accent, in: .circle)
+                        .shadow(color: Theme.accent.opacity(0.35), radius: 10, y: 4)
+                }
+                .buttonStyle(ScaleButtonStyle())
+                .accessibilityLabel("Lägg till utgift")
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
+    }
+}
+
+/// What a segment says when it has nothing to list: one line, and at most one button.
+private struct EmptySegment: View {
+    let text: LocalizedStringKey
+    let button: (title: LocalizedStringKey, action: () -> Void)?
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Text(text)
+                .font(.body)
+                .foregroundStyle(Theme.secondary)
+            if let button {
+                Button(button.title, action: button.action)
+                    .buttonStyle(PrimaryButtonStyle())
+                    .fixedSize()
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 60)
+    }
+}
+
 // MARK: - Expense list
 
 private struct ExpenseList: View {
     let group: GroupState
+    /// Newest first, already narrowed to the segment (yours, or everyone else's).
+    let expenses: [Expense]
     let meId: MemberID?
     let mode: CurrencyDisplay
     let onSelect: (ExpenseID) -> Void
@@ -826,9 +932,9 @@ private struct ExpenseList: View {
     /// in its own currency — an expense is a fact, and facts do not convert.
     private var visibleUnderMode: [Expense] {
         if case .only(let currency) = mode {
-            return group.visibleExpenses.filter { $0.currency == currency }
+            return expenses.filter { $0.currency == currency }
         }
-        return group.visibleExpenses
+        return expenses
     }
 
     var body: some View {
