@@ -76,18 +76,6 @@ struct NewGroupSheet: View {
                     }
                 }
 
-                Section {
-                    HStack(spacing: 12) {
-                        Avatar(name: profile.nameOrDefault, photo: profile.avatarData, size: 34)
-                        Text(profile.nameOrDefault).foregroundStyle(Theme.ink)
-                        Spacer()
-                    }
-                } header: {
-                    Text("Medlemmar")
-                } footer: {
-                    Text("Du är ensam i gruppen till att börja med. Dela inbjudningslänken så går de andra med själva — då väljer de sina egna namn.")
-                }
-
                 if let failure {
                     Section {
                         Text(failure).font(.footnote).foregroundStyle(Theme.clay)

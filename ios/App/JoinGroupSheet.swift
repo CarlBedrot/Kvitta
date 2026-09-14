@@ -22,8 +22,6 @@ struct JoinGroupSheet: View {
                     TextField("Klistra in inbjudningskod", text: $inviteCode)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                } footer: {
-                    Text("Länken du fick, eller bara koden i den — båda fungerar.")
                 }
 
                 switch invites.outcome {

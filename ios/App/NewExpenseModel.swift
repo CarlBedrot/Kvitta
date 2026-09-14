@@ -113,9 +113,12 @@ final class NewExpenseModel: Identifiable {
     func resolvedPayload() throws -> ExpensePayload {
         guard let payerId else { throw NewExpenseError.noPayer }
         let total = Money(amountMinor: amountMinor, currency: currency)
+        let description = descriptionText.trimmingCharacters(in: .whitespaces)
         return try ExpensePayload.make(
-            description: descriptionText.trimmingCharacters(in: .whitespaces),
-            categoryId: categoryId,
+            description: description,
+            // Nobody picks a category any more — it is read off the description. An expense
+            // that already carries one (editing) keeps it.
+            categoryId: categoryId == Categories.fallbackId ? Categories.infer(from: description) : categoryId,
             date: date,
             total: total,
             payers: [MoneyLine(memberId: payerId, amountMinor: amountMinor)],

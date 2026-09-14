@@ -161,48 +161,19 @@ private struct AmountDisplay: View {
     }
 }
 
-// MARK: - Description + chips
+// MARK: - Description
 
 private struct DescriptionSection: View {
     @Bindable var model: NewExpenseModel
 
-    /// This group's chips; the starters alone while the group is still loading.
-    private var suggestions: [DescriptionSuggestion] {
-        model.group.map(DescriptionSuggestion.suggestions(for:)) ?? DescriptionSuggestion.starters
-    }
-
     var body: some View {
-        VStack(spacing: 12) {
-            TextField("Beskrivning…", text: $model.descriptionText)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 15)
-                .background(Theme.card, in: .rect(cornerRadius: 18))
-                .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(suggestions) { suggestion in
-                        Button {
-                            model.descriptionText = suggestion.text
-                            model.categoryId = suggestion.categoryId
-                        } label: {
-                            Text(verbatim: "\(suggestion.emoji) \(suggestion.text)")
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(Theme.ink)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 8)
-                                .background(Theme.card, in: .rect(cornerRadius: 18))
-                                .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, 20)
-            }
-            .padding(.horizontal, -20)
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 4)
+        TextField("Beskrivning…", text: $model.descriptionText)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 15)
+            .background(Theme.card, in: .rect(cornerRadius: 18))
+            .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
+            .padding(.horizontal, 20)
+            .padding(.top, 4)
     }
 }
 

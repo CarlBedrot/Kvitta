@@ -138,8 +138,6 @@ struct MembersSheet: View {
                     .tint(Theme.secondary)
                 }
             }
-        } footer: {
-            Text("En borttagen medlem behåller sin historik — utgifter de var med på ändras inte.")
         }
     }
 
@@ -150,8 +148,6 @@ struct MembersSheet: View {
                 Button("Lägg till", action: add)
                     .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
             }
-        } footer: {
-            Text("Du kan lägga till någon som inte har appen. Utgifter fungerar likadant.")
         }
     }
 
@@ -187,8 +183,6 @@ struct MembersSheet: View {
             }
         } header: {
             Text("Bjud in")
-        } footer: {
-            Text("Den som öppnar länken kan ta över en av platserna ovan och ser då hela historiken. Länken går ut efter två veckor.")
         }
     }
 

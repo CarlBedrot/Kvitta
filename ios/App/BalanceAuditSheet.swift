@@ -67,10 +67,6 @@ struct BalanceAuditSheet: View {
                         entriesCard(entries, group: group, currency: currency,
                                     isMe: isMe, memberName: memberName)
                     }
-                    Text("Varje siffra kan spåras till sina utgifter.")
-                        .font(.footnote)
-                        .foregroundStyle(Theme.secondary)
-                        .frame(maxWidth: .infinity)
                 }
             }
             .padding(.horizontal, 18)
