@@ -258,7 +258,7 @@ private struct FeedRow: View {
             Text(entry.emoji ?? "🧾")
                 .font(.system(size: 17))
                 .frame(width: 36, height: 36)
-                .background(Theme.accent.opacity(0.08), in: .circle)
+                .background(Color(.tertiarySystemFill), in: .circle)
         case .payment:
             // Repayments get the system glyph on green, visually apart from spending.
             IconBadge(systemImage: "arrow.left.arrow.right", tint: Theme.positive, size: 36)

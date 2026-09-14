@@ -39,13 +39,13 @@ struct HomeView: View {
 
     private func content(groups: [GroupState]) -> some View {
         ScrollView {
-            // Plain rows with a hairline between them, the way a list of things you can open
-            // looks in every native app — not a card per group. Lazy: a row is built when it
-            // scrolls into view.
+            // One grouped section of rows with a hairline between them — the shape Settings and
+            // Wallet use for a list of things you can open. Lazy: a row is built when it scrolls
+            // into view.
             LazyVStack(spacing: 0) {
                 ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
                     if index > 0 {
-                        Rectangle().fill(Theme.hairline).frame(height: 1).padding(.leading, 62)
+                        Rectangle().fill(Theme.hairline).frame(height: 1).padding(.leading, 74)
                     }
                     NavigationLink(value: group.id) {
                         GroupRow(group: group, meId: group.me(for: userId)?.id,
@@ -53,12 +53,12 @@ struct HomeView: View {
                     }
                     .buttonStyle(ScaleButtonStyle())
                 }
-
-                // Leave room so the last row clears the tab bar and the FAB.
-                Color.clear.frame(height: 120)
             }
-            .padding(.horizontal, 20)
+            .cardSurface(padding: 0)
+            .padding(.horizontal, 16)
             .padding(.top, 4)
+            // Leave room so the last row clears the tab bar and the FAB.
+            .padding(.bottom, 120)
         }
         .navigationDestination(for: GroupID.self) { groupId in
             GroupDetailView(ledger: ledger, userId: userId, groupId: groupId,
@@ -123,7 +123,8 @@ private struct GroupRow: View {
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Theme.tertiary)
         }
-        .padding(.vertical, 14)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .contentShape(.rect)
         .accessibilityElement(children: .combine)
     }

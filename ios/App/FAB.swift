@@ -16,7 +16,6 @@ struct FAB: View {
                 .padding(.horizontal, 20)
                 .frame(height: 52)
                 .background(Theme.accent, in: .capsule)
-                .shadow(color: Theme.accent.opacity(0.35), radius: 12, y: 6)
         }
         .buttonStyle(ScaleButtonStyle())
         .accessibilityLabel("Lägg till utgift")
