@@ -55,6 +55,15 @@ extension GroupState {
     }
 }
 
+extension ExpensePayload {
+    /// Whether a member paid for, or carries a share of, this expense. `nil` (no linked member
+    /// in the group) counts as involved, so a device without a seat still sees everything.
+    func involves(_ memberId: MemberID?) -> Bool {
+        guard let memberId else { return true }
+        return payers.contains { $0.memberId == memberId } || shares.contains { $0.memberId == memberId }
+    }
+}
+
 // Let ids drive `.sheet(item:)` presentations (Balansgranskning, Utgiftsdetalj). App-side only;
 // Core stays free of UI-serving conformances.
 
