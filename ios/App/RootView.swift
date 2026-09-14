@@ -63,9 +63,18 @@ struct RootView: View {
         // inherit the environment from whatever presented them.
         .environment(\.myAvatarPhoto, profile.avatarData)
         .sheet(isPresented: $showingNewGroup) {
-            NewGroupSheet(ledger: ledger, userId: userId, profile: profile) { groupId in
-                grupperPath.append(groupId)
-            }
+            NewGroupSheet(
+                ledger: ledger, userId: userId, profile: profile,
+                onCreated: { groupId in grupperPath.append(groupId) },
+                // One sheet has to be down before the next can come up; the beat is the
+                // dismiss animation, not a guess.
+                onJoinInstead: {
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(450))
+                        showingJoin = true
+                    }
+                }
+            )
         }
         .sheet(isPresented: $showingJoin) {
             JoinGroupSheet(invites: invites)
@@ -102,8 +111,7 @@ struct RootView: View {
         NavigationStack(path: $grupperPath) {
             HomeView(ledger: ledger, userId: userId, invites: invites, profile: profile,
                      photos: photos, rates: rates, profiles: profiles,
-                     onNewGroup: { showingNewGroup = true },
-                     onJoin: { showingJoin = true })
+                     onNewGroup: { showingNewGroup = true })
                 .overlay(alignment: .bottomTrailing) {
                     // Hidden on the empty state, which carries its own call to action.
                     if !ledger.state.groups.isEmpty {
