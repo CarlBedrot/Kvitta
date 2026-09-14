@@ -786,47 +786,6 @@ private struct MembersCard: View {
     }
 }
 
-// MARK: - Backdrop
-
-/// The group's own colour behind its screen: a soft wash of its tint at the top, fading into
-/// the grouped background by the first card or two — the way Music and Podcasts let the artwork
-/// bleed into the page. With a photo, the photo itself, blurred until it is only colour.
-private struct GroupBackdrop: View {
-    let tint: Theme.GroupTint
-    let photo: UIImage?
-
-    var body: some View {
-        ZStack(alignment: .top) {
-            Theme.bg
-            GeometryReader { geo in
-                let height = geo.size.height * 0.42
-                ZStack {
-                    LinearGradient(
-                        colors: [tint.wash, tint.wash.opacity(0)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    if let photo {
-                        Image(uiImage: photo)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: geo.size.width, height: height)
-                            .clipped()
-                            .blur(radius: 48, opaque: false)
-                            .opacity(0.55)
-                            .mask(
-                                LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
-                            )
-                    }
-                }
-                .frame(height: height)
-            }
-        }
-        .ignoresSafeArea()
-        .accessibilityHidden(true)
-    }
-}
-
 // MARK: - The two views
 
 /// The two ways to look at a group: what was spent, and where everyone stands.

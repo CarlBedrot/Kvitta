@@ -35,7 +35,9 @@ struct NewExpenseSheet: View {
             Keypad(amount: $model.amount)
             SaveButton(enabled: model.isValid, action: save)
         }
-        .background(AmbientBackground())
+        // The same wash as the group's own screen, so the sheet reads as part of that group —
+        // and follows the picker when you change which one.
+        .background(GroupBackdrop(tint: Theme.GroupTint.forGroup(model.groupId)))
         .sheet(isPresented: $showingSplitEditor) {
             SplitEditorSheet(model: model)
         }
