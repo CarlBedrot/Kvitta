@@ -2,10 +2,11 @@ import SwiftUI
 import UIKit
 import KvittaCore
 
-/// The design system for the 2026 redesign: warm off-white behind pure-white floating cards,
-/// one burnt-orange accent, and colour otherwise reserved for the direction of money. The aim is
-/// a first-party feel — Apple Wallet, Reminders, Invites — so typography and whitespace do the
-/// work borders and decoration used to.
+/// The design system: the system's own grouped surfaces and label colours, one clay accent, and
+/// colour otherwise reserved for the direction of money. The aim is a first-party feel — Wallet,
+/// Reminders, Settings — which is why the ground, the cards, the text greys and the separators are
+/// the system's tokens rather than a palette of our own: every custom cream and every drop
+/// shadow was a tell.
 ///
 /// Token names kept from the first design where the *role* survived (`ink`, `secondary`, `card`),
 /// so the diff shows what actually changed: the values, and the retirement of glass.
@@ -41,17 +42,17 @@ enum Theme {
 
     /// The screen behind everything. Warm off-white by day; by night a warm near-black a step
     /// deeper than `ink`, so cards have somewhere to sit above.
-    static let bg = adaptive(light: 0xF8F5EF, dark: 0x151310)
+    static let bg = Color(.systemGroupedBackground)
     /// Cards are pure white and *float*. By day elevation comes from `cardSurface`'s shadow; by
     /// night a shadow on a dark ground is invisible, so the card carries its own light instead —
     /// see `CardSurface`.
-    static let card = adaptive(light: 0xFFFFFF, dark: 0x221F1B)
+    static let card = Color(.secondarySystemGroupedBackground)
 
     // MARK: Text hierarchy
 
-    static let ink = adaptive(light: 0x1F1D1A, dark: 0xF2EEE5)
-    static let secondary = adaptive(light: 0x6E6A63, dark: 0xA39C92)
-    static let tertiary = adaptive(light: 0xA5A099, dark: 0x6E6860)
+    static let ink = Color(.label)
+    static let secondary = Color(.secondaryLabel)
+    static let tertiary = Color(.tertiaryLabel)
 
     // MARK: The one accent
 
@@ -134,11 +135,7 @@ enum Theme {
     /// Carries its own alpha per half rather than one opacity over both: 7% ink on white is a
     /// clear line, while 7% cream on a dark card disappears. Dark surfaces need more of the
     /// lighter colour to read as the same weight of rule.
-    static let hairline = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .dark
-            ? UIColor(Color(hex: 0xF2EEE5)).withAlphaComponent(0.12)
-            : UIColor(Color(hex: 0x1F1D1A)).withAlphaComponent(0.07)
-    })
+    static let hairline = Color(.separator)
 
     // MARK: The attestation control
 
@@ -154,7 +151,7 @@ enum Theme {
     static let controlFill = ink
     /// What sits on `controlFill`: the label, and the knob. Never `.white` — that is the light
     /// half's value leaking into the dark one, which is exactly the bug this token retires.
-    static let controlLabel = adaptive(light: 0xFFFFFF, dark: 0x151310)
+    static let controlLabel = Color(.systemBackground)
 
     /// The colour an amount takes from its sign. Never the only carrier of meaning — every amount
     /// on screen also spells its direction in words.
@@ -194,53 +191,20 @@ struct AmbientBackground: View {
     }
 }
 
-/// How a card says it is floating, in each half.
-///
-/// By day a shadow does it. By night a shadow does nothing — black on a near-black ground is
-/// invisible — so the card is lighter than what it sits on and catches a hairline of light along
-/// its top edge, which is what a raised surface actually does under a lamp. The stock answer is
-/// luminance alone; the top edge is what keeps it reading as an object rather than a lighter
-/// rectangle.
-private struct Elevation: ViewModifier {
-    @Environment(\.colorScheme) private var scheme
-
-    func body(content: Content) -> some View {
-        if scheme == .dark {
-            content.overlay(
-                // Top-lit: bright where the light lands, gone by the bottom edge.
-                LinearGradient(
-                    colors: [Color(hex: 0xF2EEE5).opacity(0.10), .clear],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .mask(RoundedRectangle(cornerRadius: 28).strokeBorder(lineWidth: 1))
-                .allowsHitTesting(false)
-            )
-            // A contact shadow still earns its place under a card lighter than its ground.
-            .shadow(color: .black.opacity(0.35), radius: 12, y: 6)
-        } else {
-            // Two shadows read as one: a tight contact shadow and a wide ambient one. Both very
-            // soft — harsh shadows are the fastest way to stop feeling first-party.
-            content
-                .shadow(color: .black.opacity(0.04), radius: 1, y: 1)
-                .shadow(color: .black.opacity(0.05), radius: 14, y: 6)
-        }
-    }
-}
-
-/// The floating card: radius 28, Apple-style soft elevation. The only content container.
+/// The content container: the system's inset-grouped section — its fill, its radius, no shadow.
+/// Cards that float on drop shadows over a tinted ground are the fastest way to look generated;
+/// Settings, Wallet and Reminders all sit flat on the grouped background, so this does too.
 private struct CardSurface: ViewModifier {
     var padding: CGFloat
 
     func body(content: Content) -> some View {
         content
             .padding(padding)
-            .background(Theme.card, in: .rect(cornerRadius: 28))
-            .modifier(Elevation())
+            .background(Theme.card, in: .rect(cornerRadius: 26))
     }
 }
 
-/// The same floating card as `CardSurface`, but the content owns its own padding — for cards
+/// The same container as `CardSurface`, but the content owns its own padding — for cards
 /// where an image must bleed all the way to the rounded edge.
 private struct FlushCardSurface: ViewModifier {
     var fill: Color
@@ -248,8 +212,7 @@ private struct FlushCardSurface: ViewModifier {
     func body(content: Content) -> some View {
         content
             .background(fill)
-            .clipShape(.rect(cornerRadius: 28))
-            .modifier(Elevation())
+            .clipShape(.rect(cornerRadius: 26))
     }
 }
 

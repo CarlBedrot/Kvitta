@@ -383,10 +383,7 @@ private struct GroupHeroCard: View {
             }
             .padding(24)
         }
-        // Settled keeps its green; otherwise a group without a photo wears its own tint, so the
-        // card says which group this is before the name does. A photo already does that job.
-        .flushCardSurface(fill: isSettled && !isFresh ? Theme.positiveWash
-                          : photo == nil ? Theme.GroupTint.forGroup(group.id).hero : Theme.card)
+        .flushCardSurface()
         .task(id: photoItem) { await loadPhoto() }
     }
 
@@ -640,15 +637,10 @@ private struct TransferRow: View {
         // behind a transfer is one tap away on the member rows below.
         Button(action: onSettle) {
                 HStack(spacing: 12) {
-                    // Two faces and the direction between them: the sentence this row used to
-                    // spell out, read at a glance instead. Payer on the left, because that is the
-                    // direction the money travels and the order the names are said in.
-                    TransferFaces(
-                        payerName: name(transfer.from),
-                        payeeName: name(transfer.to),
-                        payerPhoto: transfer.from == meId ? myPhoto : nil,
-                        payeePhoto: transfer.to == meId ? myPhoto : nil
-                    )
+                    // The other person — the one the sentence is about from where you stand.
+                    // Between two others, the one paying.
+                    let counterparty = transfer.from == meId ? transfer.to : transfer.from
+                    Avatar(name: name(counterparty), photo: counterparty == meId ? myPhoto : nil, size: 40)
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("\(name(transfer.from)) → \(name(transfer.to))")
@@ -691,37 +683,6 @@ private struct TransferRow: View {
     }
 }
 
-/// The two people in a transfer, overlapping, with the direction drawn between them.
-///
-/// Overlapping rather than side by side because a debt is a relationship, not two facts; the pair
-/// occupies one slot and reads as one object. The payee sits on top and slightly forward, which is
-/// the end the money is moving toward.
-private struct TransferFaces: View {
-    let payerName: String
-    let payeeName: String
-    let payerPhoto: Data?
-    let payeePhoto: Data?
-
-    var body: some View {
-        ZStack {
-            Avatar(name: payerName, photo: payerPhoto, size: 34)
-                .offset(x: -11)
-            Avatar(name: payeeName, photo: payeePhoto, size: 34)
-                .overlay(Circle().strokeBorder(Theme.card, lineWidth: 2))
-                .offset(x: 11)
-            // Sits in the seam between the two, on its own disc so it stays legible whatever
-            // colours the initials landed on.
-            Image(systemName: "arrow.right")
-                .font(.system(size: 9, weight: .bold))
-                .foregroundStyle(Theme.card)
-                .frame(width: 17, height: 17)
-                .background(Theme.ink.opacity(0.85), in: .circle)
-                .offset(y: 13)
-        }
-        .frame(width: 56, height: 40)
-        .accessibilityHidden(true)
-    }
-}
 
 // MARK: - Medlemmar
 
@@ -885,7 +846,6 @@ private struct GroupBottomBar: View {
                         .foregroundStyle(.white)
                         .frame(width: 48, height: 48)
                         .background(Theme.accent, in: .circle)
-                        .shadow(color: Theme.accent.opacity(0.35), radius: 10, y: 4)
                 }
                 .buttonStyle(ScaleButtonStyle())
                 .accessibilityLabel("Lägg till utgift")
@@ -1057,7 +1017,7 @@ private struct ExpenseRow: View {
             Text(Categories.emoji(for: expense.categoryId))
                 .font(.system(size: 17))
                 .frame(width: 36, height: 36)
-                .background(Theme.accent.opacity(0.08), in: .circle)
+                .background(Color(.tertiarySystemFill), in: .circle)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(expense.title).font(.body.weight(.medium)).foregroundStyle(Theme.ink)
@@ -1102,11 +1062,10 @@ struct SectionHeader: View {
 
     var body: some View {
         Text(title)
-            .font(.footnote.weight(.semibold))
+            .font(.footnote)
             .textCase(.uppercase)
-            .kerning(0.5)
-            .foregroundStyle(Theme.tertiary)
-            .padding(.horizontal, 8)
+            .foregroundStyle(Theme.secondary)
+            .padding(.horizontal, 16)
             .padding(.top, 12)
     }
 }

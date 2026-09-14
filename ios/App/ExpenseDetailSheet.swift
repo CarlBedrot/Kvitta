@@ -92,7 +92,7 @@ private struct ExpenseHeader: View {
             Text(Categories.emoji(for: expense.categoryId))
                 .font(.system(size: 30))
                 .frame(width: 64, height: 64)
-                .background(Theme.accent.opacity(0.08), in: .circle)
+                .background(Color(.tertiarySystemFill), in: .circle)
             Text(expense.title)
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(Theme.ink)
