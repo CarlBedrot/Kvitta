@@ -95,6 +95,13 @@ public struct GroupBalances: Hashable, Sendable {
     public var currencies: [CurrencyCode] {
         byCurrency.map(\.currency)
     }
+
+    /// The settle-up transfers these balances imply, per bucket in currency order. Display
+    /// only — it creates no events. Buckets never net against each other: a SEK debt is paid
+    /// in SEK, full stop, because the alternative is a transfer at a rate somebody disputes.
+    public var suggestedTransfers: [SuggestedTransfer] {
+        byCurrency.flatMap { DebtSimplifier.simplify($0) }
+    }
 }
 
 /// One line behind a balance: which expense or payment moved it, and by how much.

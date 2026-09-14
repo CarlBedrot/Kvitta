@@ -62,12 +62,18 @@ struct GroupDetailView: View {
         let meId = group.me(for: userId)?.id
         let canSplit = group.activeMembers.count >= 2
         let mode = displayModes.mode(for: groupId)
+        // One fold per render. Every card below reads from this value — the hero, the
+        // transfers, every member row — instead of asking the projection again.
+        let balances = group.balances()
+        let transfers = balances.suggestedTransfers
         return ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            // Lazy: the expense months are built as they scroll in, not all on first paint.
+            LazyVStack(alignment: .leading, spacing: 16) {
                 // The trust rule (product principles): every balance on screen opens the exact
                 // lines behind it. The card audits you; a member row audits that member.
                 GroupHeroCard(
                     group: group,
+                    balances: balances,
                     userId: userId,
                     mode: mode,
                     rates: rates.rates,
@@ -90,7 +96,7 @@ struct GroupDetailView: View {
                         onAddExpense: {
                             expenseModel = NewExpenseModel(ledger: ledger, userId: userId, groupId: groupId)
                         },
-                        onSettle: settleQuickAction(for: group, meId: meId),
+                        onSettle: settleQuickAction(transfers: transfers, meId: meId),
                         onMembers: { showingMembers = true }
                     )
                 }
@@ -115,14 +121,15 @@ struct GroupDetailView: View {
 
                 TransfersCard(
                     group: group,
+                    transfers: transfers,
                     meId: meId,
                     mode: mode,
                     onSettle: { settlingTransfer = TransferPresentation(transfer: $0) },
                     onAudit: { auditingMember = $0 }
                 )
 
-                MembersCard(group: group, meId: meId, mode: mode, rates: rates.rates,
-                            myPhoto: profile.avatarData) {
+                MembersCard(group: group, balances: balances, meId: meId, mode: mode,
+                            rates: rates.rates, myPhoto: profile.avatarData) {
                     auditingMember = $0
                 }
 
@@ -144,7 +151,7 @@ struct GroupDetailView: View {
         // already settled is not a party for something you did last week. And only when there
         // was something to settle: deleting the last expense of a group of one also lands on
         // zero, and that is not an achievement.
-        .onChange(of: group.balances().isSettled) { wasSettled, isSettled in
+        .onChange(of: balances.isSettled) { wasSettled, isSettled in
             if isSettled && !wasSettled && canSplit && !group.visibleExpenses.isEmpty {
                 celebrations += 1
             }
@@ -217,8 +224,7 @@ struct GroupDetailView: View {
     /// it opens Gör upp for the first suggested transfer that involves you — the one you can
     /// actually act on — or the first transfer at all when you are not part of any. `nil` (no
     /// transfers) hides the row: a settled group has nothing to register.
-    private func settleQuickAction(for group: GroupState, meId: MemberID?) -> (() -> Void)? {
-        let transfers = group.suggestedTransfers()
+    private func settleQuickAction(transfers: [SuggestedTransfer], meId: MemberID?) -> (() -> Void)? {
         guard let transfer = transfers.first(where: { $0.from == meId || $0.to == meId }) ?? transfers.first
         else { return nil }
         return { settlingTransfer = TransferPresentation(transfer: transfer) }
@@ -351,6 +357,8 @@ private struct TransferPresentation: Identifiable {
 /// still open the audit.
 private struct GroupHeroCard: View {
     let group: GroupState
+    /// Folded once by the screen; every number on this card comes from here.
+    let balances: GroupBalances
     let userId: UserID
     let mode: CurrencyDisplay
     let rates: ExchangeRates?
@@ -372,7 +380,7 @@ private struct GroupHeroCard: View {
     private var isFresh: Bool { group.visibleExpenses.isEmpty }
 
     var body: some View {
-        let isSettled = group.balances().isSettled
+        let isSettled = balances.isSettled
         VStack(spacing: 0) {
             // The photo as the card's crown — tapping it opens the whole image. The small badge
             // below stays the picker for a group that has no picture yet.
@@ -519,7 +527,7 @@ private struct GroupHeroCard: View {
 
     /// The nets to draw, shaped by the viewing mode. Exact by default; ≈ on request.
     private var displayedNets: [(money: Money, approximate: Bool)] {
-        let nets = group.nets(for: userId)
+        let nets = group.nets(for: userId, in: balances)
         switch mode {
         case .native:
             return nets.map { ($0, false) }
@@ -550,7 +558,7 @@ private struct GroupHeroCard: View {
         let members = group.activeMembers.count
         // Settled here means settled in every bucket — one open DKK debt keeps you un-kvitt.
         let settledMembers = group.activeMembers.filter { member in
-            group.balances().byCurrency.allSatisfy { $0.amountMinor(for: member.id) == 0 }
+            balances.byCurrency.allSatisfy { $0.amountMinor(for: member.id) == 0 }
         }.count
 
         return VStack(alignment: .leading, spacing: 0) {
@@ -629,7 +637,7 @@ private struct GroupHeroCard: View {
     /// The mode switch, only shown once there is more than one currency to have an opinion about.
     @ViewBuilder
     private var currencyMenu: some View {
-        let currencies = group.balances().currencies
+        let currencies = balances.currencies
         if currencies.count > 1 {
             Menu {
                 Picker("Visa", selection: Binding(get: { mode }, set: onMode)) {
@@ -719,6 +727,8 @@ private struct QuickActionRow: View {
 
 private struct TransfersCard: View {
     let group: GroupState
+    /// From the screen's one fold — see `GroupDetailView.content`.
+    let transfers: [SuggestedTransfer]
     let meId: MemberID?
     let mode: CurrencyDisplay
     let onSettle: (SuggestedTransfer) -> Void
@@ -727,11 +737,10 @@ private struct TransfersCard: View {
     /// Transfers are always native — a converted transfer would be an unpayable number at a
     /// rate somebody disputes. The filter narrows; converted mode leaves them exact.
     private var filteredTransfers: [SuggestedTransfer] {
-        let all = group.suggestedTransfers()
         if case .only(let currency) = mode {
-            return all.filter { $0.currency == currency }
+            return transfers.filter { $0.currency == currency }
         }
-        return all
+        return transfers
     }
 
     var body: some View {
@@ -872,6 +881,9 @@ private struct TransferFaces: View {
 /// the audit for that member — same trust rule as everywhere else.
 private struct MembersCard: View {
     let group: GroupState
+    /// From the screen's one fold. Reading `group.balances()` per row made a list of eight
+    /// members re-fold the whole ledger eight times per frame.
+    let balances: GroupBalances
     let meId: MemberID?
     let mode: CurrencyDisplay
     let rates: ExchangeRates?
@@ -935,7 +947,7 @@ private struct MembersCard: View {
 
     /// A member's balance lines under the current mode: every bucket, one bucket, or one ≈ sum.
     private func lines(for memberId: MemberID) -> [(money: Money, approximate: Bool)] {
-        let buckets = group.balances().byCurrency
+        let buckets = balances.byCurrency
         switch mode {
         case .native:
             // Primary first, matching the hero.
@@ -967,7 +979,7 @@ private struct MembersCard: View {
     }
 
     private func lines(forNative memberId: MemberID) -> [(money: Money, approximate: Bool)] {
-        group.balances().byCurrency.map { ($0.money(for: memberId), false) }
+        balances.byCurrency.map { ($0.money(for: memberId), false) }
     }
 }
 
@@ -993,7 +1005,7 @@ private struct ExpenseList: View {
         let months = MonthGroup.group(visibleUnderMode)
         ForEach(months) { month in
             SectionHeader(title: month.title)
-            VStack(spacing: 0) {
+            LazyVStack(spacing: 0) {
                 ForEach(Array(month.expenses.enumerated()), id: \.element.id) { index, expense in
                     if index > 0 {
                         Rectangle().fill(Theme.hairline).frame(height: 1).padding(.leading, 62)

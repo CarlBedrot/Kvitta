@@ -36,7 +36,9 @@ struct ActivityView: View {
                 }
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
+                    // Lazy: the feed spans every group's history, and only the visible days
+                    // need rows built.
+                    LazyVStack(alignment: .leading, spacing: 16) {
                         filterChips
                         if days.isEmpty {
                             // Filtered to nothing: say so where the rows would be, and keep the
@@ -49,7 +51,7 @@ struct ActivityView: View {
                         }
                         ForEach(days) { day in
                             SectionHeader(title: day.title)
-                            VStack(spacing: 0) {
+                            LazyVStack(spacing: 0) {
                                 ForEach(Array(day.entries.enumerated()), id: \.element.id) { index, entry in
                                     if index > 0 {
                                         Rectangle().fill(Theme.hairline).frame(height: 1)

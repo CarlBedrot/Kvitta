@@ -20,21 +20,23 @@ struct HomeView: View {
     /// Bumped when the last open debt anywhere closes. See `ConfettiBurst`.
     @State private var celebrations = 0
 
-    private var groups: [GroupState] { ledger.state.groupsByLastActivity }
-
     var body: some View {
+        // Sorted and summarised once per render: the sort scans every ledger event and the
+        // summary folds every group, so neither belongs in a property read three times.
+        let groups = ledger.state.groupsByLastActivity
+        let summary = HomeSummary(groups: groups, userId: userId)
         Group {
             if groups.isEmpty {
                 EmptyGroupsView(onNewGroup: onNewGroup)
             } else {
-                content
+                content(groups: groups, summary: summary)
             }
         }
         .background(AmbientBackground())
         // Being square with *everyone*, not just with one group, is the bigger of the two moments
         // — so it gets the same paper. On the transition only: opening the app already settled is
         // a state, not news.
-        .onChange(of: HomeSummary(groups: groups, userId: userId).allSettled) { wasSettled, isSettled in
+        .onChange(of: summary.allSettled) { wasSettled, isSettled in
             if isSettled && !wasSettled { celebrations += 1 }
         }
         .overlay { ConfettiBurst(trigger: celebrations) }
@@ -60,16 +62,17 @@ struct HomeView: View {
         }
     }
 
-    private var content: some View {
-        let summary = HomeSummary(groups: groups, userId: userId)
-        return ScrollView {
-            VStack(spacing: 16) {
+    private func content(groups: [GroupState], summary: HomeSummary) -> some View {
+        ScrollView {
+            // Lazy: a card is built when it scrolls into view, not all of them on first paint.
+            LazyVStack(spacing: 16) {
                 StatusCard(summary: summary, rates: rates.rates)
                     .padding(.bottom, 12)
 
                 ForEach(groups) { group in
                     NavigationLink(value: group.id) {
-                        GroupCard(group: group, userId: userId,
+                        GroupCard(group: group,
+                                  nets: summary.nets[group.id] ?? [.zero(group.currency)],
                                   photo: photos.images.uiImage(for: group.id))
                     }
                     .buttonStyle(ScaleButtonStyle())
@@ -99,18 +102,26 @@ struct HomeSummary {
     let totals: [Money]
     let settledGroups: Int
     let groupCount: Int
+    /// Your nets per group, from the same fold that produced the totals — the cards below the
+    /// status card read these rather than folding their group a second time.
+    let nets: [GroupID: [Money]]
 
     init(groups: [GroupState], userId: UserID) {
         var sums: [CurrencyCode: Int64] = [:]
         var primaries: [CurrencyCode: Int] = [:]
         var settled = 0
+        var nets: [GroupID: [Money]] = [:]
         for group in groups {
-            for net in group.nets(for: userId) {
+            let balances = group.balances()
+            let groupNets = group.nets(for: userId, in: balances)
+            nets[group.id] = groupNets
+            for net in groupNets {
                 sums[net.currency, default: 0] += net.amountMinor
             }
             primaries[group.currency, default: 0] += 1
-            if group.balances().isSettled { settled += 1 }
+            if balances.isSettled { settled += 1 }
         }
+        self.nets = nets
         // The currency most groups call home leads — a DKK side-bucket must not out-rank the
         // SEK your groups actually live in. Ties break on code so two devices agree.
         self.totals = sums
@@ -262,7 +273,8 @@ private struct StatusCard: View {
 
 private struct GroupCard: View {
     let group: GroupState
-    let userId: UserID
+    /// Your position in this group per currency, folded once by `HomeSummary`.
+    let nets: [Money]
     let photo: UIImage?
 
     var body: some View {
@@ -287,8 +299,8 @@ private struct GroupCard: View {
     /// common group has one balance and stays one line tall.
     @ViewBuilder
     private var row: some View {
-        let nets = group.nets(for: userId).filter { $0.amountMinor != 0 }
-        let net = nets.first ?? group.net(for: userId)
+        let nets = self.nets.filter { $0.amountMinor != 0 }
+        let net = nets.first ?? self.nets.first ?? .zero(group.currency)
         let direction: BalanceDirection = nets.isEmpty ? .settled : BalanceDirection(net.amountMinor)
 
         if nets.count > 1 {
