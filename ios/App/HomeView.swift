@@ -2,14 +2,13 @@ import SwiftUI
 import KvittaCore
 import KvittaStorage
 
-/// Hem (Grupper): a status card that answers "how do we stand?" in words before numbers, then one
-/// floating card per group. Calm, white-on-warm, no decoration that isn't information.
+/// Grupper: the list, and nothing above it. One row per group — name, and where you stand in
+/// it — because "how do we stand?" is answered by the rows themselves, not by a card summing
+/// them up. Calm, warm, no decoration that isn't information.
 struct HomeView: View {
     let ledger: LedgerStore
     let userId: UserID
     let invites: InviteModel
-    /// Carried through only to reach `SettleUpSheet`, which needs your own Swish number to build
-    /// the link you send someone who owes you.
     let profile: UserProfile
     let photos: GroupPhotoSyncer
     let rates: RateStore
@@ -18,15 +17,13 @@ struct HomeView: View {
     var onJoin: () -> Void
 
     var body: some View {
-        // Sorted and summarised once per render: the sort scans every ledger event and the
-        // summary folds every group, so neither belongs in a property read three times.
+        // Sorted once per render: the sort scans every ledger event.
         let groups = ledger.state.groupsByLastActivity
-        let summary = HomeSummary(groups: groups, userId: userId)
         Group {
             if groups.isEmpty {
                 EmptyGroupsView(onNewGroup: onNewGroup)
             } else {
-                content(groups: groups, summary: summary)
+                content(groups: groups)
             }
         }
         .background(AmbientBackground())
@@ -51,23 +48,23 @@ struct HomeView: View {
         }
     }
 
-    private func content(groups: [GroupState], summary: HomeSummary) -> some View {
+    private func content(groups: [GroupState]) -> some View {
         ScrollView {
-            // Lazy: a card is built when it scrolls into view, not all of them on first paint.
-            LazyVStack(spacing: 16) {
-                StatusCard(summary: summary, rates: rates.rates)
-                    .padding(.bottom, 12)
-
-                ForEach(groups) { group in
+            // Plain rows with a hairline between them, the way a list of things you can open
+            // looks in every native app — not a card per group. Lazy: a row is built when it
+            // scrolls into view.
+            LazyVStack(spacing: 0) {
+                ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
+                    if index > 0 {
+                        Rectangle().fill(Theme.hairline).frame(height: 1).padding(.leading, 62)
+                    }
                     NavigationLink(value: group.id) {
-                        GroupCard(group: group,
-                                  nets: summary.nets[group.id] ?? [.zero(group.currency)],
-                                  photo: photos.images.uiImage(for: group.id))
+                        GroupRow(group: group, nets: group.nets(for: userId))
                     }
                     .buttonStyle(ScaleButtonStyle())
                 }
 
-                // Leave room so the last card clears the tab bar and the FAB.
+                // Leave room so the last row clears the tab bar and the FAB.
                 Color.clear.frame(height: 120)
             }
             .padding(.horizontal, 20)
@@ -81,314 +78,55 @@ struct HomeView: View {
     }
 }
 
-/// The net-across-groups figure, plus how many groups are settled — the words come first now.
-/// v1 is single-currency per group and per user in practice (Nordic friend groups), so Totalt
-/// reports the currency most groups use and sums the user's net within it.
-struct HomeSummary {
-    /// Your net per currency across all groups, largest bucket count first. Since M7 every
-    /// bucket is shown — the old version silently dropped everything but the dominant currency,
-    /// which was a lie of omission the moment a second currency held real money.
-    let totals: [Money]
-    let settledGroups: Int
-    let groupCount: Int
-    /// Your nets per group, from the same fold that produced the totals — the cards below the
-    /// status card read these rather than folding their group a second time.
-    let nets: [GroupID: [Money]]
+// MARK: - Group rows
 
-    init(groups: [GroupState], userId: UserID) {
-        var sums: [CurrencyCode: Int64] = [:]
-        var primaries: [CurrencyCode: Int] = [:]
-        var settled = 0
-        var nets: [GroupID: [Money]] = [:]
-        for group in groups {
-            let balances = group.balances()
-            let groupNets = group.nets(for: userId, in: balances)
-            nets[group.id] = groupNets
-            for net in groupNets {
-                sums[net.currency, default: 0] += net.amountMinor
-            }
-            primaries[group.currency, default: 0] += 1
-            if balances.isSettled { settled += 1 }
-        }
-        self.nets = nets
-        // The currency most groups call home leads — a DKK side-bucket must not out-rank the
-        // SEK your groups actually live in. Ties break on code so two devices agree.
-        self.totals = sums
-            .map { Money(amountMinor: $0.value, currency: $0.key) }
-            .sorted { lhs, rhs in
-                let l = primaries[lhs.currency] ?? 0
-                let r = primaries[rhs.currency] ?? 0
-                return l == r ? lhs.currency.code < rhs.currency.code : l > r
-            }
-        self.settledGroups = settled
-        self.groupCount = groups.count
-    }
-
-    var lead: Money { totals.first ?? .zero(.sek) }
-
-    /// Everyone in every group is at zero — not just you.
-    var allSettled: Bool { settledGroups == groupCount }
-}
-
-// MARK: - The status card
-
-/// The one place the app editorialises. Settled is a small celebration on a green wash; anything
-/// else is the sentence, the number large, and a bar filling toward done.
-private struct StatusCard: View {
-    let summary: HomeSummary
-    let rates: ExchangeRates?
-
-    var body: some View {
-        if summary.allSettled {
-            settledCard
-        } else {
-            openCard
-        }
-    }
-
-    private var settledCard: some View {
-        HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                // One celebration per card: the 🙌 on the right is the illustration, so the
-                // title does not carry a 🎉 of its own — and the wording states a balance, not
-                // a mood. "Nobody is waiting on you" put a little guilt into the calmest screen
-                // in the app.
-                Text("Alla är kvitt")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(Theme.ink)
-                Text("Inga öppna balanser.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.secondary)
-            }
-            Spacer()
-            // The mockup puts an illustration here. No asset pipeline for one — the emoji
-            // carries the same celebration at zero bytes.
-            Text("🙌")
-                .font(.system(size: 44))
-                .accessibilityHidden(true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(24)
-        .background(Theme.positiveWash, in: .rect(cornerRadius: 28))
-        .settledGlow()
-        .accessibilityElement(children: .combine)
-    }
-
-    private var openCard: some View {
-        let lead = summary.lead
-        let direction = BalanceDirection(lead.amountMinor)
-        return VStack(alignment: .leading, spacing: 8) {
-            Text(statusSentence)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(Theme.secondary)
-
-            // No leading sign: the sentence above carries the direction, and "Du ligger ute
-            // med +191 kr" reads like a stutter. Colour still reinforces it.
-            SignedAmountText(
-                amountMinor: lead.amountMinor,
-                currency: lead.currency,
-                size: 40,
-                sign: .none,
-                // Explicit the moment currencies mix: "200 kr" that means 200 DKK is the exact
-                // lie the kr-collision rule exists to prevent.
-                explicit: summary.totals.count > 1,
-                accessibilityPhrase: "\(direction.spokenWord) \(MoneyFormat.string(abs(lead.amountMinor), lead.currency, explicit: true))"
-            )
-            .contentTransition(.numericText())
-
-            // The other currencies, exact, with explicit codes — "kr" alone cannot say which
-            // kronor once SEK and DKK share a screen. Each line carries its own direction
-            // word: the sentence above only speaks for the lead line, and a second bucket can
-            // point the other way (how-kvitta-works.md §10.1).
-            ForEach(summary.totals.dropFirst(), id: \.currency) { total in
-                HStack(spacing: 6) {
-                    Text(BalanceDirection(total.amountMinor).word)
-                        .font(.subheadline)
-                        .foregroundStyle(Theme.secondary)
-                    SignedAmountText(
-                        amountMinor: total.amountMinor,
-                        currency: total.currency,
-                        size: 22,
-                        explicit: true
-                    )
-                }
-            }
-
-            SettleProgressBar(
-                fraction: summary.groupCount == 0 ? 0 : Double(summary.settledGroups) / Double(summary.groupCount),
-                tint: Theme.tint(forSign: lead.amountMinor)
-            )
-            .padding(.top, 8)
-
-            HStack(spacing: 6) {
-                Text("\(summary.settledGroups) av \(summary.groupCount) grupper är kvitt")
-                if let approx = approximateTotal {
-                    Text(verbatim: "·")
-                    Text("≈ \(MoneyFormat.string(approx.amountMinor, approx.currency, sign: .always, explicit: true)) totalt")
-                        .monospacedDigit()
-                }
-            }
-            .font(.caption)
-            .foregroundStyle(Theme.tertiary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .cardSurface(padding: 24)
-    }
-
-    /// Everything folded into the lead currency at ECB rates — a caption, never the headline.
-    /// `nil` with one bucket (nothing to add), without rates, or if any bucket cannot convert.
-    private var approximateTotal: Money? {
-        guard summary.totals.count > 1, let rates else { return nil }
-        let target = summary.lead.currency
-        var totalMinor: Int64 = 0
-        for total in summary.totals {
-            guard let converted = rates.convert(total, to: target) else { return nil }
-            totalMinor += converted.amountMinor
-        }
-        return Money(amountMinor: totalMinor, currency: target)
-    }
-
-    /// Direction in words, always — the number's colour is reinforcement, never the message.
-    private var statusSentence: LocalizedStringKey {
-        switch BalanceDirection(summary.lead.amountMinor) {
-        case .owed: return "Du ligger ute med"
-        case .owe: return "Du är skyldig"
-        case .settled: return "Grupperna är inte kvitt än"
-        }
-    }
-}
-
-// MARK: - Group cards
-
-private struct GroupCard: View {
+/// Badge, name, and your position — signed and coloured, no direction word: "+191,33 kr" in
+/// green is the sentence. Two currencies stack on the right; nothing else is on the row.
+private struct GroupRow: View {
     let group: GroupState
-    /// Your position in this group per currency, folded once by `HomeSummary`.
+    /// Your position in this group per currency, from one fold.
     let nets: [Money]
-    let photo: UIImage?
 
     var body: some View {
-        // The group's photo spans the card as a banner; the small circle then falls back to the
-        // emoji so the same picture is not shown twice on one card.
-        VStack(spacing: 0) {
-            if let photo {
-                GroupPhotoBanner(image: photo)
-            }
-            row
-                .padding(18)
-        }
-        .flushCardSurface()
-        .accessibilityElement(children: .combine)
-    }
-
-    /// One currency shares a line with the group's name. Two or more get their own lines beneath
-    /// it, because they do not fit beside it — the attempt reads "Fjäll / re- / san" down three
-    /// hyphenated lines while the subtitle truncates to "3 pe…".
-    ///
-    /// Growing the row only when the content actually needs it is also the honest shape: the
-    /// common group has one balance and stays one line tall.
-    @ViewBuilder
-    private var row: some View {
-        let nets = self.nets.filter { $0.amountMinor != 0 }
-        let net = nets.first ?? self.nets.first ?? .zero(group.currency)
-        let direction: BalanceDirection = nets.isEmpty ? .settled : BalanceDirection(net.amountMinor)
-
-        if nets.count > 1 {
-            VStack(spacing: 12) {
-                header { EmptyView() }
-                // Amounts right-aligned in a column of their own, so two currencies line up on
-                // their decimal rather than each ending wherever its direction word left off.
-                // Each line keeps its own word: "+191,33 kr / −200 DKK" under a single "du ska få"
-                // was read as a conversion rather than as two separate debts (how-slice-works §10).
-                VStack(spacing: 6) {
-                    ForEach(nets, id: \.currency) { bucket in
-                        HStack(spacing: 8) {
-                            Text(BalanceDirection(bucket.amountMinor).word)
-                                .font(.subheadline)
-                                .foregroundStyle(Theme.secondary)
-                            Spacer(minLength: 12)
-                            SignedAmountText(
-                                amountMinor: bucket.amountMinor,
-                                currency: bucket.currency,
-                                size: 17,
-                                explicit: true
-                            )
-                            .lineLimit(1)
-                            .fixedSize()
-                        }
-                    }
-                }
-                // Indented to the name's column, so the balances read as belonging to this group
-                // rather than floating under the card.
-                .padding(.leading, 62)
-            }
-        } else {
-            header { settledOrAmount(lead: net, direction: direction) }
-        }
-    }
-
-    /// Badge, name, subtitle — and on the one-balance layout, the amount before the chevron.
-    ///
-    /// Generic over its trailing view rather than taking an optional `AnyView`: erasure breaks
-    /// SwiftUI's diffing (CLAUDE.md), and the two callers pass genuinely different shapes.
-    private func header<Trailing: View>(@ViewBuilder trailing: () -> Trailing) -> some View {
+        let open = nets.filter { $0.amountMinor != 0 }
         HStack(spacing: 14) {
             GroupBadge(name: group.name, size: 48, groupId: group.id)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(GroupBadge.title(of: group.name))
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(Theme.ink)
-                    .lineLimit(1)
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundStyle(Theme.secondary)
-                    // One line, truncated. It used to wrap, and because the balance column can be
-                    // several lines tall it wrapped *mid-phrase* — "3 personer · 1 / sekund sedan".
-                    .lineLimit(1)
-            }
+            Text(GroupBadge.title(of: group.name))
+                .font(.body.weight(.semibold))
+                .foregroundStyle(Theme.ink)
+                .lineLimit(1)
 
             Spacer(minLength: 8)
 
-            trailing()
+            if open.isEmpty {
+                Text("Kvitt")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Theme.tertiary)
+            } else {
+                VStack(alignment: .trailing, spacing: 2) {
+                    ForEach(open, id: \.currency) { bucket in
+                        SignedAmountText(
+                            amountMinor: bucket.amountMinor,
+                            currency: bucket.currency,
+                            size: 17,
+                            explicit: bucket.currency != group.currency || open.count > 1,
+                            accessibilityPhrase: "\(GroupBadge.title(of: group.name)): \(BalanceDirection(bucket.amountMinor).spokenWord) \(MoneyFormat.string(abs(bucket.amountMinor), bucket.currency, explicit: true))"
+                        )
+                        // Money never wraps mid-amount; the group name is what gives way.
+                        .lineLimit(1)
+                        .fixedSize()
+                    }
+                }
+            }
 
             Image(systemName: "chevron.right")
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Theme.tertiary)
         }
-    }
-
-    /// The one-balance trailing block: "Kvitt", or the amount with its direction word beneath.
-    @ViewBuilder
-    private func settledOrAmount(lead: Money, direction: BalanceDirection) -> some View {
-        if direction == .settled {
-            Text("Kvitt")
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(Theme.tertiary)
-        } else {
-            VStack(alignment: .trailing, spacing: 2) {
-                SignedAmountText(
-                    amountMinor: lead.amountMinor,
-                    currency: lead.currency,
-                    size: 17,
-                    explicit: lead.currency != group.currency,
-                    accessibilityPhrase: "\(GroupBadge.title(of: group.name)): \(direction.spokenWord) \(MoneyFormat.string(abs(lead.amountMinor), lead.currency, explicit: true))"
-                )
-                // Money never wraps mid-amount; the group name is what gives way.
-                .lineLimit(1)
-                .fixedSize()
-                Text(direction.word)
-                    .font(.caption)
-                    .foregroundStyle(Theme.secondary)
-            }
-        }
-    }
-
-    private var subtitle: String {
-        // "%lld personer" is a plural entry in the String Catalog — one person, two personer —
-        // so the count never reads "1 personer" again. Nothing to branch on here.
-        let count = String(localized: "\(group.activeMembers.count) personer")
-        guard let last = group.lastActivity else { return count }
-        return "\(count) · \(last.date.formatted(.relative(presentation: .named)))"
+        .padding(.vertical, 14)
+        .contentShape(.rect)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -516,8 +254,6 @@ private struct EmptyGroupsView: View {
     var body: some View {
         ContentUnavailableView {
             Label("Inga grupper än", systemImage: "person.2")
-        } description: {
-            Text("Skapa en grupp för att börja dela utgifter.")
         } actions: {
             Button("Ny grupp", action: onNewGroup)
                 .buttonStyle(PrimaryButtonStyle())
