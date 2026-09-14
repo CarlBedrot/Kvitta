@@ -17,9 +17,6 @@ struct HomeView: View {
     var onNewGroup: () -> Void
     var onJoin: () -> Void
 
-    /// Bumped when the last open debt anywhere closes. See `ConfettiBurst`.
-    @State private var celebrations = 0
-
     var body: some View {
         // Sorted and summarised once per render: the sort scans every ledger event and the
         // summary folds every group, so neither belongs in a property read three times.
@@ -33,14 +30,6 @@ struct HomeView: View {
             }
         }
         .background(AmbientBackground())
-        // Being square with *everyone*, not just with one group, is the bigger of the two moments
-        // — so it gets the same paper. On the transition only: opening the app already settled is
-        // a state, not news.
-        .onChange(of: summary.allSettled) { wasSettled, isSettled in
-            if isSettled && !wasSettled { celebrations += 1 }
-        }
-        .overlay { ConfettiBurst(trigger: celebrations) }
-        .sensoryFeedback(.success, trigger: celebrations)
         .navigationTitle("Grupper")
         // Creating and joining live up here, by the title, where iOS users look for "new" —
         // not under the floating button, which is for the thing you do ten times as often.

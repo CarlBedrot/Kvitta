@@ -55,11 +55,11 @@ enum Theme {
 
     // MARK: The one accent
 
-    /// The brand blue — the same sky the mascot sits on in the icon and on the launch screen, so
-    /// the app is one colour from the home screen inward. The FAB, primary buttons, the selected
-    /// tab — and nothing else, so the single pop of colour keeps meaning "the main thing to do
-    /// here". Identical in both halves.
-    static let accent = Color(hex: 0x4FA9E8)
+    /// Clay — the soft terracotta from the design doc (`docs/ui-design.md`), back after a spell
+    /// as the icon's sky blue. The FAB, primary buttons, the selected tab — and nothing else, so
+    /// the single pop of colour keeps meaning "the main thing to do here". Identical in both
+    /// halves.
+    static let accent = Color(hex: 0xD97757)
 
     // MARK: Money direction
 
