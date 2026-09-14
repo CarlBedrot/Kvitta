@@ -84,19 +84,6 @@ struct GroupDetailView: View {
                     onMembers: { showingMembers = true }
                 )
 
-                // Straight under the balance, so "how do I add a cost" is answered on the
-                // first screen along with "what do I owe" — the two questions a group screen
-                // exists for. A group of one has these in the hero instead.
-                if canSplit {
-                    QuickActionsCard(
-                        onAddExpense: {
-                            expenseModel = NewExpenseModel(ledger: ledger, userId: userId, groupId: groupId)
-                        },
-                        onSettle: settleQuickAction(transfers: transfers, meId: meId),
-                        onMembers: { showingMembers = true }
-                    )
-                }
-
                 // Somebody's books are waiting on this answer, so it stays above the fold's
                 // second half: right after the shortcuts, before anything historical.
                 PendingPaymentsCard(
@@ -120,8 +107,7 @@ struct GroupDetailView: View {
                     transfers: transfers,
                     meId: meId,
                     mode: mode,
-                    onSettle: { settlingTransfer = TransferPresentation(transfer: $0) },
-                    onAudit: { auditingMember = $0 }
+                    onSettle: { settlingTransfer = TransferPresentation(transfer: $0) }
                 )
 
                 MembersCard(group: group, balances: balances, meId: meId, mode: mode,
@@ -157,21 +143,26 @@ struct GroupDetailView: View {
         }
         .navigationTitle(GroupBadge.title(of: group.name))
         .toolbar {
+            // One button up here, the way Swish does it: the things you do rarely live under it.
             ToolbarItem(placement: .topBarTrailing) {
-                // The audit trail that leaves the app (product principles: CSV export early).
-                // Generated lazily — the file only exists once somebody picks a destination.
-                ShareLink(
-                    item: CSVExportFile(group: group),
-                    preview: SharePreview(CSVExportFile.filename(for: group))
-                ) {
-                    Label("Exportera CSV", systemImage: "square.and.arrow.up")
-                }
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showingMembers = true
+                Menu {
+                    Button {
+                        showingMembers = true
+                    } label: {
+                        Label("Medlemmar och inbjudan", systemImage: "person.2")
+                    }
+                    // The audit trail that leaves the app (product principles: CSV export
+                    // early). Generated lazily — the file only exists once somebody picks a
+                    // destination.
+                    ShareLink(
+                        item: CSVExportFile(group: group),
+                        preview: SharePreview(CSVExportFile.filename(for: group))
+                    ) {
+                        Label("Exportera CSV", systemImage: "square.and.arrow.up")
+                    }
                 } label: {
-                    Label("Medlemmar", systemImage: "person.2")
+                    Image(systemName: "ellipsis.circle")
+                        .accessibilityLabel("Mer")
                 }
             }
         }
@@ -202,16 +193,6 @@ struct GroupDetailView: View {
         .sheet(isPresented: $showingPhoto) {
             GroupPhotoViewer(groupName: group.name, groupId: groupId, photos: photos)
         }
-    }
-
-    /// The mockup's "Registrera betalning" quick action, wired to the flow that already exists:
-    /// it opens Gör upp for the first suggested transfer that involves you — the one you can
-    /// actually act on — or the first transfer at all when you are not part of any. `nil` (no
-    /// transfers) hides the row: a settled group has nothing to register.
-    private func settleQuickAction(transfers: [SuggestedTransfer], meId: MemberID?) -> (() -> Void)? {
-        guard let transfer = transfers.first(where: { $0.from == meId || $0.to == meId }) ?? transfers.first
-        else { return nil }
-        return { settlingTransfer = TransferPresentation(transfer: transfer) }
     }
 
     private func restore(_ expenseId: ExpenseID) {
@@ -284,11 +265,6 @@ private struct PendingPaymentsCard: View {
             }
 
             if payment.toMemberId == meId {
-                // Your word is what everyone is waiting on — say what it does before the
-                // buttons, so "Ja" is understood as the thing that moves the balance.
-                Text("Balansen uppdateras när du svarar.")
-                    .font(.footnote)
-                    .foregroundStyle(Theme.secondary)
                 HStack(spacing: 10) {
                     Button(String(localized: "Ja, jag har fått pengarna")) {
                         onAnswer(payment, true)
@@ -311,9 +287,7 @@ private struct PendingPaymentsCard: View {
                     .buttonStyle(ScaleButtonStyle())
                 }
             } else {
-                // Not yours to answer — but showing *whose* answer is missing is what keeps the
-                // frozen balance from looking like a bug.
-                Text("Balansen uppdateras när \(name(payment.toMemberId)) bekräftar. Utan svar räknas den efter \(PaymentStatus.autoConfirmAfterDays) dagar.")
+                Text("Väntar på \(name(payment.toMemberId))")
                     .font(.footnote)
                     .foregroundStyle(Theme.secondary)
             }
@@ -380,20 +354,7 @@ private struct GroupHeroCard: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Visa gruppbilden")
             }
-            // The full name, with room to wrap. The navigation bar can only ever truncate a
-            // long name, so it drops to an inline label and this becomes the one place the
-            // whole name is actually readable. One step below the amount on purpose: the
-            // question this card answers is "what do I owe", and the name is the context.
-            let title = GroupBadge.title(of: group.name)
-            if !title.isEmpty {
-                Text(title)
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(Theme.ink)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 24)
-                    .padding(.top, 24)
-            }
+            // The name is the navigation title; the card is the answer to "what do I owe".
             Group {
                 if isFresh {
                     fresh
@@ -403,9 +364,7 @@ private struct GroupHeroCard: View {
                     open
                 }
             }
-            .padding(.horizontal, 24)
-            .padding(.top, title.isEmpty ? 24 : 12)
-            .padding(.bottom, 24)
+            .padding(24)
         }
         // Settled keeps its green; otherwise a group without a photo wears its own tint, so the
         // card says which group this is before the name does. A photo already does that job.
@@ -446,46 +405,26 @@ private struct GroupHeroCard: View {
         }
     }
 
-    /// The state before the first expense: a group of one is told to invite people, a group
-    /// of several is told the first expense is one tap away. Adding an expense needs somebody
-    /// to split with, so alone in the group the button is there but dimmed — the same idiom
-    /// `GroupPickerSheet` uses for a group you cannot split in yet, so the answer to "why is
-    /// it grey" is the sentence right above it.
+    /// Before the first expense: one line, one button. Alone in the group the button invites,
+    /// because an expense needs somebody to split with; otherwise it adds the expense.
     private var fresh: some View {
         let canSplit = group.activeMembers.count >= 2
-        return VStack(alignment: .leading, spacing: 14) {
+        return VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top, spacing: 16) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Redo för första utgiften")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(Theme.ink)
-                    // Two `Text`s rather than a ternary inside one: a ternary yields a plain
-                    // String, which skips the string catalog.
-                    Group {
-                        if canSplit {
-                            Text("Lägg till det första ni delade på, så räknar Slice ut resten.")
-                        } else {
-                            Text("Bjud in de andra först — en utgift behöver någon att delas med.")
-                        }
-                    }
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                }
+                Text("Inga utgifter än")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(Theme.ink)
                 Spacer(minLength: 0)
                 if photo == nil {
                     badge
                 }
             }
-            HStack(spacing: 10) {
-                Button("Lägg till personer", action: onMembers)
-                    .buttonStyle(PrimaryButtonStyle(fill: canSplit ? Theme.ink.opacity(0.08) : Theme.accent,
-                                                    label: canSplit ? Theme.ink : .white))
+            if canSplit {
                 Button("Lägg till utgift", action: onAddExpense)
-                    .buttonStyle(PrimaryButtonStyle(fill: canSplit ? Theme.accent : Theme.ink.opacity(0.08),
-                                                    label: canSplit ? .white : Theme.ink))
-                    .disabled(!canSplit)
-                    .opacity(canSplit ? 1 : 0.5)
+                    .buttonStyle(PrimaryButtonStyle())
+            } else {
+                Button("Bjud in", action: onMembers)
+                    .buttonStyle(PrimaryButtonStyle())
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -493,14 +432,9 @@ private struct GroupHeroCard: View {
 
     private var settled: some View {
         HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Ni är kvitt 🎉")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(Theme.ink)
-                Text("Ingen i gruppen är skyldig någon något.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.secondary)
-            }
+            Text("Ni är kvitt")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(Theme.ink)
             Spacer()
             if photo == nil {
                 badge
@@ -539,11 +473,6 @@ private struct GroupHeroCard: View {
     private var open: some View {
         let nets = displayedNets
         let lead = nets.first
-        let members = group.activeMembers.count
-        // Settled here means settled in every bucket — one open DKK debt keeps you un-kvitt.
-        let settledMembers = group.activeMembers.filter { member in
-            balances.byCurrency.allSatisfy { $0.amountMinor(for: member.id) == 0 }
-        }.count
 
         return VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top, spacing: 16) {
@@ -584,22 +513,6 @@ private struct GroupHeroCard: View {
                                 )
                             }
                         }
-
-                        // The audit was reachable only by knowing the number was a button. A
-                        // link says so — "why do I owe this?" is the question the sheet answers.
-                        Text("Se uträkning ›")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Theme.accent)
-
-                        SettleProgressBar(
-                            fraction: members == 0 ? 0 : Double(settledMembers) / Double(members),
-                            tint: Theme.tint(forSign: lead?.money.amountMinor ?? 0)
-                        )
-                        .padding(.top, 8)
-
-                        Text("\(settledMembers) av \(members) är kvitt")
-                            .font(.subheadline)
-                            .foregroundStyle(Theme.secondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .contentShape(.rect)
@@ -656,57 +569,6 @@ private struct GroupHeroCard: View {
     }
 }
 
-// MARK: - Snabbfunktioner
-
-/// The two things people come to a group screen to do, as named rows — the mockup's quick
-/// actions. Settling is deliberately not here: a payment belongs to a specific transfer, and
-/// those have their own "Gör upp" buttons just below.
-private struct QuickActionsCard: View {
-    let onAddExpense: () -> Void
-    /// `nil` when the group is settled — there is no payment to register.
-    let onSettle: (() -> Void)?
-    let onMembers: () -> Void
-
-    var body: some View {
-        SectionHeader(title: String(localized: "Snabbfunktioner"))
-        VStack(spacing: 0) {
-            QuickActionRow(title: "Lägg till utgift", systemImage: "receipt", action: onAddExpense)
-            if let onSettle {
-                Rectangle().fill(Theme.hairline).frame(height: 1).padding(.leading, 64)
-                QuickActionRow(title: "Registrera betalning", systemImage: "arrow.left.arrow.right", action: onSettle)
-            }
-            Rectangle().fill(Theme.hairline).frame(height: 1).padding(.leading, 64)
-            QuickActionRow(title: "Medlemmar och inbjudan", systemImage: "person.badge.plus", action: onMembers)
-        }
-        .cardSurface(padding: 8)
-    }
-}
-
-private struct QuickActionRow: View {
-    let title: LocalizedStringKey
-    let systemImage: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 14) {
-                IconBadge(systemImage: systemImage, size: 36)
-                Text(title)
-                    .font(.body.weight(.medium))
-                    .foregroundStyle(Theme.ink)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Theme.tertiary)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 12)
-            .contentShape(.rect)
-        }
-        .buttonStyle(ScaleButtonStyle())
-    }
-}
-
 // MARK: - Vem är skyldig vem
 
 private struct TransfersCard: View {
@@ -716,7 +578,6 @@ private struct TransfersCard: View {
     let meId: MemberID?
     let mode: CurrencyDisplay
     let onSettle: (SuggestedTransfer) -> Void
-    let onAudit: (MemberID) -> Void
 
     /// Transfers are always native — a converted transfer would be an unpayable number at a
     /// rate somebody disputes. The filter narrows; converted mode leaves them exact.
@@ -740,19 +601,12 @@ private struct TransfersCard: View {
                         group: group,
                         meId: meId,
                         transfer: transfer,
-                        onSettle: { onSettle(transfer) },
-                        onAudit: { onAudit(counterparty(of: transfer)) }
+                        onSettle: { onSettle(transfer) }
                     )
                 }
             }
             .cardSurface(padding: 8)
         }
-    }
-
-    /// Who a tapped transfer should explain: the person on the other side of it from you —
-    /// or the debtor when the transfer is between two others.
-    private func counterparty(of transfer: SuggestedTransfer) -> MemberID {
-        transfer.from == meId ? transfer.to : transfer.from
     }
 }
 
@@ -761,15 +615,13 @@ private struct TransferRow: View {
     let meId: MemberID?
     let transfer: SuggestedTransfer
     let onSettle: () -> Void
-    let onAudit: () -> Void
 
     @Environment(\.myAvatarPhoto) private var myPhoto
 
     var body: some View {
-        HStack(spacing: 12) {
-            // The row body opens the audit; the trailing button settles. Two separate targets,
-            // matching "tap any balance/transfer" from the design doc's trust rule.
-            Button(action: onAudit) {
+        // The whole row opens Gör upp — one target, a chevron, no pill per row. The audit
+        // behind a transfer is one tap away on the member rows below.
+        Button(action: onSettle) {
                 HStack(spacing: 12) {
                     // Two faces and the direction between them: the sentence this row used to
                     // spell out, read at a glance instead. Payer on the left, because that is the
@@ -798,21 +650,16 @@ private struct TransferRow: View {
                     }
 
                     Spacer(minLength: 4)
-                }
-                .contentShape(.rect)
-            }
-            .buttonStyle(.plain)
 
-            Button("Gör upp", action: onSettle)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 9)
-                .background(Theme.accent, in: .capsule)
-                .buttonStyle(ScaleButtonStyle())
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Theme.tertiary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .contentShape(.rect)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .buttonStyle(ScaleButtonStyle())
         .accessibilityElement(children: .combine)
         .accessibilityLabel(spokenPhrase)
     }
@@ -1113,20 +960,12 @@ private struct ExpenseRow: View {
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 2) {
-                NeutralAmountText(
-                    amountMinor: expense.amountMinor,
-                    currency: expense.currency,
-                    size: 16,
-                    explicit: expense.currency != group.currency
-                )
-                if let meId {
-                    Text("din del \(MoneyFormat.string(expense.payload.share(of: meId), expense.currency, explicit: expense.currency != group.currency))")
-                        .font(.caption)
-                        .foregroundStyle(Theme.secondary)
-                        .monospacedDigit()
-                }
-            }
+            NeutralAmountText(
+                amountMinor: expense.amountMinor,
+                currency: expense.currency,
+                size: 16,
+                explicit: expense.currency != group.currency
+            )
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)

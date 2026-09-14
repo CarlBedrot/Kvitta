@@ -319,29 +319,6 @@ struct ScaleButtonStyle: ButtonStyle {
     }
 }
 
-/// The single progress bar under a balance: how much of the group (or of your groups) is settled.
-/// Replaces the old two-sided zero line on summary cards — one bar filling toward done reads
-/// instantly, and "done" is the state the app is always working toward.
-struct SettleProgressBar: View {
-    /// 0...1, already clamped by the caller's arithmetic (integer counts, never money).
-    let fraction: Double
-    var tint: Color = Theme.accent
-
-    var body: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Theme.ink.opacity(0.06))
-                Capsule()
-                    .fill(tint)
-                    .frame(width: max(8, geo.size.width * fraction))
-            }
-        }
-        .frame(height: 6)
-        .animation(.spring(duration: 0.35), value: fraction)
-        .accessibilityHidden(true)
-    }
-}
-
 /// An SF Symbol in a tinted rounded square — the Apple Settings row glyph, reused for quick
 /// actions and list icons so the icon language is one system everywhere.
 struct IconBadge: View {
