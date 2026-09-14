@@ -14,7 +14,6 @@ struct SettleUpSheet: View {
     let groupId: GroupID
     let transfer: SuggestedTransfer
     let payees: PayeeDirectory
-    let profile: UserProfile
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
@@ -134,12 +133,12 @@ struct SettleUpSheet: View {
     @ViewBuilder
     private var actions: some View {
         if theyOweMe {
-            // Only SEK has a link worth sending. In any other currency the person paying
-            // arranges it themselves and the slide below is the whole flow — offering
-            // MobilePay here would invite you to pay a debt owed *to* you.
-            if transfer.currency == .sek {
-                RequestPaymentButton(link: requestLink)
-            }
+            // The money is coming to you, and only the other person can move it. Their phone
+            // has your Swish number through the group already, so their "Öppna Swish" is the
+            // whole payment flow. Nothing to send from here: a payment link in a message is
+            // exactly the shape of a scam, and this app never asks anyone to tap one. The
+            // slide below is for when they have paid you by some other route.
+            EmptyView()
         } else if !iAmThePayer {
             // A transfer between two other people. Recording that it happened is legitimate —
             // it is how the friend who never installed the app gets their cash payment into
@@ -325,24 +324,6 @@ struct SettleUpSheet: View {
         )
     }
 
-    /// The link you send someone who owes you: your number, their amount, already filled in.
-    ///
-    /// This is how your Swish number reaches another person — one message, that you chose to send,
-    /// about one debt. It is deliberately not an event: an event is immutable, so a phone number
-    /// in a group log would sit on every member's device forever with no way to withdraw it
-    /// (CLAUDE.md). `nil` until you have set a number in Jag, and the button says so.
-    private var requestLink: URL? {
-        guard let group, let number = profile.swishNumberForPayment else { return nil }
-        // The `swish://payment?data=` shape, the one a real phone accepts — not the app.swish.nu
-        // link, which it rejects as "felaktigt format". No callback: the recipient is not us.
-        return PaymentLinkBuilder.swishAppSwitch(
-            payee: number,
-            amount: Money(amountMinor: transfer.amountMinor, currency: transfer.currency),
-            message: group.name,
-            callback: nil
-        )?.url
-    }
-
     /// A SEK transfer with nobody's number yet: offer to ask for it rather than hiding the button.
     private var needsNumber: Bool {
         transfer.currency == .sek && payees.number(for: transfer.to) == nil
@@ -363,40 +344,6 @@ struct SettleUpSheet: View {
             failure = link.method == .swish
                 ? String(localized: "Swish verkar inte finnas på den här telefonen.")
                 : String(localized: "MobilePay verkar inte finnas på den här telefonen.")
-        }
-    }
-
-    /// What you get instead of "Öppna Swish" when the money is owed to you.
-    ///
-    /// A share sheet rather than a button that does something: only the other person can move the
-    /// money, so the most this screen can do is hand you the message to send. "Markera som betald"
-    /// stays underneath, for when they have paid you by some other route entirely.
-    private struct RequestPaymentButton: View {
-        let link: URL?
-
-        var body: some View {
-            if let link {
-                ShareLink(item: link) {
-                    Text("Skicka betallänk")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Color(hex: 0xEE4A9B), in: .rect(cornerRadius: 22))
-                }
-                .buttonStyle(ScaleButtonStyle())
-                .padding(.horizontal, 20)
-                .padding(.bottom, 10)
-            } else {
-                // Said rather than hidden: a missing button looks like a missing feature, and the
-                // fix is one field away under Jag.
-                Text("Lägg till ditt Swish-nummer under Jag för att kunna skicka en betallänk.")
-                    .font(.footnote)
-                    .foregroundStyle(Theme.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-                    .padding(.bottom, 10)
-            }
         }
     }
 
