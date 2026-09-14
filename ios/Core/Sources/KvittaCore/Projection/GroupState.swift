@@ -4,6 +4,9 @@ import Foundation
 ///
 /// Balances are computed on demand rather than cached. At this data size the fold is measured in
 /// microseconds, and a derived value that cannot go stale is worth more than one that is fast.
+/// The one rule that keeps it cheap: a screen calls `balances()` **once per render** and hands
+/// the `GroupBalances` down — a member list that re-folds per row turns microseconds into
+/// milliseconds per frame.
 public struct GroupState: Hashable, Sendable, Identifiable {
     public let id: GroupID
     public var name: String
@@ -227,10 +230,9 @@ public struct GroupState: Hashable, Sendable, Identifiable {
         }
     }
 
-    /// Suggested settle-up transfers for this group, per currency bucket in currency order.
-    /// Display only — it creates no events. Buckets never net against each other: a SEK debt is
-    /// paid in SEK, full stop, because the alternative is a transfer at a rate somebody disputes.
+    /// Suggested settle-up transfers for this group — `GroupBalances.suggestedTransfers` over a
+    /// fresh fold. A screen that already holds the balances reads them from there instead.
     public func suggestedTransfers(asOf: CalendarDate = CalendarDate(Date())) -> [SuggestedTransfer] {
-        balances(asOf: asOf).byCurrency.flatMap { DebtSimplifier.simplify($0) }
+        balances(asOf: asOf).suggestedTransfers
     }
 }

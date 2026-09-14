@@ -16,8 +16,14 @@ extension GroupState {
     /// The local user's net position in this group, one `Money` per currency bucket, primary
     /// currency first. Zero-in-primary when there is no linked member yet.
     func nets(for userId: UserID) -> [Money] {
+        nets(for: userId, in: balances())
+    }
+
+    /// Same, over balances the caller already folded — the form every screen should use once it
+    /// holds a `GroupBalances`, so one render is one fold.
+    func nets(for userId: UserID, in balances: GroupBalances) -> [Money] {
         guard let me = me(for: userId) else { return [.zero(currency)] }
-        let all = balances().byCurrency.map { $0.money(for: me.id) }
+        let all = balances.byCurrency.map { $0.money(for: me.id) }
         // Primary first, then the rest in bucket order — every screen leads with the same line.
         return all.sorted { lhs, rhs in
             if lhs.currency == currency { return true }
@@ -64,14 +70,20 @@ extension LedgerState {
     /// Groups newest-activity first, as the home screen shows them. Empty groups (no activity)
     /// sort last, tie-broken by name so two devices with the same log render the same order.
     var groupsByLastActivity: [GroupState] {
-        groups.values.sorted { left, right in
-            switch (left.lastActivity, right.lastActivity) {
+        // Decorate first: `lastActivity` walks every expense and payment, and a comparator runs
+        // O(n log n) times — scanning inside it made the home list cost every ledger event on
+        // every render.
+        let decorated = groups.values.map { (group: $0, activity: $0.lastActivity) }
+        return decorated.sorted { left, right in
+            switch (left.activity, right.activity) {
             case let (l?, r?) where l != r: return l > r
             case (.some, .none): return true
             case (.none, .some): return false
             default:
-                return left.name == right.name ? left.id < right.id : left.name < right.name
+                return left.group.name == right.group.name
+                    ? left.group.id < right.group.id
+                    : left.group.name < right.group.name
             }
-        }
+        }.map(\.group)
     }
 }

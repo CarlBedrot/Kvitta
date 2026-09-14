@@ -41,7 +41,7 @@ struct BalanceAuditSheet: View {
             .filter { !$0.1.isEmpty }
 
         return ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            LazyVStack(alignment: .leading, spacing: 14) {
                 Text(isMe ? String(localized: "Din balans") : memberName)
                     .font(.title2.weight(.bold))
                     .foregroundStyle(Theme.ink)
@@ -83,7 +83,7 @@ struct BalanceAuditSheet: View {
         _ entries: [LedgerEntry], group: GroupState, currency: CurrencyCode,
         isMe: Bool, memberName: String
     ) -> some View {
-        VStack(spacing: 0) {
+        LazyVStack(spacing: 0) {
             ForEach(Array(entries.enumerated()), id: \.offset) { index, entry in
                 if index > 0 {
                     Rectangle().fill(Theme.hairline).frame(height: 1)
