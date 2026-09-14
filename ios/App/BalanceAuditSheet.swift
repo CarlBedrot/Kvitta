@@ -179,7 +179,7 @@ private struct AuditRow: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: "\(emoji) \(label)")
+                Text(label)
                     .font(.subheadline)
                     .foregroundStyle(Theme.ink)
                 Text("löpande: \(MoneyFormat.string(entry.runningTotalMinor, currency, sign: .always, explicit: explicit))")
@@ -200,15 +200,6 @@ private struct AuditRow: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// Expenses carry their category's emoji; payments read as a settle-up.
-    private var emoji: String {
-        switch entry.source {
-        case .expense(let id):
-            return Categories.emoji(for: group.expenses[id]?.categoryId ?? "")
-        case .payment:
-            return "🤝"
-        }
-    }
 
     /// A payment with no note has no title of its own — Core deliberately does not invent one,
     /// because the only thing it could reach for is the raw wire value of `method`. The label

@@ -82,7 +82,8 @@ struct FeedEntry: Identifiable {
     let groupId: GroupID
     let timestamp: Timestamp
     let kind: Kind
-    let emoji: String?
+    /// The expense's category, for its glyph. `nil` on a payment.
+    let categoryId: String?
     let title: String
     let subtitle: String
     let amountMinor: Int64
@@ -116,7 +117,7 @@ struct FeedEntry: Identifiable {
                     groupId: group.id,
                     timestamp: expense.lastModifiedAt,
                     kind: .expense,
-                    emoji: Categories.emoji(for: expense.categoryId),
+                    categoryId: expense.categoryId,
                     title: expense.title,
                     subtitle: "\(groupTitle) · \(String(localized: "\(payerName) betalade"))",
                     amountMinor: expense.amountMinor,
@@ -141,7 +142,7 @@ struct FeedEntry: Identifiable {
                     groupId: group.id,
                     timestamp: payment.recordedAt,
                     kind: .payment(incoming: incoming),
-                    emoji: nil,
+                    categoryId: nil,
                     title: String(localized: "\(displayName(payment.fromMemberId)) betalade \(displayName(payment.toMemberId))"),
                     subtitle: groupTitle,
                     amountMinor: payment.amountMinor,
@@ -255,10 +256,7 @@ private struct FeedRow: View {
     private var icon: some View {
         switch entry.kind {
         case .expense:
-            Text(entry.emoji ?? "🧾")
-                .font(.system(size: 17))
-                .frame(width: 36, height: 36)
-                .background(Color(.tertiarySystemFill), in: .circle)
+            CategoryGlyph(categoryId: entry.categoryId ?? Categories.fallbackId)
         case .payment:
             // Repayments get the system glyph on green, visually apart from spending.
             IconBadge(systemImage: "arrow.left.arrow.right", tint: Theme.positive, size: 36)
