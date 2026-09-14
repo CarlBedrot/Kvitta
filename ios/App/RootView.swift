@@ -44,12 +44,15 @@ struct RootView: View {
                 Tab("Grupper", systemImage: "person.2", value: AppTab.grupper) {
                     grupperTab
                 }
-                Tab("Aktivitet", systemImage: "arrow.triangle.2.circlepath", value: AppTab.aktivitet) {
+                Tab("Notiser", systemImage: "bell", value: AppTab.aktivitet) {
                     NavigationStack {
                         ActivityView(ledger: ledger, userId: userId, unread: unread)
                     }
                 }
-                .badge(unread.count)
+                // Only what the tab will actually show: a renamed group or a member added
+                // elsewhere is unread in the log, but there is no row for it here, and a badge
+                // that clears itself on an empty screen reads as a bug.
+                .badge(unread.count(within: FeedEntry.build(from: ledger.state, userId: userId)))
                 Tab("Jag", systemImage: "person.crop.circle", value: AppTab.jag) {
                     JagView(ledger: ledger, sync: sync, profile: profile, session: session,
                             reminders: reminders, rates: rates, userId: userId)

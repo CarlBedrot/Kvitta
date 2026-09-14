@@ -2,11 +2,12 @@ import SwiftUI
 import KvittaCore
 import KvittaStorage
 
-/// Aktivitet: the cross-group feed, newest first, grouped by day — Idag, Igår, then dates.
+/// Notiser: what other people did that touches you, newest first, grouped by day — Idag, Igår,
+/// then dates. An expense somebody else put you on, a payment to or from you. Your own actions
+/// are not news to you and are left out; everything else in the ledger is on the group screen.
 ///
-/// Derived entirely from the projection — one entry per visible expense and payment, ordered by
-/// when this device recorded them. Edits surface as a "redigerad" tag on the expense's row rather
-/// than separate feed entries; the full event history belongs to Utgiftsdetalj.
+/// Derived entirely from the projection. Edits surface as a "redigerad" tag on the expense's row
+/// rather than separate entries; the full event history belongs to Utgiftsdetalj.
 struct ActivityView: View {
     let ledger: LedgerStore
     let userId: UserID
@@ -24,9 +25,7 @@ struct ActivityView: View {
         Group {
             if days.isEmpty {
                 ContentUnavailableView {
-                    Label("Ingen aktivitet än", systemImage: "arrow.triangle.2.circlepath")
-                } description: {
-                    Text("Utgifter och betalningar dyker upp här.")
+                    Label("Inga notiser än", systemImage: "bell")
                 }
             } else {
                 ScrollView {
@@ -54,7 +53,7 @@ struct ActivityView: View {
             }
         }
         .background(AmbientBackground())
-        .navigationTitle("Aktivitet")
+        .navigationTitle("Notiser")
         // Keyed on the log's size, not just `onAppear`: expenses that arrive while this screen is
         // open would otherwise light the tab badge for a feed the user is looking straight at, and
         // would keep it lit until they navigated away and back.
@@ -72,7 +71,7 @@ struct ActivityView: View {
 }
 
 /// One feed line, precomputed so the row view just renders strings.
-private struct FeedEntry: Identifiable {
+struct FeedEntry: Identifiable {
     enum Kind {
         case expense
         /// A repayment. Drawn differently: a payment is the ledger healing, not a new cost.
@@ -107,7 +106,10 @@ private struct FeedEntry: Identifiable {
                 return group.members[memberId]?.displayName ?? "?"
             }
 
-            for expense in group.visibleExpenses {
+            // Somebody else's doing, and you are in it. An expense you added or last edited is
+            // not news; one that leaves you out belongs under Utan mig, not here.
+            for expense in group.visibleExpenses
+            where expense.lastModifiedBy != userId && expense.payload.involves(meId) {
                 let payerName = expense.payload.payers.first.map { displayName($0.memberId) } ?? "?"
                 entries.append(FeedEntry(
                     id: expense.id.rawValue,
@@ -125,7 +127,8 @@ private struct FeedEntry: Identifiable {
                 ))
             }
 
-            for payment in group.paymentsByDate {
+            for payment in group.paymentsByDate
+            where payment.recordedBy != userId && (payment.toMemberId == meId || payment.fromMemberId == meId) {
                 // Colour only when the money touched you: green coming in, red going out.
                 // A payment between two others is news, not your money — it stays ink.
                 let incoming: Bool? = switch (payment.toMemberId == meId, payment.fromMemberId == meId) {

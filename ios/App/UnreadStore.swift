@@ -30,6 +30,11 @@ final class UnreadStore {
 
     var count: Int { unread.count }
 
+    /// The unread entries that the feed will actually list.
+    func count(within entries: [FeedEntry]) -> Int {
+        entries.reduce(0) { $0 + (unread.contains($1.id) ? 1 : 0) }
+    }
+
     func isUnread(_ entityId: UUID) -> Bool { unread.contains(entityId) }
 
     /// Recomputes the badge. Cheap: only events newer than the mark are decoded.
