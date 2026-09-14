@@ -201,7 +201,7 @@ private struct SummaryRow: View {
                 .font(.subheadline.weight(.medium))
                 if !preview.participants.isEmpty {
                     HStack(spacing: 10) {
-                        ParticipantFaces(members: preview.participants.compactMap(member(for:)),
+                        MemberFaces(members: preview.participants.compactMap(member(for:)),
                                          meId: model.meId, myPhoto: myAvatarPhoto,
                                          name: model.name(for:))
                         Text(perPerson(preview))
@@ -263,35 +263,6 @@ private struct SummaryRow: View {
 /// The participants as one overlapping run of faces — a group sharing a cost is one object,
 /// like the pair in a transfer. You wear your photo; everyone else their initials. Past five the
 /// run ends in a count, because a dinner for twelve is not twelve legible circles.
-private struct ParticipantFaces: View {
-    let members: [Member]
-    let meId: MemberID?
-    let myPhoto: Data?
-    let name: (Member) -> String
-
-    private let size: CGFloat = 28
-    private let shown = 5
-
-    var body: some View {
-        let visible = members.prefix(shown)
-        let overflow = members.count - visible.count
-        HStack(spacing: -8) {
-            ForEach(Array(visible), id: \.id) { member in
-                Avatar(name: name(member), photo: member.id == meId ? myPhoto : nil, size: size)
-                    .overlay(Circle().strokeBorder(Theme.card, lineWidth: 2))
-            }
-            if overflow > 0 {
-                Text(verbatim: "+\(overflow)")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Theme.secondary)
-                    .frame(width: size, height: size)
-                    .background(Theme.bg, in: .circle)
-                    .overlay(Circle().strokeBorder(Theme.card, lineWidth: 2))
-            }
-        }
-        .accessibilityHidden(true)
-    }
-}
 
 // MARK: - Keypad
 

@@ -14,7 +14,6 @@ struct HomeView: View {
     let rates: RateStore
     let profiles: ProfileSyncer
     var onNewGroup: () -> Void
-    var onJoin: () -> Void
 
     var body: some View {
         // Sorted once per render: the sort scans every ledger event.
@@ -28,22 +27,12 @@ struct HomeView: View {
         }
         .background(AmbientBackground())
         .navigationTitle("Grupper")
-        // Creating and joining live up here, by the title, where iOS users look for "new" —
-        // not under the floating button, which is for the thing you do ten times as often.
+        // Said in words, up by the title: a ⊕ that opened a menu read as "add what?". Joining
+        // by link lives one step in, on the Ny grupp sheet, for the person who has a link.
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button(action: onNewGroup) {
-                        Label("Ny grupp", systemImage: "person.badge.plus")
-                    }
-                    Button(action: onJoin) {
-                        Label("Gå med via länk", systemImage: "envelope")
-                    }
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title3)
-                        .accessibilityLabel("Ny grupp eller gå med")
-                }
+                Button("Ny grupp", action: onNewGroup)
+                    .font(.body.weight(.semibold))
             }
         }
     }
@@ -59,7 +48,8 @@ struct HomeView: View {
                         Rectangle().fill(Theme.hairline).frame(height: 1).padding(.leading, 62)
                     }
                     NavigationLink(value: group.id) {
-                        GroupRow(group: group, nets: group.nets(for: userId))
+                        GroupRow(group: group, meId: group.me(for: userId)?.id,
+                                 nets: group.nets(for: userId))
                     }
                     .buttonStyle(ScaleButtonStyle())
                 }
@@ -80,22 +70,31 @@ struct HomeView: View {
 
 // MARK: - Group rows
 
-/// Badge, name, and your position — signed and coloured, no direction word: "+191,33 kr" in
-/// green is the sentence. Two currencies stack on the right; nothing else is on the row.
+/// Badge, name with the group's faces under it, and your position — signed and coloured, no
+/// direction word: "+191,33 kr" in green is the sentence. Two currencies stack on the right.
 private struct GroupRow: View {
     let group: GroupState
+    let meId: MemberID?
     /// Your position in this group per currency, from one fold.
     let nets: [Money]
+
+    @Environment(\.myAvatarPhoto) private var myPhoto
 
     var body: some View {
         let open = nets.filter { $0.amountMinor != 0 }
         HStack(spacing: 14) {
             GroupBadge(name: group.name, size: 48, groupId: group.id)
 
-            Text(GroupBadge.title(of: group.name))
-                .font(.body.weight(.semibold))
-                .foregroundStyle(Theme.ink)
-                .lineLimit(1)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(GroupBadge.title(of: group.name))
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Theme.ink)
+                    .lineLimit(1)
+                // Who is in it, instead of "3 personer": the faces say it and are the room
+                // profile pictures will fill once they sync.
+                MemberFaces(members: group.activeMembers, meId: meId, myPhoto: myPhoto,
+                            name: \.displayName, size: 22)
+            }
 
             Spacer(minLength: 8)
 

@@ -18,6 +18,8 @@ struct NewGroupSheet: View {
     let userId: UserID
     let profile: UserProfile
     var onCreated: (GroupID) -> Void = { _ in }
+    /// The other way into a group: somebody sent you a link. Closes this sheet and opens Gå med.
+    var onJoinInstead: () -> Void = {}
 
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
@@ -81,9 +83,19 @@ struct NewGroupSheet: View {
                         Text(failure).font(.footnote).foregroundStyle(Theme.clay)
                     }
                 }
+
+                Section {
+                    Button("Har du fått en länk? Gå med") {
+                        dismiss()
+                        onJoinInstead()
+                    }
+                }
             }
             .scrollContentBackground(.hidden)
             .background(AmbientBackground())
+            // A sheet does not inherit the tint RootView sets; without this the link button
+            // below comes out iOS blue.
+            .tint(Theme.accent)
             .navigationTitle("Ny grupp")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
