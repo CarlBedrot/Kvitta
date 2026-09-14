@@ -39,61 +39,32 @@ enum Categories {
     }
 }
 
-/// A description chip on the add sheet: tapping it fills the description and picks the category.
-/// The group's own recent descriptions come first (see `suggestions(for:)`); the fixed starters
-/// fill in behind them, so a fresh group still has something to tap.
-///
-/// The first set was three shop names — ICA, Systembolaget, Taxi — which only helped on the days
-/// you happened to be in one of those. These are the *kinds* of thing a group splits, so a chip is
-/// usually right and the description can be sharpened afterwards. ICA survives because it really
-/// is the common case for groceries in Sweden.
-struct DescriptionSuggestion: Identifiable {
-    var id: String { text }
-    let text: String
-    let categoryId: String
-
-    var emoji: String { Categories.emoji(for: categoryId) }
-
-    static let starters: [DescriptionSuggestion] = [
-        DescriptionSuggestion(text: String(localized: "Middag"), categoryId: "restaurang"),
-        DescriptionSuggestion(text: "ICA", categoryId: "groceries"),
-        DescriptionSuggestion(text: String(localized: "Drinkar"), categoryId: "alkohol"),
-        DescriptionSuggestion(text: String(localized: "Fika"), categoryId: "fika"),
-        DescriptionSuggestion(text: String(localized: "Taxi"), categoryId: "taxi"),
-        DescriptionSuggestion(text: String(localized: "Boende"), categoryId: "boende"),
-        DescriptionSuggestion(text: String(localized: "Nöje"), categoryId: "nöje"),
-    ]
-
-    /// How many of the group's own descriptions lead the row, and how long the row gets.
-    private static let recentCap = 5
-    private static let totalCap = 8
-
-    /// The chips for one group: what this group actually buys, then the starters.
+extension Categories {
+    /// A category read off the description, so a row gets its emoji without anyone picking one.
     ///
-    /// A household ends up with "Hyra · Internet · ICA" and a trip with "Middag · Taxi · Hotell"
-    /// without anyone configuring anything — the ledger already knows. Ordered by the expense's
-    /// own date, newest first (an old receipt entered today is still an old receipt), with the
-    /// write time as a tiebreak so two expenses on the same day keep a stable order. A text that
-    /// differs only in case or surrounding whitespace is the same chip, and the group's own
-    /// spelling wins over the starter's. Pure: same group, same chips.
-    static func suggestions(for group: GroupState) -> [DescriptionSuggestion] {
-        let recent = group.visibleExpenses
-            .sorted { a, b in
-                a.date != b.date ? a.date > b.date : a.lastModifiedAt > b.lastModifiedAt
-            }
-
-        var seen = Set<String>()
-        var result: [DescriptionSuggestion] = []
-
-        for expense in recent where result.count < recentCap {
-            let text = expense.title.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !text.isEmpty, seen.insert(text.lowercased()).inserted else { continue }
-            result.append(DescriptionSuggestion(text: text, categoryId: expense.categoryId))
+    /// Plain substring matching on a short Nordic word list, first hit wins, `övrigt` when
+    /// nothing hits. Deliberately dumb: "ICA" is groceries and "Systembolaget" is alcohol on
+    /// every phone, and a wrong guess costs one emoji. Pure, so it is testable and never
+    /// disagrees between two devices with the same log.
+    static func infer(from title: String) -> String {
+        let text = title.lowercased()
+        for (id, keywords) in keywordsByCategory {
+            if keywords.contains(where: { text.contains($0) }) { return id }
         }
-        for starter in starters where result.count < totalCap {
-            guard seen.insert(starter.text.lowercased()).inserted else { continue }
-            result.append(starter)
-        }
-        return result
+        return fallbackId
     }
+
+    /// Ordered: the more specific shop names first, the generic words last.
+    private static let keywordsByCategory: [(String, [String])] = [
+        ("alkohol", ["systembolaget", "systemet", "vinmonopolet", "drink", "öl", "vin", "bar ", "sprit", "bubbel"]),
+        ("groceries", ["ica", "coop", "willys", "lidl", "hemköp", "city gross", "netto", "rema", "irma", "matvaror", "mat", "livs"]),
+        ("fika", ["fika", "kaffe", "café", "cafe", "espresso", "bulle", "glass"]),
+        ("brunch", ["brunch", "frukost"]),
+        ("restaurang", ["middag", "lunch", "restaurang", "pizza", "sushi", "burg", "kebab", "thai", "krog", "tacos"]),
+        ("taxi", ["taxi", "uber", "bolt"]),
+        ("boende", ["hyra", "hotell", "airbnb", "boende", "stuga", "bredband", "internet", "elräkning"]),
+        ("resa", ["resa", "flyg", "tåg", "sj ", "hyrbil", "bensin", "färja", "parkering", "buss"]),
+        ("sport", ["gym", "padel", "tennis", "golf", "skidor", "liftkort", "bad", "träning"]),
+        ("nöje", ["bio", "konsert", "biljett", "nöje", "fest", "klubb", "museum", "spel"]),
+    ]
 }

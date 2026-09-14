@@ -214,23 +214,6 @@ struct SettleUpSheet: View {
                     .monospacedDigit()
                     .foregroundStyle(Theme.ink)
             }
-            ZeroLine(amountMinor: -transfer.amountMinor, scaleMinor: transfer.amountMinor * 2)
-                .padding(.horizontal, 40)
-            // Only promise "kvitt" when the books will actually say so the moment the slide
-            // lands. A payee with the app gets to answer first, and until they do the balance
-            // does not move — saying 🎉 here and then showing an unchanged number was the
-            // sequence people read as a bug.
-            if needsConfirmation {
-                Text("Efter betalningen: väntar på att \(name(transfer.to)) bekräftar · sedan kvitt i \(currency.code)")
-                    .font(.footnote)
-                    .foregroundStyle(Theme.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-            } else {
-                Text("Efter betalningen: \(MoneyFormat.string(0, currency, explicit: explicit)) · ni är kvitt i \(currency.code) 🎉")
-                    .font(.footnote)
-                    .foregroundStyle(Theme.secondary)
-            }
         }
         .padding(.top, 20)
     }
@@ -264,14 +247,6 @@ struct SettleUpSheet: View {
             .padding(.horizontal, 4)
             .cardSurface(padding: 16)
             .padding(.horizontal, 20)
-
-            if needsConfirmation {
-                Text("Balansen uppdateras när \(name(transfer.to)) bekräftar. Utan svar räknas den efter \(PaymentStatus.autoConfirmAfterDays) dagar.")
-                    .font(.footnote)
-                    .foregroundStyle(Theme.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-            }
         }
         .accessibilityElement(children: .combine)
     }

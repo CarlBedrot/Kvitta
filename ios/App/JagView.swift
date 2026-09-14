@@ -47,7 +47,6 @@ struct JagView: View {
                     profileSection
                     accountSection
                     remindersSection
-                    backupSection
                     aboutSection
                     helpSection
                     #if DEBUG
@@ -95,14 +94,9 @@ struct JagView: View {
                 }
                 .buttonStyle(.plain)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    TextField("", text: $profile.displayName, prompt: Text("Ditt namn").placeholderStyle())
-                        .font(.title2.weight(.semibold))
-                        .foregroundStyle(Theme.ink)
-                    Text("Visas som du i nya grupper.")
-                        .font(.caption)
-                        .foregroundStyle(Theme.secondary)
-                }
+                TextField("", text: $profile.displayName, prompt: Text("Ditt namn").placeholderStyle())
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(Theme.ink)
             }
             .padding(.vertical, 8)
 
@@ -141,21 +135,6 @@ struct JagView: View {
                     .font(.footnote)
                     .foregroundStyle(Theme.clay)
             }
-
-            // The footer says the one thing everyone needs; the three sentences about withdrawal
-            // and what happens without an account were doing three jobs in one breath. They are
-            // still here, one tap down, for the person who actually wonders.
-            DisclosureGroup {
-                Text("Delas med medlemmarna i dina grupper så att de kan swisha rätt nummer. Tar du bort det slutar det delas. Utan konto sparas det bara på den här telefonen.")
-                    .font(.footnote)
-                    .foregroundStyle(Theme.secondary)
-            } label: {
-                Text("Hur numret delas")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.secondary)
-            }
-        } footer: {
-            Text("Delas med dina grupper så att andra kan betala dig.")
         }
     }
 
@@ -197,12 +176,22 @@ struct JagView: View {
             if let failure = session.failure {
                 Text(failure).font(.footnote).foregroundStyle(Theme.clay)
             }
+
+            if !ledger.rejectedPushes.isEmpty {
+                // Design doc §7: rejected events are surfaced, never dropped. The only line
+                // about the server that earns a place here: something of yours did not save.
+                NavigationLink {
+                    RejectedPushList(ledger: ledger)
+                } label: {
+                    HStack {
+                        Text("Kunde inte sparas hos servern")
+                        Spacer()
+                        Text("\(ledger.rejectedPushes.count)").foregroundStyle(Theme.clay)
+                    }
+                }
+            }
         } header: {
             Text("Konto")
-        } footer: {
-            Text(session.isSignedIn
-                 ? "Nya utgifter sparas hos servern så att de överlever om du byter telefon."
-                 : "Du behöver inget konto för att använda Slice. Ett konto gör bara att dina utgifter finns kvar om telefonen försvinner.")
         }
     }
 
@@ -229,72 +218,6 @@ struct JagView: View {
                     .font(.footnote)
                     .foregroundStyle(Theme.clay)
             }
-        } footer: {
-            Text("En påminnelse i veckan, bara när du är skyldig någon pengar. Aldrig om någon är skyldig dig.")
-        }
-    }
-
-    // MARK: - Backup
-
-    /// Deliberately framed as "is my data safe", not as "sync". A person does not want a switch
-    /// labelled sync; they want to know nothing is lost. The switch itself is a developer control
-    /// until Milestone 4 makes sync something a user can meaningfully own.
-    @ViewBuilder
-    private var backupSection: some View {
-        Section {
-            HStack {
-                SettingsIcon(
-                    systemImage: "externaldrive.fill",
-                    fill: backupIsHealthy ? Color(hex: 0x8E8A82) : Theme.negative
-                )
-                Text("Status")
-                Spacer()
-                Text(backupStatus)
-                    .foregroundStyle(backupIsHealthy ? Theme.secondary : Theme.negative)
-            }
-
-            if !ledger.rejectedPushes.isEmpty {
-                // Design doc §7: rejected events are surfaced, never dropped.
-                NavigationLink {
-                    RejectedPushList(ledger: ledger)
-                } label: {
-                    HStack {
-                        Text("Kunde inte sparas hos servern")
-                        Spacer()
-                        Text("\(ledger.rejectedPushes.count)").foregroundStyle(Theme.clay)
-                    }
-                }
-            }
-        } header: {
-            Text("Säkerhetskopiering")
-        } footer: {
-            Text(sync.isEnabled
-                 ? "Dina utgifter finns alltid på telefonen. Kopian hos servern gör att de överlever om du byter telefon."
-                 : "Dina utgifter finns på den här telefonen. Säkerhetskopiering till servern är inte påslagen än.")
-        }
-    }
-
-    private var backupIsHealthy: Bool {
-        switch sync.status {
-        case .blocked: return false
-        default: return ledger.rejectedPushes.isEmpty
-        }
-    }
-
-    /// Plain language. "Offline" is a normal state for this app, not a problem worth a red badge.
-    private var backupStatus: String {
-        // `String(localized:)` on every branch: a plain literal returned from a `String`
-        // property never passes through the catalog, which is how this row stayed Swedish on
-        // an English phone while everything around it translated.
-        switch sync.status {
-        case .disabled: return String(localized: "Bara på den här telefonen")
-        case .idle:
-            return sync.lastSyncedAt == nil
-                ? String(localized: "Klar")
-                : String(localized: "Allt är sparat")
-        case .syncing: return String(localized: "Sparar…")
-        case .offline: return String(localized: "Väntar på anslutning")
-        case .blocked(let message): return message
         }
     }
 
@@ -340,8 +263,6 @@ struct JagView: View {
                     Text("Dela felrapport").foregroundStyle(Theme.ink)
                 }
             }
-        } footer: {
-            Text("En textrapport om appens tillstånd — inga namn, belopp eller nummer. Skicka den till den som hjälper dig.")
         }
     }
 
