@@ -1901,16 +1901,6 @@
         }
       }
     },
-    "Lägg till ditt Swish-nummer under Jag för att kunna skicka en betallänk." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add your Swish number under Me to be able to send a payment link."
-          }
-        }
-      }
-    },
     "Lägg till eller bjud in" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2567,16 +2557,6 @@
         }
       }
     },
-    "Skicka betallänk" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Send payment link"
-          }
-        }
-      }
-    },
     "Snabbfunktioner" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2605,17 +2585,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Saved on this phone only, not in the group."
-          }
-        }
-      }
-    },
-    "Sparas bara på den här telefonen. Används när du skickar en betalningslänk till någon som är skyldig dig pengar." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Saved on this phone only. Used when you send a payment link to someone who owes you money."
           }
         }
       }

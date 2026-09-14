@@ -193,7 +193,7 @@ struct GroupDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $settlingTransfer) { presentation in
             SettleUpSheet(ledger: ledger, userId: userId, groupId: groupId,
-                          transfer: presentation.transfer, payees: payees, profile: profile)
+                          transfer: presentation.transfer, payees: payees)
                 .presentationDetents([.medium])
         }
         .sheet(item: $auditingMember) { memberId in
