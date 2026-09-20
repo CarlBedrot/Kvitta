@@ -38,14 +38,16 @@ struct MembersSheet: View {
 
                     if let failure {
                         Section {
-                            Text(failure).font(.footnote).foregroundStyle(Theme.clay)
+                            SliceNotice(text: failure)
                         }
                     }
                 }
                 .listRowBackground(Theme.card)
             }
+            .listRowSeparator(.hidden)
             .scrollContentBackground(.hidden)
             .background(AmbientBackground())
+            .tint(Theme.accent)
             .navigationTitle("Medlemmar")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

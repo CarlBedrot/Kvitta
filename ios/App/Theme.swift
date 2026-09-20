@@ -2,11 +2,9 @@ import SwiftUI
 import UIKit
 import KvittaCore
 
-/// The design system: the system's own grouped surfaces and label colours, one clay accent, and
-/// colour otherwise reserved for the direction of money. The aim is a first-party feel — Wallet,
-/// Reminders, Settings — which is why the ground, the cards, the text greys and the separators are
-/// the system's tokens rather than a palette of our own: every custom cream and every drop
-/// shadow was a tell.
+/// The design system: Slice's sky-blue brand, the warm pizza mascot, and colour otherwise reserved
+/// for the direction of money. The app should feel like a friendly shared pizza table, not a
+/// generic finance dashboard.
 ///
 /// Token names kept from the first design where the *role* survived (`ink`, `secondary`, `card`),
 /// so the diff shows what actually changed: the values, and the retirement of glass.
@@ -23,11 +21,8 @@ import KvittaCore
 /// of something warm. A neutral dark mode would throw away the one thing that stops this looking
 /// like Splitwise.
 ///
-/// **The accent does not change between modes.** It reads 5.35:1 on the dark ground, which is
-/// enough, and moving it would both shift the brand and cost contrast against the white it carries
-/// on buttons. Money colours *do* change, because they had to: `positive` at its light value is
-/// 3.75:1 on the dark ground and genuinely hard to read. Every dark money colour ends up with more
-/// contrast than its light counterpart, not less.
+/// Blue remains the brand in both modes; money colours adapt independently so direction stays
+/// legible without confusing a balance with a button.
 enum Theme {
 
     /// One token, both halves. Every call site stays exactly as it was — the app changes palette
@@ -40,27 +35,34 @@ enum Theme {
 
     // MARK: Surfaces
 
-    /// The screen behind everything. Warm off-white by day; by night a warm near-black a step
-    /// deeper than `ink`, so cards have somewhere to sit above.
-    static let bg = Color(.systemGroupedBackground)
+    /// The screen behind everything. Blue-tinted paper by day; by night a deep navy a step deeper
+    /// than `ink`, so cards have somewhere to sit above.
+    static let bg = adaptive(light: 0xF4F8FC, dark: 0x0B1724)
     /// Cards are pure white and *float*. By day elevation comes from `cardSurface`'s shadow; by
     /// night a shadow on a dark ground is invisible, so the card carries its own light instead —
     /// see `CardSurface`.
-    static let card = Color(.secondarySystemGroupedBackground)
+    static let card = adaptive(light: 0xFFFFFF, dark: 0x14283A)
 
     // MARK: Text hierarchy
 
-    static let ink = Color(.label)
-    static let secondary = Color(.secondaryLabel)
-    static let tertiary = Color(.tertiaryLabel)
+    static let ink = adaptive(light: 0x102236, dark: 0xF3F8FD)
+    static let secondary = adaptive(light: 0x56697A, dark: 0xB8C8D8)
+    static let tertiary = adaptive(light: 0x6C7F90, dark: 0x8FA5B8)
 
-    // MARK: The one accent
+    // MARK: Slice brand
 
-    /// Clay — the soft terracotta from the design doc (`docs/ui-design.md`), back after a spell
-    /// as the icon's sky blue. The FAB, primary buttons, the selected tab — and nothing else, so
-    /// the single pop of colour keeps meaning "the main thing to do here". Identical in both
-    /// halves.
-    static let accent = Color(hex: 0xD97757)
+    /// Sky blue from the app icon. The FAB, primary buttons and selected tab all speak Slice blue.
+    static let brandBlue = adaptive(light: 0x55A9DE, dark: 0x3B8FC8)
+    static let accent = brandBlue
+    static let accentInk = Color.white
+    static let accentPressed = adaptive(light: 0x368BC7, dark: 0x2E78AB)
+    static let accentSubtle = adaptive(light: 0xE2F2FC, dark: 0x163B55)
+    static let pizzaOrange = adaptive(light: 0xF28A24, dark: 0xFFB34F)
+    static let pizzaRed = adaptive(light: 0xE94D2F, dark: 0xFF7655)
+    static let hero = adaptive(light: 0x123B5D, dark: 0x0C2944)
+    static let heroHighlight = adaptive(light: 0x246994, dark: 0x164E75)
+    static let heroText = Color.white
+    static let heroSecondary = adaptive(light: 0xC8E4F6, dark: 0xB1D2E8)
 
     // MARK: Money direction
 
@@ -148,10 +150,10 @@ enum Theme {
     /// that half — white by day (16.81:1), the deep warm black by night (16.01:1 on the cream).
     /// Both halves end up with more contrast than a button ever had, and the control keeps
     /// reading as the heaviest object on the sheet, which is the point of it.
-    static let controlFill = ink
+    static let controlFill = hero
     /// What sits on `controlFill`: the label, and the knob. Never `.white` — that is the light
     /// half's value leaking into the dark one, which is exactly the bug this token retires.
-    static let controlLabel = Color(.systemBackground)
+    static let controlLabel = heroText
 
     /// The colour an amount takes from its sign. Never the only carrier of meaning — every amount
     /// on screen also spells its direction in words.
@@ -182,6 +184,36 @@ enum Theme {
 extension Text {
     func placeholderStyle() -> Text {
         foregroundStyle(Theme.secondary)
+    }
+}
+
+struct SliceField: ViewModifier {
+    var invalid = false
+
+    func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(Theme.bg, in: .rect(cornerRadius: 14))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(invalid ? Theme.negative : Theme.hairline, lineWidth: invalid ? 1.5 : 1)
+            }
+    }
+}
+
+struct SliceNotice: View {
+    let text: String
+    var tone: Color = Theme.negative
+
+    var body: some View {
+        Label(text, systemImage: "exclamationmark.circle.fill")
+            .font(.footnote.weight(.medium))
+            .foregroundStyle(tone)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(tone.opacity(0.1), in: .rect(cornerRadius: 14))
+            .accessibilityElement(children: .combine)
     }
 }
 
@@ -239,6 +271,10 @@ private struct SettledGlow: ViewModifier {
 }
 
 extension View {
+    func sliceField(invalid: Bool = false) -> some View {
+        modifier(SliceField(invalid: invalid))
+    }
+
     /// Default inner padding 20 (the brief's "inside cards 20–24").
     func cardSurface(padding: CGFloat = 20) -> some View {
         modifier(CardSurface(padding: padding))
@@ -259,7 +295,8 @@ extension View {
 /// fill and ink label it is the secondary twin beside a primary — same shape, less voice.
 struct PrimaryButtonStyle: ButtonStyle {
     var fill: Color = Theme.accent
-    var label: Color = .white
+    var label: Color = Theme.accentInk
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -269,16 +306,18 @@ struct PrimaryButtonStyle: ButtonStyle {
             .padding(.vertical, 16)
             .background(fill, in: .rect(cornerRadius: 22))
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(.spring(duration: 0.25), value: configuration.isPressed)
+            .animation(reduceMotion ? nil : .spring(duration: 0.25), value: configuration.isPressed)
     }
 }
 
 /// A card or row that should acknowledge the tap without shouting: slight scale, nothing else.
 struct ScaleButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.98 : 1)
-            .animation(.spring(duration: 0.25), value: configuration.isPressed)
+            .animation(reduceMotion ? nil : .spring(duration: 0.25), value: configuration.isPressed)
     }
 }
 

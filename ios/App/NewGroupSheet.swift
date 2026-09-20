@@ -70,6 +70,7 @@ struct NewGroupSheet: View {
                     }
                     .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                     TextField("Namn (t.ex. 🏔️ Fjällresan)", text: $name)
+                        .sliceField(invalid: !name.isEmpty && !canCreate)
                     Picker("Valuta", selection: $currency) {
                         ForEach(Self.currencies, id: \.self) { code in
                             Text(MoneyFormat.symbol(code) == code.code ? code.code
@@ -80,7 +81,7 @@ struct NewGroupSheet: View {
 
                 if let failure {
                     Section {
-                        Text(failure).font(.footnote).foregroundStyle(Theme.clay)
+                        SliceNotice(text: failure)
                     }
                 }
 
@@ -91,6 +92,7 @@ struct NewGroupSheet: View {
                     }
                 }
             }
+            .listRowSeparator(.hidden)
             .scrollContentBackground(.hidden)
             .background(AmbientBackground())
             // A sheet does not inherit the tint RootView sets; without this the link button

@@ -21,9 +21,12 @@ struct JagView: View {
     let reminders: ReminderScheduler
     let rates: RateStore
     let userId: UserID
+    var onProfile: () -> Void = {}
 
     @State private var photoItem: PhotosPickerItem?
     @State private var failure: String?
+    @State private var editingProfile = false
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     #if DEBUG
     @State private var serverAddress = UserDefaults.standard.string(forKey: "se.kvitta.syncBaseURL") ?? ""
     @State private var trialKey = UserDefaults.standard.string(forKey: SyncSettings.trialKeyDefaultsKey) ?? ""
@@ -37,49 +40,69 @@ struct JagView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                // One background for every row, in both halves. Left alone, a Form paints its rows
-                // in the system's grouped colours: white by day — indistinguishable from
-                // `Theme.card` — but neutral charcoal by night, while Grupper's cards stay warm.
-                // That is the whole "Jag looks like a different app in the dark" report: the
-                // ground matched, the rows did not.
-                Group {
-                    profileSection
-                    accountSection
-                    remindersSection
-                    aboutSection
-                    helpSection
+            VStack(spacing: 0) {
+                PageHeader(title: "Profil", subtitle: "Din del av slice.", profile: profile, onProfile: onProfile)
+                    .padding(20)
+                ScrollView {
+                    Group {
+                        if horizontalSizeClass == .regular {
+                            HStack(alignment: .top, spacing: 24) {
+                                VStack(alignment: .leading, spacing: 18) {
+                                    profileSection
+                                    aboutSection
+                                    helpSection
+                                }
+                                .frame(maxWidth: 520, alignment: .topLeading)
+                                VStack(alignment: .leading, spacing: 18) {
+                                    settingsSection
+                                    accountSection
+                                    logoutSection
+                                }
+                                .frame(maxWidth: 520, alignment: .topLeading)
+                            }
+                            .frame(maxWidth: 1080, alignment: .topLeading)
+                        } else {
+                            VStack(alignment: .leading, spacing: 18) {
+                                profileSection
+                                settingsSection
+                                accountSection
+                                aboutSection
+                                helpSection
+                                logoutSection
+                            }
+                        }
                     #if DEBUG
-                    if devToolsVisible {
-                        developerSection
-                    }
+                        if devToolsVisible {
+                            developerSection
+                        }
                     #endif
-                    if let failure {
-                        Section {
-                            Text(failure).font(.footnote).foregroundStyle(Theme.clay)
+                        if let failure {
+                            noticePanel(failure)
                         }
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 36)
                 }
-                .listRowBackground(Theme.card)
             }
-            .scrollContentBackground(.hidden)
             .background(AmbientBackground())
             // The tab bar floats over the bottom of the list. Without this the last row can only
             // ever be read through glass; with it the list scrolls a little further so every row
             // gets clear air at the bottom of the scroll.
             .contentMargins(.bottom, 32, for: .scrollContent)
-            .navigationTitle("Jag")
+            .navigationBarHidden(true)
             .task(id: photoItem) { await loadPhoto() }
+            .sheet(isPresented: $editingProfile) {
+                ProfileEditorView(profile: profile)
+            }
         }
     }
 
     // MARK: - Profile
 
     @ViewBuilder
+    @MainActor
     private var profileSection: some View {
-        Section {
-            // The large profile header, Apple-Settings style: the person first, everything else
-            // in grouped cards below.
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 16) {
                 PhotosPicker(selection: $photoItem, matching: .images) {
                     ZStack(alignment: .bottomTrailing) {
@@ -94,21 +117,43 @@ struct JagView: View {
                 }
                 .buttonStyle(.plain)
 
-                TextField("", text: $profile.displayName, prompt: Text("Ditt namn").placeholderStyle())
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(Theme.ink)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(profile.nameOrDefault)
+                        .font(.title2.weight(.semibold))
+                        .foregroundStyle(Theme.ink)
+                    Button("Redigera profil") { editingProfile = true }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.ink)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .overlay(Capsule().stroke(Theme.ink, lineWidth: 1))
+                }
             }
-            .padding(.vertical, 8)
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             if profile.avatarData != nil {
                 Button("Ta bort bild", role: .destructive) {
                     profile.avatarData = nil
                     photoItem = nil
                 }
+                .padding(.horizontal, 4)
+            }
+            }
+
+    }
+
+    private var settingsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            outlinedPanel {
+                VStack(alignment: .leading, spacing: 12) {
+                    panelTitle("Inställningar")
+                    swishNumberSection
+                    Divider().overlay(Theme.hairline)
+                    remindersSection
+                }
             }
         }
-
-        swishNumberSection
     }
 
     /// The number people Swish you on.
@@ -119,11 +164,8 @@ struct JagView: View {
     /// screen, with the amount already in it.
     @ViewBuilder
     private var swishNumberSection: some View {
-        Section {
-            HStack {
-                SettingsIcon(systemImage: "creditcard.fill", fill: Color(hex: 0xEE4A9B))
-                Text("Swish-nummer")
-                Spacer()
+        VStack(spacing: 8) {
+            SettingsRow(systemImage: "creditcard.fill", fill: Color(hex: 0xEE4A9B), title: "Swish-nummer") {
                 TextField("", text: $profile.swishNumber, prompt: Text("07XX XXX XX XX").placeholderStyle())
                     .keyboardType(.phonePad)
                     .multilineTextAlignment(.trailing)
@@ -136,6 +178,7 @@ struct JagView: View {
                     .foregroundStyle(Theme.clay)
             }
         }
+        .padding(.vertical, 2)
     }
 
     // MARK: - Account
@@ -147,26 +190,19 @@ struct JagView: View {
     /// between "on this phone" and "safe if you lose this phone" is stated plainly.
     @ViewBuilder
     private var accountSection: some View {
-        Section {
+        VStack(alignment: .leading, spacing: 8) {
+            panelTitle("Konto")
+            outlinedPanel {
             if session.isSignedIn {
-                HStack {
-                    SettingsIcon(systemImage: "person.crop.circle.fill", fill: Theme.positive)
-                    Text("Inloggad")
-                    Spacer()
+                SettingsRow(systemImage: "person.crop.circle.fill", fill: Theme.positive, title: "Inloggad") {
                     Image(systemName: "checkmark.seal.fill").foregroundStyle(Theme.positive)
                 }
 
-                Button("Logga ut", role: .destructive) {
-                    Task { await session.signOut() }
-                }
             } else {
                 Button {
                     Task { await session.signIn(displayName: profile.displayName) }
                 } label: {
-                    HStack {
-                        SettingsIcon(systemImage: "person.crop.circle.fill", fill: Theme.accent)
-                        Text("Logga in").foregroundStyle(Theme.ink)
-                        Spacer()
+                    SettingsRow(systemImage: "person.crop.circle.fill", fill: Theme.accent, title: "Logga in") {
                         if session.isWorking { ProgressView() }
                     }
                 }
@@ -190,8 +226,7 @@ struct JagView: View {
                     }
                 }
             }
-        } header: {
-            Text("Konto")
+            }
         }
     }
 
@@ -204,28 +239,29 @@ struct JagView: View {
     /// team and could not be built at all.
     @ViewBuilder
     private var remindersSection: some View {
-        Section {
-            HStack {
-                SettingsIcon(systemImage: "bell.badge.fill", fill: Theme.accent)
-                Toggle("Påminn mig om skulder", isOn: Binding(
+        VStack(alignment: .leading, spacing: 8) {
+            SettingsRow(systemImage: "bell.badge", fill: Theme.accent, title: "Påminn mig om skulder") {
+                Toggle("", isOn: Binding(
                     get: { reminders.isEnabled },
                     set: { on in Task { await reminders.setEnabled(on, ledger: ledger, userId: userId) } }
                 ))
             }
-
             if reminders.wasDenied {
                 Text("Notiser är avstängda för Slice i Inställningar.")
                     .font(.footnote)
                     .foregroundStyle(Theme.clay)
             }
         }
+        .padding(.vertical, 2)
     }
 
     // MARK: - About
 
     /// Version and build straight from the bundle — no hand-maintained copy to go stale.
     private var aboutSection: some View {
-        Section("Om Slice") {
+        VStack(alignment: .leading, spacing: 8) {
+            panelTitle("Om Slice")
+            outlinedPanel {
             HStack {
                 SettingsIcon(systemImage: "info.circle.fill", fill: Color(hex: 0xA5A099))
                 LabeledContent(
@@ -246,6 +282,7 @@ struct JagView: View {
                 }
             }
             #endif
+            }
         }
     }
 
@@ -254,15 +291,56 @@ struct JagView: View {
     /// The escape hatch for "something looks wrong on my phone": a shareable state report.
     /// Not debug-gated — the whole point is that a friend on a release build can send one.
     private var helpSection: some View {
-        Section {
-            ShareLink(item: DiagnosticReport.text(
-                ledger: ledger, sync: sync, rates: rates, signedIn: session.isSignedIn
-            )) {
-                HStack {
-                    SettingsIcon(systemImage: "ladybug.fill", fill: Color(hex: 0x6E7F5C))
-                    Text("Dela felrapport").foregroundStyle(Theme.ink)
+        VStack(alignment: .leading, spacing: 8) {
+            panelTitle("Hjälp & information")
+            outlinedPanel {
+                ShareLink(item: DiagnosticReport.text(
+                    ledger: ledger, sync: sync, rates: rates, signedIn: session.isSignedIn
+                )) {
+                    HStack {
+                        SettingsIcon(systemImage: "ladybug", fill: Theme.secondary)
+                        Text("Dela felrapport").foregroundStyle(Theme.ink)
+                    }
                 }
             }
+        }
+    }
+
+    private var logoutSection: some View {
+        Group {
+            if session.isSignedIn {
+                Button("Logga ut", role: .destructive) {
+                    Task { await session.signOut() }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 4)
+            }
+        }
+    }
+
+    private func outlinedPanel<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        content()
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.card.opacity(0.55), in: .rect(cornerRadius: 20))
+            .overlay {
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Theme.hairline, lineWidth: 1)
+            }
+    }
+
+    private func panelTitle(_ title: String) -> some View {
+        Text(title)
+            .font(.headline.weight(.semibold))
+            .foregroundStyle(Theme.secondary)
+            .padding(.horizontal, 4)
+    }
+
+    private func noticePanel(_ message: String) -> some View {
+        outlinedPanel {
+            Text(message)
+                .font(.footnote)
+                .foregroundStyle(Theme.clay)
         }
     }
 
@@ -387,9 +465,8 @@ private struct SettingsIcon: View {
     var body: some View {
         Image(systemName: systemImage)
             .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(.white)
+            .foregroundStyle(fill)
             .frame(width: 28, height: 28)
-            .background(fill, in: .rect(cornerRadius: 7))
             .accessibilityHidden(true)
     }
 }

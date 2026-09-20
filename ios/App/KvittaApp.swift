@@ -31,20 +31,18 @@ struct KvittaApp: App {
             // WindowGroup body is already a @ViewBuilder, so this costs nothing.
             switch startup {
             case .ready(let ledger, let sync, let session, let invites, let profiles, let photos):
-                LaunchTransitionView {
-                    RootView(
-                        ledger: ledger,
-                        userId: session.userId ?? DeviceIdentity.userId,
-                        sync: sync,
-                        profile: profile,
-                        session: session,
-                        invites: invites,
-                        reminders: reminders,
-                        rates: rates,
-                        profiles: profiles,
-                        photos: photos
-                    )
-                }
+                RootView(
+                    ledger: ledger,
+                    userId: session.userId ?? DeviceIdentity.userId,
+                    sync: sync,
+                    profile: profile,
+                    session: session,
+                    invites: invites,
+                    reminders: reminders,
+                    rates: rates,
+                    profiles: profiles,
+                    photos: photos
+                )
                 // Follows the phone. `Theme` has both halves now, so this and the plist's
                 // UIUserInterfaceStyle came out together — either one alone would leave
                 // system-drawn labels on the wrong ground, which is what the first run on real

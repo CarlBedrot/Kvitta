@@ -9,6 +9,7 @@ import KvittaCore
 struct SplitEditorSheet: View {
     @Bindable var model: NewExpenseModel
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var shareMap: [MemberID: Int64] {
         let shares = model.draft.resolvedShares(totalMinor: model.amountMinor, members: model.memberIds) ?? []
@@ -17,29 +18,28 @@ struct SplitEditorSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Betalade av") {
-                    PayerStrip(model: model)
-                        .listRowInsets(EdgeInsets(top: 12, leading: 0, bottom: 12, trailing: 0))
-                }
-
-                Section("Fördelning") {
-                    Picker("Läge", selection: $model.draft.mode) {
-                        ForEach(SplitDraft.Mode.allCases) { mode in
-                            Text(mode.label).tag(mode)
-                        }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    Text("Betalade av")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(Theme.secondary)
+                    card {
+                        PayerStrip(model: model)
                     }
-                    .pickerStyle(.segmented)
-                }
 
-                Section {
-                    memberRows
-                } footer: {
-                    RemainderFooter(model: model)
+                    Text("Fördelning")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(Theme.secondary)
+                    modePicker
+
+                    card {
+                        memberRows
+                        RemainderFooter(model: model)
+                    }
                 }
+                .padding(20)
             }
-            .scrollContentBackground(.hidden)
-            .background(AmbientBackground())
+            .background(Theme.bg)
             .navigationTitle("Dela upp")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -49,6 +49,38 @@ struct SplitEditorSheet: View {
                 }
             }
         }
+    }
+
+    private var modePicker: some View {
+        HStack(spacing: 4) {
+            ForEach(SplitDraft.Mode.allCases) { mode in
+                Button {
+                    model.draft.mode = mode
+                } label: {
+                    Text(mode.label)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(model.draft.mode == mode ? Theme.heroText : Theme.ink)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                        .background(model.draft.mode == mode ? Theme.hero : Theme.card,
+                                    in: .rect(cornerRadius: 12))
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(model.draft.mode == mode ? .isSelected : [])
+            }
+        }
+        .padding(4)
+        .background(Theme.card.opacity(0.55), in: .rect(cornerRadius: 16))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16).stroke(Theme.hairline, lineWidth: 1)
+        }
+    }
+
+    private func card<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        content()
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.card, in: .rect(cornerRadius: 20))
     }
 
     // A switch over the mode returning concrete row views — never AnyView (CLAUDE.md).
@@ -75,6 +107,7 @@ struct SplitEditorSheet: View {
 private struct EqualRows: View {
     @Bindable var model: NewExpenseModel
     let shareMap: [MemberID: Int64]
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let columns = [GridItem(.adaptive(minimum: 78, maximum: 110), spacing: 12)]
 
@@ -93,7 +126,7 @@ private struct EqualRows: View {
         }
         .padding(.vertical, 6)
         .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
-        .animation(.spring(duration: 0.28), value: model.draft.included)
+        .animation(reduceMotion ? nil : .spring(duration: 0.28), value: model.draft.included)
 
         Button(allIncluded ? "Ingen" : "Alla") {
             if allIncluded {
@@ -103,6 +136,8 @@ private struct EqualRows: View {
             }
         }
         .font(.subheadline.weight(.medium))
+        .foregroundStyle(Theme.ink)
+        .buttonStyle(.plain)
     }
 
     private var allIncluded: Bool {
@@ -147,7 +182,7 @@ private struct PersonToggle: View {
                     if isOn {
                         Image(systemName: "checkmark")
                             .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Theme.accentInk)
                             .frame(width: 20, height: 20)
                             .background(Theme.accent, in: .circle)
                             .overlay(Circle().strokeBorder(Theme.card, lineWidth: 2))
@@ -194,6 +229,7 @@ private struct PersonToggle: View {
 /// leaving the expense with no payer.
 private struct PayerStrip: View {
     @Bindable var model: NewExpenseModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @Environment(\.myAvatarPhoto) private var myPhoto
 
@@ -231,7 +267,7 @@ private struct PayerStrip: View {
             }
             .padding(.horizontal, 16)
         }
-        .animation(.spring(duration: 0.28), value: model.payerId)
+        .animation(reduceMotion ? nil : .spring(duration: 0.28), value: model.payerId)
     }
 }
 

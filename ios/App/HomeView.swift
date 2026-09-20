@@ -14,19 +14,29 @@ struct HomeView: View {
     let rates: RateStore
     let profiles: ProfileSyncer
     var onNewGroup: () -> Void
+    var onProfile: () -> Void = {}
+    @State private var searchText = ""
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
         // Sorted once per render: the sort scans every ledger event.
         let groups = ledger.state.groupsByLastActivity
+        let visibleGroups = searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? groups
+            : groups.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
         Group {
             if groups.isEmpty {
-                EmptyGroupsView(onNewGroup: onNewGroup)
+                VStack(alignment: .leading, spacing: 24) {
+                    PageHeader(title: "Grupper", subtitle: "Små köp. Stora planer.", profile: profile, onProfile: onProfile)
+                    EmptyGroupsView(onNewGroup: onNewGroup)
+                }
+                .padding(20)
             } else {
-                content(groups: groups)
+                content(groups: visibleGroups)
             }
         }
         .background(AmbientBackground())
-        .navigationTitle("Grupper")
+        .navigationBarHidden(true)
         // Said in words, up by the title: a ⊕ that opened a menu read as "add what?". Joining
         // by link lives one step in, on the Ny grupp sheet, for the person who has a link.
         .toolbar {
@@ -39,26 +49,43 @@ struct HomeView: View {
 
     private func content(groups: [GroupState]) -> some View {
         ScrollView {
-            // One grouped section of rows with a hairline between them — the shape Settings and
-            // Wallet use for a list of things you can open. Lazy: a row is built when it scrolls
-            // into view.
-            LazyVStack(spacing: 0) {
-                ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
-                    if index > 0 {
-                        Rectangle().fill(Theme.hairline).frame(height: 1).padding(.leading, 74)
-                    }
-                    NavigationLink(value: group.id) {
-                        GroupRow(group: group, meId: group.me(for: userId)?.id,
-                                 nets: group.nets(for: userId))
-                    }
-                    .buttonStyle(ScaleButtonStyle())
+            VStack(alignment: .leading, spacing: 24) {
+            PageHeader(title: "Grupper", subtitle: "Små köp. Stora planer.", profile: profile, onProfile: onProfile)
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(Theme.secondary)
+                TextField("Sök grupper", text: $searchText)
+                    .textInputAutocapitalization(.never)
+            }
+            .sliceField()
+            if groups.isEmpty {
+                Text("Inga grupper matchar sökningen.")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.secondary)
+                    .padding(.vertical, 20)
+            }
+            // Cards keep each group scannable on a warm canvas, matching the reference hierarchy.
+            if horizontalSizeClass == .regular {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 320), spacing: 12)], spacing: 12) {
+                    ForEach(groups) { group in groupLink(group) }
+                }
+            } else {
+                LazyVStack(spacing: 12) {
+                    ForEach(groups) { group in groupLink(group) }
                 }
             }
+            Button(action: onNewGroup) {
+                Label("Skapa grupp", systemImage: "plus")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(PrimaryButtonStyle())
             .cardSurface(padding: 0)
             .padding(.horizontal, 16)
             .padding(.top, 4)
             // Leave room so the last row clears the tab bar and the FAB.
             .padding(.bottom, 120)
+            }
+            .padding(.horizontal, 20)
         }
         .navigationDestination(for: GroupID.self) { groupId in
             GroupDetailView(ledger: ledger, userId: userId, groupId: groupId,
@@ -66,34 +93,47 @@ struct HomeView: View {
                             profiles: profiles)
         }
     }
+
+    private func groupLink(_ group: GroupState) -> some View {
+        NavigationLink(value: group.id) {
+            GroupCard(group: group, meId: group.me(for: userId)?.id,
+                     nets: group.nets(for: userId), photo: photos.images.uiImage(for: group.id))
+                .cardSurface(padding: 0)
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
 }
 
 // MARK: - Group rows
 
 /// Badge, name with the group's faces under it, and your position — signed and coloured, no
 /// direction word: "+191,33 kr" in green is the sentence. Two currencies stack on the right.
-private struct GroupRow: View {
+struct GroupCard: View {
     let group: GroupState
     let meId: MemberID?
     /// Your position in this group per currency, from one fold.
     let nets: [Money]
+    let photo: UIImage?
 
     @Environment(\.myAvatarPhoto) private var myPhoto
 
     var body: some View {
         let open = nets.filter { $0.amountMinor != 0 }
         HStack(spacing: 14) {
-            GroupBadge(name: group.name, size: 48, groupId: group.id)
+            GroupBadge(name: group.name, photo: photo, size: 48, groupId: group.id)
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(GroupBadge.title(of: group.name))
                     .font(.body.weight(.semibold))
                     .foregroundStyle(Theme.ink)
-                    .lineLimit(1)
+                    .lineLimit(2)
                 // Who is in it, instead of "3 personer": the faces say it and are the room
                 // profile pictures will fill once they sync.
                 MemberFaces(members: group.activeMembers, meId: meId, myPhoto: myPhoto,
                             name: \.displayName, size: 22)
+                Text("\(group.activeMembers.count) personer · \(group.visibleExpenses.count) utgifter")
+                    .font(.caption)
+                    .foregroundStyle(Theme.tertiary)
             }
 
             Spacer(minLength: 8)
@@ -105,13 +145,18 @@ private struct GroupRow: View {
             } else {
                 VStack(alignment: .trailing, spacing: 2) {
                     ForEach(open, id: \.currency) { bucket in
-                        SignedAmountText(
+                        VStack(alignment: .trailing, spacing: 1) {
+                            Text(bucket.amountMinor > 0 ? "Du ska få" : "Du ska betala")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(Theme.secondary)
+                            SignedAmountText(
                             amountMinor: bucket.amountMinor,
                             currency: bucket.currency,
                             size: 17,
                             explicit: bucket.currency != group.currency || open.count > 1,
                             accessibilityPhrase: "\(GroupBadge.title(of: group.name)): \(BalanceDirection(bucket.amountMinor).spokenWord) \(MoneyFormat.string(abs(bucket.amountMinor), bucket.currency, explicit: true))"
-                        )
+                            )
+                        }
                         // Money never wraps mid-amount; the group name is what gives way.
                         .lineLimit(1)
                         .fixedSize()

@@ -68,7 +68,7 @@ struct SettleUpSheet: View {
             }
 
             if let failure {
-                Text(failure).font(.footnote).foregroundStyle(Theme.clay).padding(.bottom, 8)
+                SliceNotice(text: failure).padding(.bottom, 8)
             }
 
             if recorded {
@@ -152,13 +152,14 @@ struct SettleUpSheet: View {
                 handOff(to: link)
             }
             .buttonStyle(PrimaryButtonStyle(
-                fill: link.method == .swish ? Color(hex: 0xEE4A9B) : Color(hex: 0x5A78FF)
+                fill: link.method == .swish ? Color(hex: 0xEE4A9B) : Color(hex: 0x5A78FF),
+                label: .white
             ))
             .padding(.horizontal, 20)
             .padding(.bottom, 10)
         } else if needsNumber {
             Button("Öppna Swish") { askingForNumber = true }
-                .buttonStyle(PrimaryButtonStyle(fill: Color(hex: 0xEE4A9B)))
+                .buttonStyle(PrimaryButtonStyle(fill: Color(hex: 0xEE4A9B), label: .white))
                 .padding(.horizontal, 20)
                 .padding(.bottom, 10)
         }
