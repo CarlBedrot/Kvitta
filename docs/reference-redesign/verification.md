@@ -59,3 +59,19 @@ large-text, reports and own-edited-expense, plus the remaining report compositio
 - Final build/install/launch checked after layout-only adjustments; the 40-test suite preceded
   those final layout/copy adjustments. Both backend CI variants, Core CI and secret scan passed
   on the implementation commit; final PR checks must pass before merge.
+
+## Groups match Categories — #135 (2026-09-30)
+
+Groups now share `EditorialCardStack`, `EditorialCardTitle` and `EditorialMetadataPill`
+with Categories: identical purple/coral/charcoal/yellow roles, overlapping rounded layers,
+condensed title, metadata pills and illustration treatment. A saved group photo replaces
+the default illustration. Group names, member/expense counts and each currency's balance
+remain actual group data. Search, profile and group creation stay available.
+
+Validation: iPhone 17 Pro / iOS 26.5 build, install and launch passed. Simulator checks
+covered opening Fjällresan and returning, separate 4.65 SEK owed-to-you / 100 DKK owed
+balances, unmatched search and clear, new-group sheet opening/cancel, and normal versus
+accessibility-extra-large text. Categories retained its appearance and selection changed
+Restaurant (1000 SEK) to Alcohol (437 SEK). Screenshots are in the local `groups-category`
+artifact folder. Empty-account and custom-photo variants were source-reviewed, not separately
+runtime exercised. Ledger logic was unchanged; no new layout-only tests were added.

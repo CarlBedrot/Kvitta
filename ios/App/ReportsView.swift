@@ -25,7 +25,6 @@ struct ReportsView: View {
     @State private var initialized = false
     @State private var visibleLimit = 30
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var page: Page = .reports
     @State private var currency: CurrencyCode = .sek
     @State private var weekOffset = 0
@@ -225,55 +224,31 @@ struct ReportsView: View {
     }
 
     private var categoryStack: some View {
-        VStack(alignment: .leading, spacing: -16) {
+        EditorialCardStack {
             Menu {
                 ForEach(Categories.all) { option in Button(option.name) { category = option.id } }
             } label: {
                 HStack { Text("Välj kategori"); Spacer(); Image(systemName: "chevron.down") }
-                    .font(Editorial.heading(20)).foregroundStyle(Editorial.coal)
-                    .padding(.horizontal, 18).padding(.top, 16).padding(.bottom, 30)
-                    .background(Editorial.coral, in: .rect(cornerRadius: 26))
             }
+        } metadata: {
             HStack {
                 Text("\(visible.count) utgifter").font(Editorial.heading(18))
                 Spacer()
                 Text(currency.code).font(.caption)
-            }.foregroundStyle(Editorial.paper)
-                .padding(.horizontal, 18).padding(.top, 16).padding(.bottom, 30)
-                .background(Editorial.coal, in: .rect(cornerRadius: 26))
-            EditorialPanel(fill: Editorial.yellow) {
-                VStack(alignment: .leading, spacing: 14) {
-                    categoryHeadingLayout {
-                        Text(Categories.all.first(where: { $0.id == category })?.name.uppercased() ?? category.uppercased())
-                            .font(Editorial.heading(38)).foregroundStyle(Editorial.coal)
-                            .fixedSize(horizontal: false, vertical: true)
-                        if !dynamicTypeSize.isAccessibilitySize { Spacer() }
-                        Image(systemName: Categories.symbol(for: category))
-                            .font(.system(size: 20))
-                            .foregroundStyle(Editorial.paper).frame(width: 40, height: 40).background(Editorial.coal, in: .circle)
-                            .accessibilityHidden(true)
-                    }
-                    HStack(spacing: 8) {
-                        Circle().fill(Editorial.coral).frame(width: 7, height: 7)
-                        Text(total(visible)).font(.caption.weight(.medium)).monospacedDigit()
-                    }.foregroundStyle(Editorial.coal)
-                        .padding(.horizontal, 10).padding(.vertical, 6)
-                        .background(Editorial.paper.opacity(0.35), in: .capsule)
-                    Image("SharedDinner").resizable().scaledToFit().frame(maxHeight: 330).accessibilityHidden(true)
-                    HStack {
-                        Text("GEMENSAMT / \(currency.code)").font(.caption2.weight(.semibold))
-                        Spacer()
-                        Image(systemName: "arrow.down")
-                    }.foregroundStyle(Editorial.coal)
-                }
             }
-        }.clipShape(.rect(cornerRadius: 28))
-    }
-
-    private var categoryHeadingLayout: AnyLayout {
-        dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
-            : AnyLayout(HStackLayout(alignment: .top))
+        } content: {
+            VStack(alignment: .leading, spacing: 14) {
+                EditorialCardTitle(title: Categories.all.first(where: { $0.id == category })?.name ?? category,
+                                    symbol: Categories.symbol(for: category))
+                EditorialMetadataPill(text: total(visible))
+                Image("SharedDinner").resizable().scaledToFit().frame(maxHeight: 330).accessibilityHidden(true)
+                HStack {
+                    Text("GEMENSAMT / \(currency.code)").font(.caption2.weight(.semibold))
+                    Spacer()
+                    Image(systemName: "arrow.down")
+                }.foregroundStyle(Editorial.coal)
+            }
+        }
     }
 
     private var timing: some View {
