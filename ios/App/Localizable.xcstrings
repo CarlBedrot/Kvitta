@@ -3683,6 +3683,16 @@
         }
       }
     },
+    "Tillbaka" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        }
+      }
+    },
     "Stäng" : {
       "extractionState" : "stale",
       "localizations" : {

@@ -15,9 +15,9 @@ enum Theme {
 
     // MARK: Surfaces and text
 
-    static let bg = adaptive(light: 0xFAF9F5, dark: 0x252622)
-    static let card = adaptive(light: 0xF0EFE7, dark: 0x343530)
-    static let ink = adaptive(light: 0x242521, dark: 0xF5F4EC)
+    static let bg = adaptive(light: 0xFAF9F5, dark: 0x202020)
+    static let card = adaptive(light: 0xF0EFE7, dark: 0x303030)
+    static let ink = adaptive(light: 0x242521, dark: 0xFAFAF9)
     static let secondary = adaptive(light: 0x65665F, dark: 0xBFC2B7)
     static let tertiary = secondary
     static let avatarBackground = adaptive(light: 0xE8E6DC, dark: 0x44463E)
