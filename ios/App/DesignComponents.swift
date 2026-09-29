@@ -28,8 +28,8 @@ struct BrandLogo: View {
         HStack(spacing: 8) {
             SliceMark(size: 30)
             Text("slice")
-                .font(.system(size: 31, weight: .heavy))
-                .tracking(-1.4)
+                .font(.title2.weight(.bold))
+                .tracking(-0.5)
                 .foregroundStyle(Theme.ink)
         }
         .accessibilityElement(children: .ignore)
@@ -39,37 +39,24 @@ struct BrandLogo: View {
 
 struct PageHeader: View {
     let title: LocalizedStringKey
-    let subtitle: LocalizedStringKey
     let profile: UserProfile
     var onProfile: (() -> Void)?
-    var showGreeting = false
+    var showsBrand = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                BrandLogo()
-                Spacer()
-                Button(action: { onProfile?() }) {
-                    Avatar(name: profile.nameOrDefault, photo: profile.avatarData, size: 42)
-                }
-                .buttonStyle(.plain)
-                .frame(minWidth: 44, minHeight: 44)
-                .accessibilityLabel("Öppna Profil")
+        HStack(alignment: .center, spacing: 16) {
+            Group {
+                if showsBrand { BrandLogo() }
+                else { Text(title).font(.title.weight(.semibold)).foregroundStyle(Theme.ink) }
             }
-            VStack(alignment: .leading, spacing: 4) {
-                if showGreeting {
-                    Text(profile.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? String(localized: "Hej där") : String(localized: "Hej \(profile.nameOrDefault)"))
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(Theme.secondary)
-                }
-                Text(title)
-                    .font(.system(size: 39, weight: .heavy))
-                    .tracking(-1.3)
-                    .foregroundStyle(Theme.ink)
-                Text(subtitle)
-                    .font(.body)
-                    .foregroundStyle(Theme.secondary)
+            .accessibilityAddTraits(.isHeader)
+            Spacer(minLength: 8)
+            Button(action: { onProfile?() }) {
+                Avatar(name: profile.nameOrDefault, photo: profile.avatarData, size: 40)
             }
+            .buttonStyle(.plain)
+            .frame(minWidth: 44, minHeight: 44)
+            .accessibilityLabel("Öppna Profil")
         }
     }
 }
@@ -167,41 +154,42 @@ private extension SyncStatus {
 
 struct BalanceHero: View {
     let summary: BalanceBook.Summary
-    let label: LocalizedStringKey
-    let explanation: LocalizedStringKey
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var bothDirections: Bool { summary.receivableMinor > 0 && summary.payableMinor > 0 }
+    private var direction: LocalizedStringKey {
+        bothDirections ? "Netto" : summary.receivableMinor > 0 ? "Du ska få" : "Du ska betala"
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(label).font(.subheadline.weight(.medium)).foregroundStyle(Theme.heroSecondary)
-                    Text(summary.hasOpenBalances
-                         ? (summary.netMinor == 0 ? String(localized: "0 \(summary.currency.code) netto") : MoneyFormat.string(summary.netMinor, summary.currency, sign: .always))
-                         : String(localized: "Allt är jämnt"))
-                        .font(.system(size: 42, weight: .heavy))
-                        .monospacedDigit()
-                        .minimumScaleFactor(0.68)
-                        .foregroundStyle(Theme.heroText)
-                    Text(explanation)
-                        .font(.subheadline)
-                        .foregroundStyle(Theme.heroSecondary)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.8)
+            if summary.hasOpenBalances {
+                Text(direction).font(.subheadline.weight(.medium)).foregroundStyle(Theme.heroSecondary)
+                Text(MoneyFormat.string(bothDirections ? summary.netMinor : abs(summary.netMinor),
+                                        summary.currency, sign: bothDirections ? .always : .none, explicit: true))
+                    .font(.largeTitle.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.heroText)
+                    .fixedSize(horizontal: false, vertical: true)
+                if bothDirections {
+                    Divider().overlay(Theme.heroSecondary.opacity(0.25))
+                    let layout = dynamicTypeSize.isAccessibilitySize
+                        ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+                        : AnyLayout(HStackLayout(alignment: .top, spacing: 16))
+                    layout {
+                        HeroTotal(title: "Du ska få", amount: summary.receivableMinor, currency: summary.currency)
+                        HeroTotal(title: "Du ska betala", amount: summary.payableMinor, currency: summary.currency)
+                    }
                 }
-                Spacer(minLength: 12)
-                SliceMark(size: 62, usesGradient: true)
-                    .opacity(0.9)
-            }
-            Divider().overlay(Theme.heroSecondary.opacity(0.25))
-            HStack(alignment: .top, spacing: 16) {
-                HeroTotal(title: "Du ska få", amount: summary.receivableMinor, currency: summary.currency, color: Color(hex: 0x8EDAA2))
-                Rectangle().fill(Theme.heroSecondary.opacity(0.25)).frame(width: 1, height: 36)
-                HeroTotal(title: "Du ska betala", amount: summary.payableMinor, currency: summary.currency, color: Color(hex: 0xFFAD9F))
+            } else {
+                Label("Kvitt i \(summary.currency.code)", systemImage: "checkmark.circle")
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(Theme.heroText)
             }
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.hero, in: .rect(cornerRadius: 24))
+        .background(Theme.hero, in: .rect(cornerRadius: 20))
     }
 }
 
@@ -209,16 +197,13 @@ private struct HeroTotal: View {
     let title: LocalizedStringKey
     let amount: Int64
     let currency: CurrencyCode
-    let color: Color
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(title).font(.caption).foregroundStyle(Theme.heroSecondary)
-            Text(MoneyFormat.string(amount, currency))
-                .font(.title3.weight(.bold))
-                .monospacedDigit()
-                .foregroundStyle(amount == 0 ? Theme.heroSecondary : color)
-                .minimumScaleFactor(0.75)
+            Text(MoneyFormat.string(amount, currency, explicit: true))
+                .font(.headline).monospacedDigit().foregroundStyle(Theme.heroText)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

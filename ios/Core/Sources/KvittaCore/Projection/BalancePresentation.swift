@@ -73,6 +73,15 @@ public struct BalanceBook: Sendable, Hashable {
         Set(groups.flatMap(\.balances.currencies)).sorted { $0.code < $1.code }
     }
 
+    /// Put the user's actionable currencies first, without comparing amounts across currencies.
+    /// Gross debts determine openness: equal debts in separate groups do not settle each other.
+    public func summariesForDisplay(userId: UserID) -> [Summary] {
+        currencies.map { summary(for: $0, userId: userId) }.sorted {
+            if $0.hasOpenBalances != $1.hasOpenBalances { return $0.hasOpenBalances }
+            return $0.currency.code < $1.currency.code
+        }
+    }
+
     public func summary(for currency: CurrencyCode, userId: UserID) -> Summary {
         var receivable: Int64 = 0
         var payable: Int64 = 0

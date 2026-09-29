@@ -27,7 +27,7 @@ struct HomeView: View {
         Group {
             if groups.isEmpty {
                 VStack(alignment: .leading, spacing: 24) {
-                    PageHeader(title: "Grupper", subtitle: "Små köp. Stora planer.", profile: profile, onProfile: onProfile)
+                    PageHeader(title: "Grupper", profile: profile, onProfile: onProfile)
                     EmptyGroupsView(onNewGroup: onNewGroup)
                 }
                 .padding(20)
@@ -56,7 +56,7 @@ struct HomeView: View {
     private func content(groups: [GroupState]) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-            PageHeader(title: "Grupper", subtitle: "Små köp. Stora planer.", profile: profile, onProfile: onProfile)
+            PageHeader(title: "Grupper", profile: profile, onProfile: onProfile)
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(Theme.secondary)

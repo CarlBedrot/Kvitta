@@ -8,6 +8,36 @@ struct BalancePresentationTests {
     private let user = UserID(uuidString: "00000000-0000-0000-0000-000000000001")!
     private let me = MemberID(uuidString: "00000000-0000-0000-0000-000000000010")!
 
+    @Test("Display prioritizes personal open balances, including zero-net debts")
+    func openCurrenciesLead() {
+        let friend = MemberID()
+        let otherUser = UserID()
+        let members = [me: Member(id: me, displayName: "Jag", linkedUserId: user),
+                       friend: Member(id: friend, displayName: "Partner", linkedUserId: otherUser)]
+        func group(_ currency: CurrencyCode, _ amount: Int64) -> BalanceBook.GroupSlice {
+            .init(name: "Test", balances: GroupBalances(byCurrency: [
+                Balances(currency: currency, byMember: [me: amount, friend: -amount])
+            ]), members: members)
+        }
+        let offset = BalanceBook(groups: [group(.dkk, 0), group(.sek, 500), group(.sek, -500)])
+        let summaries = offset.summariesForDisplay(userId: user)
+        #expect(summaries.map(\.currency) == [.sek, .dkk])
+        #expect(summaries.first?.netMinor == 0)
+        #expect(summaries.first?.hasOpenBalances == true)
+        #expect(summaries.first?.receivableMinor == 500)
+        #expect(summaries.first?.payableMinor == 500)
+        let mixed = BalanceBook(groups: [group(.dkk, 0), group(.sek, 500)])
+        #expect(mixed.summariesForDisplay(userId: user).first?.currency == .sek)
+        #expect(mixed.summariesForDisplay(userId: otherUser).first?.payableMinor == 500)
+        #expect(mixed.summariesForDisplay(userId: UserID()).map(\.currency) == [.dkk, .sek])
+        let both = BalanceBook(groups: [group(.sek, 500_000), group(.dkk, 1)])
+        #expect(both.summariesForDisplay(userId: user).map(\.currency) == [.dkk, .sek])
+        let settled = BalanceBook(groups: [group(.sek, 0), group(.dkk, 0)])
+        #expect(settled.summariesForDisplay(userId: user).allSatisfy { !$0.hasOpenBalances })
+        #expect(settled.summariesForDisplay(userId: user).map(\.currency) == [.dkk, .sek])
+        #expect(BalanceBook(groups: []).summariesForDisplay(userId: user).isEmpty)
+    }
+
     @Test("Summaries never mix currencies and agree with the net")
     func summariesAreCurrencyScoped() {
         let user = UserID(uuidString: "00000000-0000-0000-0000-000000000001")!
@@ -114,8 +144,13 @@ struct BalancePresentationTests {
                 groups.append(.init(name: "Group \(index)", balances: GroupBalances(byCurrency: buckets), members: members))
             }
             let book = BalanceBook(groups: groups)
+            let display = book.summariesForDisplay(userId: users[0])
+            #expect(Set(display.map(\.currency)) == Set(book.currencies))
+            #expect(display == BalanceBook(groups: groups.reversed()).summariesForDisplay(userId: users[0]))
+            #expect(display.drop { $0.hasOpenBalances }.allSatisfy { !$0.hasOpenBalances })
             for currency in book.currencies {
                 let summary = book.summary(for: currency, userId: users[0])
+                #expect(display.first { $0.currency == currency } == summary)
                 let people = book.people(for: currency, userId: users[0])
                 #expect(summary.netMinor == expected[currency], "seed \(seed)")
                 #expect(people.reduce(0) { $0 + $1.receivableMinor } == summary.receivableMinor, "seed \(seed)")

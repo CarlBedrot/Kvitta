@@ -18,7 +18,7 @@ struct OverviewView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                PageHeader(title: "Översikt", subtitle: "Delat och klart.", profile: profile, onProfile: onProfile, showGreeting: true)
+                PageHeader(title: "Översikt", profile: profile, onProfile: onProfile, showsBrand: true)
 
                 if horizontalSizeClass == .regular {
                     HStack(alignment: .top, spacing: 24) {
@@ -53,21 +53,17 @@ struct OverviewView: View {
         let book = BalanceBook(groups: groups.map { group in
             BalanceBook.GroupSlice(name: group.name, balances: group.balances(), members: group.members)
         })
-        let currencies = book.currencies.isEmpty ? [.sek] : book.currencies
+        let ordered = book.summariesForDisplay(userId: userId)
+        let summaries = ordered.isEmpty
+            ? [BalanceBook.Summary(currency: .sek, receivableMinor: 0, payableMinor: 0)] : ordered
         return VStack(spacing: 12) {
-            ForEach(Array(currencies.enumerated()), id: \.element) { index, currency in
+            ForEach(Array(summaries.enumerated()), id: \.element.currency) { index, summary in
                 Button(action: onShowPosition) {
-                    if index == 0 {
-                        BalanceHero(summary: book.summary(for: currency, userId: userId),
-                                    label: currencies.count == 1 ? "Din ställning" : "Din ställning · \(currency.code)",
-                                    explanation: "Totalt mellan dig och vänner · \(currency.code)")
-                    } else {
-                        CompactCurrencyBalance(summary: book.summary(for: currency, userId: userId))
-                    }
+                    if index == 0 { BalanceHero(summary: summary) }
+                    else { CompactCurrencyBalance(summary: summary) }
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Din ställning i \(currency.code)")
-                .accessibilityValue(MoneyFormat.string(book.summary(for: currency, userId: userId).netMinor, currency, sign: .always, explicit: true))
+                .accessibilityElement(children: .combine)
                 .accessibilityHint("Öppnar Ställning")
             }
         }
@@ -77,29 +73,19 @@ struct OverviewView: View {
         let summary: BalanceBook.Summary
 
         var body: some View {
-            HStack(spacing: 14) {
-                Text(summary.currency.code)
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(Theme.ink)
-                    .frame(width: 42, alignment: .leading)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(summary.hasOpenBalances ? MoneyFormat.string(summary.netMinor, summary.currency, sign: .always) : String(localized: "Allt är jämnt"))
-                        .font(.title3.weight(.heavy))
-                        .monospacedDigit()
-                        .foregroundStyle(Theme.ink)
-                    Text("Öppna saldon i valutan")
-                        .font(.caption)
-                        .foregroundStyle(Theme.secondary)
+            // An open currency deserves the same directional meaning as the leading one.
+            if summary.hasOpenBalances {
+                BalanceHero(summary: summary)
+            } else {
+                HStack(spacing: 12) {
+                    Text("Kvitt i \(summary.currency.code)")
+                        .font(.subheadline).foregroundStyle(Theme.secondary)
+                    Spacer()
+                    Image(systemName: "checkmark").foregroundStyle(Theme.secondary).accessibilityHidden(true)
                 }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(Theme.secondary)
+                .padding(.horizontal, 4)
+                .frame(minHeight: 44)
             }
-            .padding(18)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.card, in: .rect(cornerRadius: 18))
-            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.hairline, lineWidth: 1))
         }
     }
 
