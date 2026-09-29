@@ -393,7 +393,7 @@ private struct GroupHeroCard: View {
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(Theme.accentInk)
                     .padding(4)
-                    .background(Theme.brandBlue, in: .circle)
+                    .background(Editorial.yellow, in: .circle)
                     .overlay(Circle().strokeBorder(Theme.card, lineWidth: 2))
                     .offset(x: 4, y: 4)
             }
@@ -800,9 +800,9 @@ enum GroupSegment: CaseIterable, Hashable {
     }
 }
 
-/// The floating bar at the foot of a group: the segment toggle, and the plus. Glass, so it sits
-/// where the app's tab bar sat and reads as the same kind of thing.
+/// The group uses the same charcoal/pastel navigation roles as the dashboard.
 private struct GroupBottomBar: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Binding var segment: GroupSegment
     /// Alone in the group there is nobody to split with; the plus waits until there is.
     let canAdd: Bool
@@ -814,14 +814,14 @@ private struct GroupBottomBar: View {
                 ForEach(GroupSegment.allCases, id: \.self) { candidate in
                     let isOn = segment == candidate
                     Button {
-                        withAnimation(.snappy(duration: 0.25)) { segment = candidate }
+                        withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) { segment = candidate }
                     } label: {
                         Text(candidate.title)
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(isOn ? Theme.ink : Theme.secondary)
+                            .foregroundStyle(isOn ? Editorial.coal : Editorial.muted)
                             .padding(.horizontal, 22)
                             .padding(.vertical, 11)
-                            .background(isOn ? Theme.ink.opacity(0.08) : .clear, in: .capsule)
+                            .background(isOn ? Editorial.mint : .clear, in: .capsule)
                             .contentShape(.capsule)
                     }
                     .buttonStyle(.plain)
@@ -829,7 +829,7 @@ private struct GroupBottomBar: View {
                 }
             }
             .padding(4)
-            .glassEffect(.regular, in: .capsule)
+            .background(Editorial.raised, in: .capsule)
 
             if canAdd {
                 Button(action: onAdd) {
@@ -837,7 +837,7 @@ private struct GroupBottomBar: View {
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(Theme.accentInk)
                         .frame(width: 48, height: 48)
-                        .background(Theme.brandBlue, in: .circle)
+                        .background(Editorial.yellow, in: .circle)
                 }
                 .buttonStyle(ScaleButtonStyle())
                 .accessibilityLabel("Lägg till utgift")

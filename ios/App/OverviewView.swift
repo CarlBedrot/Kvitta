@@ -2,7 +2,7 @@ import SwiftUI
 import KvittaCore
 import KvittaStorage
 
-/// The glanceable home: one answer about the user's position, followed by the latest activity.
+/// The reference dashboard, backed by the same balances and settlement routes as Position.
 struct OverviewView: View {
     let ledger: LedgerStore
     let userId: UserID
@@ -13,196 +13,200 @@ struct OverviewView: View {
     let onSettle: (SuggestedTransfer, GroupID) -> Void
     let onShowPosition: () -> Void
     let onOpenGroup: (GroupID) -> Void
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    let onReport: (ReportDestination) -> Void
+    @State private var currency: CurrencyCode = .sek
+    @State private var selectedDay: Int?
+    @State private var selectedGroup: GroupID?
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    private var groups: [GroupState] { ledger.state.groupsByLastActivity }
+    private var report: ExpenseReport {
+        ExpenseReport(groups: groups.filter { selectedGroup == nil || $0.id == selectedGroup })
+    }
+    private var days: ClosedRange<Int> { ExpenseReport.week(containing: CalendarDate(Date())) }
+    private var weekItems: [ExpenseReport.Item] { report.filtered(currency: currency, days: days) }
+    private var recent: [FeedEntry] {
+        FeedEntry.build(from: ledger.state, userId: userId, scope: .allActivity).filter { entry in
+            entry.currency == currency && (selectedGroup == nil || entry.groupId == selectedGroup)
+                && (selectedDay == nil || (entry.paymentStatus == nil
+                    ? report.items.first { $0.id.rawValue == entry.id }?.date.dayNumber == selectedDay
+                    : CalendarDate(entry.timestamp.date).dayNumber == selectedDay))
+        }
+    }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 28) {
-                PageHeader(title: "Översikt", profile: profile, onProfile: onProfile, showsBrand: true)
-
-                if horizontalSizeClass == .regular {
-                    HStack(alignment: .top, spacing: 24) {
-                        overviewBalances
-                        overviewSections
+            VStack(alignment: .leading, spacing: 18) {
+                identity
+                selectors
+                balances
+                EditorialPanel(fill: Editorial.purple) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack(alignment: .top) {
+                            Text("VECKANS\nUTGIFTER").font(Editorial.heading(30))
+                            Spacer()
+                            EditorialCircleButton(symbol: "arrow.up.right", label: String(localized: "Visa rapport")) { onReport(ReportDestination(page: .spending, currency: currency, groupId: selectedGroup)) }
+                        }.foregroundStyle(Editorial.coal)
+                        Text(ExpenseReport.total(weekItems).map { MoneyFormat.string($0, currency, explicit: true) } ?? "—")
+                            .font(Editorial.heading(34)).monospacedDigit().foregroundStyle(Editorial.coal)
+                        EditorialWeekChart(items: weekItems, days: days, currency: currency, area: true, selectedDay: $selectedDay)
                     }
-                } else {
-                    overviewBalances
-                    overviewSections
                 }
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 32)
+                HStack {
+                    Text("Senaste aktivitet").textCase(.uppercase).font(Editorial.heading(22)).foregroundStyle(Editorial.paper)
+                    Spacer()
+                    EditorialCircleButton(symbol: "arrow.up.right", label: String(localized: "Aktivitet")) { onReport(ReportDestination(page: .activity, currency: currency, groupId: selectedGroup)) }
+                }
+                if recent.isEmpty {
+                    Text("Inga matchande utgifter").font(.subheadline).foregroundStyle(Editorial.muted).padding(.vertical, 8)
+                }
+                ForEach(recent.prefix(3)) { item in
+                    EditorialActivityRow(entry: item) { onOpenActivity(item) }
+                }
+                reportLinks
+                if let group = groups.first {
+                    Button { onOpenGroup(group.id) } label: {
+                        HStack(spacing: 12) {
+                            GroupBadge(name: group.name, size: 40, groupId: group.id)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Senast aktiv i").font(.caption).foregroundStyle(Editorial.muted)
+                                Text(GroupBadge.title(of: group.name)).font(.headline).foregroundStyle(Editorial.paper)
+                            }
+                            Spacer()
+                            Image(systemName: "arrow.up.right").foregroundStyle(Editorial.paper)
+                        }.padding(.vertical, 12)
+                    }.buttonStyle(.plain)
+                }
+            }.padding(.horizontal, 20).padding(.top, 8).padding(.bottom, 24)
         }
-        .background(AmbientBackground())
+        .background(Editorial.coal.ignoresSafeArea())
         .navigationBarHidden(true)
-    }
-
-    private var overviewSections: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            VStack(alignment: .leading, spacing: 8) {
-                activityHeader
-                recentActivity
-            }
-            relevantGroup
+        .onAppear { reconcileSelection() }
+        .onChange(of: ledger.state.appliedEventIds.count) { _, _ in reconcileSelection() }
+        .onChange(of: currency) { _, _ in selectedDay = nil }
+        .onChange(of: selectedGroup) { _, _ in
+            if !report.currencies.contains(currency) { currency = report.currencies[0] }
+            selectedDay = nil
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var overviewBalances: some View {
-        let groups = ledger.state.groupsByLastActivity
-        let book = BalanceBook(groups: groups.map { group in
-            BalanceBook.GroupSlice(name: group.name, balances: group.balances(), members: group.members)
+    private func reconcileSelection() {
+        if let selectedGroup, !groups.contains(where: { $0.id == selectedGroup }) { self.selectedGroup = nil }
+        if !report.currencies.contains(currency) { currency = report.currencies[0] }
+    }
+
+    private var identity: some View {
+        HStack(spacing: 10) {
+            SliceMark(size: 34)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("slice").font(.title3.weight(.bold)).foregroundStyle(Editorial.paper)
+                Text(profile.nameOrDefault).font(.caption).foregroundStyle(Editorial.muted)
+            }
+            Spacer()
+            EditorialCircleButton(symbol: "bell", label: String(localized: "Aktivitet"), action: onShowActivity)
+            Button(action: onProfile) {
+                Avatar(name: profile.nameOrDefault, photo: profile.avatarData, size: 44)
+            }.buttonStyle(.plain).accessibilityLabel("Profil")
+        }
+    }
+
+    private var selectors: some View {
+        let layout = typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(spacing: 8))
+        return layout {
+            Menu {
+                Button("Alla grupper") { selectedGroup = nil }
+                ForEach(groups) { group in Button(GroupBadge.title(of: group.name)) { selectedGroup = group.id } }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "person.2")
+                    Text(groups.first(where: { $0.id == selectedGroup }).map { GroupBadge.title(of: $0.name) } ?? String(localized: "Alla grupper"))
+                        .lineLimit(typeSize.isAccessibilitySize ? nil : 1)
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.down")
+                }.font(.subheadline).foregroundStyle(Editorial.coal).padding(.horizontal, 16)
+                    .frame(minHeight: 44).background(Editorial.paper, in: .capsule)
+            }
+            Menu {
+                ForEach(report.currencies, id: \.self) { code in Button(code.code) { currency = code } }
+            } label: {
+                Text(currency.code).font(.subheadline.weight(.semibold)).foregroundStyle(Editorial.coal)
+                    .padding(.horizontal, 16).frame(minHeight: 44).background(Editorial.paper, in: .capsule)
+            }.accessibilityLabel("Valuta")
+        }
+    }
+
+    private var balances: some View {
+        let book = BalanceBook(groups: groups.map {
+            BalanceBook.GroupSlice(name: $0.name, balances: $0.balances(), members: $0.members)
         })
-        let ordered = book.summariesForDisplay(userId: userId)
-        let summaries = ordered.isEmpty
-            ? [BalanceBook.Summary(currency: .sek, receivableMinor: 0, payableMinor: 0)] : ordered
-        return VStack(spacing: 12) {
-            ForEach(Array(summaries.enumerated()), id: \.element.currency) { index, summary in
-                Button(action: onShowPosition) {
-                    if index == 0 { BalanceHero(summary: summary) }
-                    else { CompactCurrencyBalance(summary: summary) }
-                }
-                .buttonStyle(.plain)
-                .accessibilityElement(children: .combine)
-                .accessibilityHint("Öppnar Ställning")
-                ForEach(groups) { group in
-                    if let me = group.me(for: userId) {
-                        ForEach(group.suggestedTransfers().filter {
-                            $0.from == me.id && $0.currency == summary.currency
-                        }, id: \.self) { transfer in
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(GroupBadge.title(of: group.name))
-                                    .font(.caption).foregroundStyle(Theme.secondary)
-                                Button {
-                                    onSettle(transfer, group.id)
-                                } label: {
-                                    ViewThatFits(in: .horizontal) {
-                                        HStack {
-                                            Text("Betala \(group.members[transfer.to]?.displayName ?? "?")")
-                                            Spacer(minLength: 12)
-                                            Text(MoneyFormat.string(transfer.amountMinor, transfer.currency, explicit: true))
-                                        }
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text("Betala \(group.members[transfer.to]?.displayName ?? "?")")
-                                            Text(MoneyFormat.string(transfer.amountMinor, transfer.currency, explicit: true))
-                                        }
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                    }
-                                }
-                                .buttonStyle(PrimaryButtonStyle())
+        let summaries = book.summariesForDisplay(userId: userId)
+        return EditorialPanel(fill: Editorial.raised, padding: 16) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "arrow.left.arrow.right").font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Editorial.coal).frame(width: 40, height: 40)
+                        .background(Editorial.yellow, in: .rect(cornerRadius: 12))
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("DIN STÄLLNING").font(Editorial.heading(20)).foregroundStyle(Editorial.paper)
+                        if summaries.isEmpty || !summaries.contains(where: \.hasOpenBalances) {
+                            Text("Alla är kvitt").font(.subheadline).foregroundStyle(Editorial.muted)
+                        }
+                        ForEach(summaries.filter(\.hasOpenBalances), id: \.currency) { summary in
+                            if summary.payableMinor > 0 {
+                                balanceLine(String(localized: "Du är skyldig"), summary.payableMinor, summary.currency)
+                            }
+                            if summary.receivableMinor > 0 {
+                                balanceLine(String(localized: "Du ska få"), summary.receivableMinor, summary.currency)
                             }
                         }
                     }
+                    Spacer(minLength: 0)
+                    EditorialCircleButton(symbol: "arrow.up.right", label: String(localized: "Ställning"), action: onShowPosition)
                 }
-            }
-        }
-    }
-
-    private struct CompactCurrencyBalance: View {
-        let summary: BalanceBook.Summary
-
-        var body: some View {
-            // An open currency deserves the same directional meaning as the leading one.
-            if summary.hasOpenBalances {
-                BalanceHero(summary: summary)
-            } else {
-                HStack(spacing: 12) {
-                    Text("Kvitt i \(summary.currency.code)")
-                        .font(.subheadline).foregroundStyle(Theme.secondary)
-                    Spacer()
-                    Image(systemName: "checkmark").foregroundStyle(Theme.secondary).accessibilityHidden(true)
-                }
-                .padding(.horizontal, 4)
-                .frame(minHeight: 44)
-            }
-        }
-    }
-
-    private var activityHeader: some View {
-        let layout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 0))
-            : AnyLayout(HStackLayout())
-        return layout {
-            Text("Senaste aktivitet")
-                .font(.headline.weight(.semibold))
-                .foregroundStyle(Theme.ink)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Button("Visa alla", action: onShowActivity)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.accent)
-                .frame(minHeight: 44)
-        }
-    }
-
-    private var recentActivity: some View {
-        let entries = Array(FeedEntry.build(from: ledger.state, userId: userId).prefix(4))
-        return VStack(spacing: 0) {
-            if entries.isEmpty {
-                Text("Utgifter och betalningar dyker upp här.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 8)
-            } else {
-                ForEach(entries) { entry in
-                    Button { onOpenActivity(entry) } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: entry.kind.isPayment ? "arrow.left.arrow.right" : "receipt")
-                            .foregroundStyle(Theme.secondary)
-                            .frame(width: 28)
-                            .accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(entry.title).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
-                            Text(entry.subtitle).font(.caption).foregroundStyle(Theme.secondary)
+                ForEach(groups) { group in
+                    if let me = group.me(for: userId) {
+                        ForEach(group.suggestedTransfers().filter { $0.from == me.id }, id: \.self) { transfer in
+                            Button { onSettle(transfer, group.id) } label: {
+                                ViewThatFits(in: .horizontal) {
+                                    HStack {
+                                        Text("Betala \(group.members[transfer.to]?.displayName ?? "?")")
+                                        Spacer(minLength: 4)
+                                        Text(MoneyFormat.string(transfer.amountMinor, transfer.currency, explicit: true))
+                                        Image(systemName: "arrow.up.right")
+                                    }
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text("Betala \(group.members[transfer.to]?.displayName ?? "?")")
+                                        Text(MoneyFormat.string(transfer.amountMinor, transfer.currency, explicit: true))
+                                    }.frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                .font(.subheadline.weight(.semibold)).foregroundStyle(Editorial.coal)
+                                .padding(14).background(Editorial.mint, in: .rect(cornerRadius: 18))
+                            }.buttonStyle(.plain)
+                            .accessibilityHint(GroupBadge.title(of: group.name))
                         }
-                        Spacer()
-                        NeutralAmountText(amountMinor: entry.amountMinor, currency: entry.currency, size: 15, explicit: entry.explicit)
                     }
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.vertical, 12)
-                    if entry.id != entries.last?.id { Divider().padding(.leading, 40) }
                 }
             }
         }
     }
 
-    private var relevantGroup: some View {
-        let group = ledger.state.groupsByLastActivity.first
-        return Group {
-            if let group {
-                Button { onOpenGroup(group.id) } label: {
-                    HStack(spacing: 12) {
-                        GroupBadge(name: group.name, size: 40, groupId: group.id)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("Senast aktiv i").font(.caption).foregroundStyle(Theme.secondary)
-                            Text(GroupBadge.title(of: group.name)).font(.body.weight(.semibold)).foregroundStyle(Theme.ink)
-                            Text("\(String(localized: "\(group.activeMembers.count) personer")) · \(String(localized: "\(group.visibleExpenses.count) utgifter"))")
-                                .font(.caption).foregroundStyle(Theme.secondary)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right").foregroundStyle(Theme.tertiary)
-                    }
-                    .padding(.vertical, 8)
-                }
-                .buttonStyle(.plain)
-            } else {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Börja dela tillsammans").font(.headline.weight(.bold)).foregroundStyle(Theme.ink)
-                    Text("Skapa en grupp och lägg till din första utgift.").font(.subheadline).foregroundStyle(Theme.secondary)
-                }
-                .padding(.vertical, 8)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
+    private func balanceLine(_ title: String, _ amount: Int64, _ currency: CurrencyCode) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title).font(.caption).foregroundStyle(Editorial.muted)
+            Text(MoneyFormat.string(amount, currency, explicit: true))
+                .font(.headline).monospacedDigit().foregroundStyle(Editorial.paper)
         }
     }
-}
 
-private extension FeedEntry.Kind {
-    var isPayment: Bool {
-        if case .payment = self { return true }
-        return false
+    private var reportLinks: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                EditorialPill(title: String(localized: "Rapporter"), fill: Editorial.mint) { onReport(ReportDestination(page: .reports, currency: currency, groupId: selectedGroup)) }
+                EditorialPill(title: String(localized: "Kategorier"), fill: Editorial.yellow) { onReport(ReportDestination(page: .categories, currency: currency, groupId: selectedGroup)) }
+                EditorialPill(title: String(localized: "Veckorytm"), fill: Editorial.paper) { onReport(ReportDestination(page: .timing, currency: currency, groupId: selectedGroup)) }
+            }
+        }
     }
 }

@@ -12,6 +12,7 @@ struct ActivityView: View {
     let ledger: LedgerStore
     let userId: UserID
     let unread: UnreadStore
+    @Environment(\.dismiss) private var dismiss
 
     /// Which rows to draw a dot on, frozen when the screen appeared.
     ///
@@ -54,6 +55,7 @@ struct ActivityView: View {
         }
         .background(AmbientBackground())
         .navigationTitle("Notiser")
+        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Stäng") { dismiss() } } }
         // Keyed on the log's size, not just `onAppear`: expenses that arrive while this screen is
         // open would otherwise light the tab badge for a feed the user is looking straight at, and
         // would keep it lit until they navigated away and back.
@@ -95,7 +97,9 @@ struct FeedEntry: Identifiable {
     /// visible but not yet in the balances would otherwise look like a bug.
     let paymentStatus: PaymentStatus?
 
-    static func build(from state: LedgerState, userId: UserID) -> [FeedEntry] {
+    enum Scope { case news, allActivity }
+
+    static func build(from state: LedgerState, userId: UserID, scope: Scope = .news) -> [FeedEntry] {
         var entries: [FeedEntry] = []
 
         for group in state.groups.values {
@@ -107,10 +111,10 @@ struct FeedEntry: Identifiable {
                 return group.members[memberId]?.displayName ?? "?"
             }
 
-            // Somebody else's doing, and you are in it. An expense you added or last edited is
-            // not news; one that leaves you out belongs under Utan mig, not here.
+            // News excludes your own edits; the overview/report scope includes them.
+            // In both scopes, the entry must involve you.
             for expense in group.visibleExpenses
-            where expense.lastModifiedBy != userId && expense.payload.involves(meId) {
+            where (scope == .allActivity || expense.lastModifiedBy != userId) && expense.payload.involves(meId) {
                 let payerName = expense.payload.payers.first.map { displayName($0.memberId) } ?? "?"
                 entries.append(FeedEntry(
                     id: expense.id.rawValue,
@@ -129,7 +133,7 @@ struct FeedEntry: Identifiable {
             }
 
             for payment in group.paymentsByDate
-            where payment.recordedBy != userId && (payment.toMemberId == meId || payment.fromMemberId == meId) {
+            where (scope == .allActivity || payment.recordedBy != userId) && (payment.toMemberId == meId || payment.fromMemberId == meId) {
                 // Colour only when the money touched you: green coming in, red going out.
                 // A payment between two others is news, not your money — it stays ink.
                 let incoming: Bool? = switch (payment.toMemberId == meId, payment.fromMemberId == meId) {

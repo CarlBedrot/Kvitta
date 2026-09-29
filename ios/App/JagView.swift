@@ -25,6 +25,7 @@ struct JagView: View {
     @State private var photoItem: PhotosPickerItem?
     @State private var failure: String?
     @State private var editingProfile = false
+    @State private var showingAccount = false
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     #if DEBUG
     @State private var serverAddress = UserDefaults.standard.string(forKey: "se.kvitta.syncBaseURL") ?? ""
@@ -40,13 +41,12 @@ struct JagView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                PageHeader(title: "Profil", profile: profile, onProfile: { editingProfile = true })
-                    .padding(20)
                 ScrollView {
                     Group {
                         if horizontalSizeClass == .regular {
                             HStack(alignment: .top, spacing: 24) {
                                 VStack(alignment: .leading, spacing: 18) {
+                                    paymentServices
                                     profileSection
                                     aboutSection
                                     helpSection
@@ -62,6 +62,7 @@ struct JagView: View {
                             .frame(maxWidth: 1080, alignment: .topLeading)
                         } else {
                             VStack(alignment: .leading, spacing: 18) {
+                                paymentServices
                                 profileSection
                                 settingsSection
                                 accountSection
@@ -80,6 +81,7 @@ struct JagView: View {
                         }
                     }
                     .padding(.horizontal, 20)
+                    .padding(.top, 12)
                     .padding(.bottom, 36)
                 }
             }
@@ -90,10 +92,25 @@ struct JagView: View {
             .contentMargins(.bottom, 32, for: .scrollContent)
             .navigationBarHidden(true)
             .task(id: photoItem) { await loadPhoto() }
+            .sheet(isPresented: $showingAccount) {
+                NavigationStack {
+                    ScrollView { accountSection.padding(20) }
+                        .background(Theme.bg)
+                        .navigationTitle("Konto")
+                        .toolbar { ToolbarItem(placement: .confirmationAction) {
+                            Button("Stäng") { showingAccount = false }
+                        } }
+                }
+            }
             .sheet(isPresented: $editingProfile) {
                 ProfileEditorView(profile: profile)
             }
         }
+    }
+
+    private var paymentServices: some View {
+        PaymentServicesView(profile: profile, onProfile: { editingProfile = true },
+                            onSync: { showingAccount = true })
     }
 
     // MARK: - Profile

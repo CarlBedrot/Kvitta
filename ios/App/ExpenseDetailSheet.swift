@@ -22,11 +22,19 @@ struct ExpenseDetailSheet: View {
     private var expense: Expense? { group?.expenses[expenseId] }
 
     var body: some View {
-        if let group, let expense {
-            content(group: group, expense: expense)
-        } else {
-            ContentUnavailableView("Utgiften finns inte längre", systemImage: "questionmark.circle")
-                .background(AmbientBackground())
+        Group {
+            if let group, let expense {
+                content(group: group, expense: expense)
+            } else {
+                ContentUnavailableView("Utgiften finns inte längre", systemImage: "questionmark.circle")
+                    .background(AmbientBackground())
+            }
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Spacer()
+                EditorialCircleButton(symbol: "xmark", label: String(localized: "Stäng")) { dismiss() }
+            }.padding(.horizontal, 18).padding(.top, 12).background(Theme.bg)
         }
     }
 
@@ -150,7 +158,7 @@ private struct HistoryCard: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Skapad \(expense.createdAt.date.formatted(date: .abbreviated, time: .shortened))\(author(expense.createdBy))")
             if expense.wasEdited {
-                Text("Redigerad \(expense.revision) gånger · senast \(expense.lastModifiedAt.date.formatted(date: .abbreviated, time: .shortened))\(author(expense.lastModifiedBy))")
+                Text("Senast redigerad \(expense.lastModifiedAt.date.formatted(date: .abbreviated, time: .shortened))\(author(expense.lastModifiedBy))")
             }
         }
         .font(.footnote)
@@ -165,7 +173,7 @@ private struct HistoryCard: View {
         guard let member = group.members.values.first(where: { $0.linkedUserId == userId }) else {
             return ""
         }
-        return " av \(member.displayName)"
+        return String(localized: " av \(member.displayName)")
     }
 }
 
