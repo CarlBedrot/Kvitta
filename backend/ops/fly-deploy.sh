@@ -3,5 +3,6 @@
 # health check passes. ops/fly-setup.sh is the one-time version with app/db/secrets.
 set -euo pipefail
 backend="$(cd "$(dirname "$0")/.." && pwd)"
-fly deploy --config "$backend/fly.toml" --app slice-api
+fly deploy "$backend" --config "$backend/fly.toml" --app slice-api
 fly status --app slice-api
+curl --fail --silent --show-error --max-time 10 https://slice-api.fly.dev/health

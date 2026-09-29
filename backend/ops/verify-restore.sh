@@ -14,49 +14,46 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONTAINER="${KVITTA_PG_CONTAINER:-kvitta-postgres}"
 USERNAME="${KVITTA_PG_USER:-kvitta}"
-DATABASE="${KVITTA_PG_DATABASE:-kvitta}"
-SCRATCH="kvitta_restore_check"
+SCRATCH="kvitta_restore_$(date -u +%Y%m%d%H%M%S)_$$"
+CREATED=0
 
-BACKUP="${1:-$(ls -1t "$HERE"/backups/kvitta-*.sql.gz 2>/dev/null | head -1)}"
+BACKUP="${1:-$(ls -1t "$HERE"/backups/kvitta-*.sql.gz 2>/dev/null | sed -n '1p' || true)}"
 if [ -z "${BACKUP:-}" ] || [ ! -f "$BACKUP" ]; then
     echo "no backup to verify (looked in $HERE/backups)" >&2
     exit 1
 fi
 
 echo "verifying $(basename "$BACKUP")"
+gzip -t "$BACKUP"
 
 psql_scratch() {
-    docker exec -i "$CONTAINER" psql --username="$USERNAME" --dbname="$SCRATCH" -tA "$@"
+    docker exec -i "$CONTAINER" psql --no-psqlrc --set ON_ERROR_STOP=on \
+        --username="$USERNAME" --dbname="$SCRATCH" -tA "$@"
 }
 
 cleanup() {
-    docker exec "$CONTAINER" psql --username="$USERNAME" --dbname=postgres \
+    [ "$CREATED" -eq 1 ] || return 0
+    docker exec "$CONTAINER" psql --no-psqlrc --set ON_ERROR_STOP=on --username="$USERNAME" --dbname=postgres \
         -c "DROP DATABASE IF EXISTS $SCRATCH" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
-cleanup
-docker exec "$CONTAINER" psql --username="$USERNAME" --dbname=postgres \
+docker exec "$CONTAINER" psql --no-psqlrc --set ON_ERROR_STOP=on --username="$USERNAME" --dbname=postgres \
     -c "CREATE DATABASE $SCRATCH" >/dev/null
+CREATED=1
 
 # Restored into a scratch database, never over the live one. A verification step that can destroy
 # the thing it is verifying is worse than no verification step.
 gunzip -c "$BACKUP" | docker exec -i "$CONTAINER" psql \
-    --username="$USERNAME" --dbname="$SCRATCH" --quiet \
+    --no-psqlrc --username="$USERNAME" --dbname="$SCRATCH" --quiet \
     --set ON_ERROR_STOP=on >/dev/null
 
 FAILED=0
 for TABLE in events groups members users refresh_tokens invites; do
-    LIVE=$(docker exec "$CONTAINER" psql --username="$USERNAME" --dbname="$DATABASE" -tA \
-        -c "SELECT count(*) FROM $TABLE" 2>/dev/null || echo "missing")
-    COPY=$(psql_scratch -c "SELECT count(*) FROM $TABLE" 2>/dev/null || echo "missing")
-
-    if [ "$LIVE" = "$COPY" ]; then
-        printf '  %-16s %s rows\n' "$TABLE" "$COPY"
-    else
-        printf '  %-16s MISMATCH live=%s restored=%s\n' "$TABLE" "$LIVE" "$COPY" >&2
-        FAILED=1
-    fi
+    # Missing tables or failed queries must fail. A historical backup cannot be compared to
+    # current live counts: legitimate writes since the dump would look like corruption.
+    COPY=$(psql_scratch -c "SELECT count(*) FROM $TABLE")
+    printf '  %-16s %s rows\n' "$TABLE" "$COPY"
 done
 
 # The log is the only irreplaceable table, so it gets a stronger check than a row count: gap-free
@@ -65,10 +62,12 @@ done
 GAPS=$(psql_scratch -c "
     SELECT count(*) FROM (
         SELECT \"GroupId\",
+               min(\"ServerSeq\") AS lowest,
                max(\"ServerSeq\") AS highest,
-               count(*)          AS total
+               count(*)          AS total,
+               count(DISTINCT \"ServerSeq\") AS unique_total
         FROM events GROUP BY \"GroupId\"
-    ) g WHERE g.highest <> g.total")
+    ) g WHERE g.lowest <> 1 OR g.highest <> g.total OR g.unique_total <> g.total")
 
 if [ "$GAPS" != "0" ]; then
     echo "  events           GAPPED serverSeq in $GAPS group(s)" >&2
@@ -82,4 +81,4 @@ if [ "$FAILED" -ne 0 ]; then
     exit 1
 fi
 
-echo "restore verified"
+echo "restore verified (required tables and event sequence integrity; not a live row-count comparison)"
