@@ -47,3 +47,15 @@ Those gates remain #47, #48, #123 and #68.
 
 Screenshots are in the task artifact folder `reference-redesign/`: dashboard, payments,
 large-text, reports and own-edited-expense, plus the remaining report compositions.
+
+## Final pass
+
+- Group selector retained Fjällresan and SEK in reports. Category selection changed Restaurant
+  / 1000 SEK to Alcohol / 437 SEK and the matching Systembolaget entry.
+- Final dial has upright weekday labels and exact count accessibility summaries.
+- Activity's coral search composer remains visible at the bottom while records scroll.
+- Expense details close back to the current report without resetting its state; created/edited
+  attribution is translated in English. Explicit close also works without a swipe gesture.
+- Final build/install/launch checked after layout-only adjustments; the 40-test suite preceded
+  those final layout/copy adjustments. Both backend CI variants, Core CI and secret scan passed
+  on the implementation commit; final PR checks must pass before merge.

@@ -18,39 +18,39 @@ Every row must be implemented AND checked before calling the redesign complete.
 
 | ID | Visible reference component | Slice destination / behavior | Status |
 |---|---|---|---|
-| 01 | Rounded charcoal screen shell | Main destinations and navigation | Implemented; verification in progress |
-| 02 | Small avatar/identity strip | Profile and selected group | Implemented; verification in progress |
-| 03 | Round utility buttons | Profile, back, dismiss, add | Implemented; verification in progress |
-| 04 | White pill selectors | Group/currency/date/filter choices | Implemented; verification in progress |
-| 05 | Condensed uppercase titles | All main page and card titles | Implemented; verification in progress |
-| 06 | Stacked label/value hierarchy | Actual balances and expense totals | Implemented; verification in progress |
-| 07 | Small status/percentage badges | Actual count/change/status, no invented metrics | Implemented; verification in progress |
-| 08 | Compact charcoal insight card + yellow icon | Open settlement summary | Implemented; verification in progress |
-| 09 | Lavender chart card | Actual daily expenses, selected currency | Implemented; verification in progress |
-| 10 | Seven circular day controls | Selected day / recent-day expense filter | Implemented; verification in progress |
-| 11 | Coral area chart, baseline and legend | Expense timeline | Implemented; verification in progress |
-| 12 | Black bottom icon bar + pastel selected icon | Existing four destinations and add action | Implemented; verification in progress |
-| 13 | Mint report cover panel | Reports hub | Implemented; verification in progress |
-| 14 | Large illustrated report hero | Slice illustration, not generic icon substitution | Implemented; verification in progress |
-| 15 | Search pill with magnifier/filter affordance | Search real expenses | Implemented; verification in progress |
-| 16 | Pinned report row with circular category icon | Selected report / most-used category | Implemented; verification in progress |
-| 17 | Yellow circular plus | Add expense action in report hub | Implemented; verification in progress |
-| 18 | Dark editorial activity/conversation layout | Actual ledger activity, clearly labelled as records | Implemented; verification in progress |
-| 19 | Avatar-led information block | Expense author/group information | Implemented; verification in progress |
-| 20 | Rounded right-aligned information/suggestion pills | Filter chips and selected search criteria | Implemented; verification in progress |
-| 21 | Rounded input with coral leading action | Expense search, never a pretend AI assistant | Implemented; verification in progress |
-| 22 | Coral metric sheet with stacked summary rows | Selected-currency expense report | Implemented; verification in progress |
-| 23 | Week/date selector and previous/next controls | Actual report period | Implemented; verification in progress |
-| 24 | Seven rounded mint bars with highlighted value | Daily totals in chosen period | Implemented; verification in progress |
-| 25 | Dark payment/service page with white filter pills | Payment profile and sync settings | Implemented; verification in progress |
-| 26 | Tilted overlapping coral/yellow/mint cards | Swish, MobilePay and sync/profile actions | Implemented; verification in progress |
-| 27 | Service logos/marks and circular navigation arrows | Clearly labelled payment provider controls | Implemented; verification in progress |
-| 28 | Lavender category screen | Expense category explorer | Implemented; verification in progress |
-| 29 | Nested coral, charcoal and yellow category tabs | Actual category selection | Implemented; verification in progress |
-| 30 | Large illustrated category card + small metadata | Category totals and matching expense list | Implemented; verification in progress |
-| 31 | Mint timing page | Expense activity by day of week | Implemented; verification in progress |
-| 32 | White circular dial, ticks, numerals and coral arc | Weekly expense count distribution, real data | Implemented; verification in progress |
-| 33 | Period controls beneath dial | Report period selection | Implemented; verification in progress |
+| 01 | Rounded charcoal screen shell | Main destinations and navigation | Implemented; simulator checked |
+| 02 | Small avatar/identity strip | Profile and selected group | Implemented; simulator checked |
+| 03 | Round utility buttons | Profile, back, dismiss, add | Implemented; simulator checked |
+| 04 | White pill selectors | Group/currency/date/filter choices | Implemented; simulator checked |
+| 05 | Condensed uppercase titles | All main page and card titles | Implemented; simulator checked |
+| 06 | Stacked label/value hierarchy | Actual balances and expense totals | Implemented; simulator checked |
+| 07 | Small status/percentage badges | Actual count/change/status, no invented metrics | Implemented; simulator checked |
+| 08 | Compact charcoal insight card + yellow icon | Open settlement summary | Implemented; simulator checked |
+| 09 | Lavender chart card | Actual daily expenses, selected currency | Implemented; simulator checked |
+| 10 | Seven circular day controls | Selected day / recent-day expense filter | Implemented; simulator checked |
+| 11 | Coral area chart, baseline and legend | Expense timeline | Implemented; simulator checked |
+| 12 | Black bottom icon bar + pastel selected icon | Existing four destinations and add action | Implemented; simulator checked |
+| 13 | Mint report cover panel | Reports hub | Implemented; simulator checked |
+| 14 | Large illustrated report hero | Slice illustration, not generic icon substitution | Implemented; simulator checked |
+| 15 | Search pill with magnifier/filter affordance | Search real expenses | Implemented; simulator checked |
+| 16 | Pinned report row with circular category icon | Selected report / most-used category | Implemented; simulator checked |
+| 17 | Yellow circular plus | Add expense action in report hub | Implemented; simulator checked |
+| 18 | Dark editorial activity/conversation layout | Actual ledger activity, clearly labelled as records | Implemented; simulator checked |
+| 19 | Avatar-led information block | Expense author/group information | Implemented; simulator checked |
+| 20 | Rounded right-aligned information/suggestion pills | Filter chips and selected search criteria | Implemented; simulator checked |
+| 21 | Rounded input with coral leading action | Expense search, never a pretend AI assistant | Implemented; simulator checked |
+| 22 | Coral metric sheet with stacked summary rows | Selected-currency expense report | Implemented; simulator checked |
+| 23 | Week/date selector and previous/next controls | Actual report period | Implemented; simulator checked |
+| 24 | Seven rounded mint bars with highlighted value | Daily totals in chosen period | Implemented; simulator checked |
+| 25 | Dark payment/service page with white filter pills | Payment profile and sync settings | Implemented; simulator checked |
+| 26 | Tilted overlapping coral/yellow/mint cards | Swish, MobilePay and sync/profile actions | Implemented; simulator checked |
+| 27 | Service logos/marks and circular navigation arrows | Clearly labelled payment provider controls | Implemented; simulator checked |
+| 28 | Lavender category screen | Expense category explorer | Implemented; simulator checked |
+| 29 | Nested coral, charcoal and yellow category tabs | Actual category selection | Implemented; simulator checked |
+| 30 | Large illustrated category card + small metadata | Category totals and matching expense list | Implemented; simulator checked |
+| 31 | Mint timing page | Expense activity by day of week | Implemented; simulator checked |
+| 32 | White circular dial, ticks, numerals and coral arc | Weekly expense count distribution, real data | Implemented; simulator checked |
+| 33 | Period controls beneath dial | Report period selection | Implemented; simulator checked |
 
 ## Data and behavior boundaries
 
@@ -70,3 +70,11 @@ Build, existing tests plus meaningful report projection tests; real simulator in
 all seven reference compositions; compare each matrix row with screenshots. Keep "implemented",
 "runtime checked" and physical-device results separate. Parent private-beta work #119 continues. Implementation issue: #131.
 See [verification](verification.md) and [artwork provenance](artwork.md).
+
+## Completion note
+
+All 33 mapped component types are present and visually checked across the seven compositions.
+Control routes were exercised for reporting, categories, periods, currency/group selection,
+activity filters/search, expense details/add/edit, profile/account cards and direct debt actions.
+Illustrations and labels are adapted for Slice; the low-resolution source does not support a
+claim of pixel-perfect reproduction. Broad hardware/VoiceOver and two-device QA remain #123/#47/#48.

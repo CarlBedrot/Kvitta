@@ -101,6 +101,12 @@ struct ReportsView: View {
             }.padding(20).padding(.bottom, 32)
         }
         .background(surface.ignoresSafeArea())
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if page == .activity {
+                searchField.padding(.horizontal, 20).padding(.vertical, 12)
+                    .background(Editorial.coal)
+            }
+        }
         .toolbar(.hidden, for: .navigationBar)
         .tint(Editorial.coal)
         .onAppear {
@@ -325,7 +331,6 @@ struct ReportsView: View {
                 EditorialPill(title: String(localized: "Visa fler")) { visibleLimit += 30 }
             }
             if activityEntries.isEmpty { Text("Inga matchande poster").foregroundStyle(Editorial.muted) }
-            searchField
         }
     }
 
