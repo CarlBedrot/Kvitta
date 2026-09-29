@@ -155,13 +155,20 @@ struct EditorialMetric: View {
     let title: String
     let value: String
     let badge: String
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var headerLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout())
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
+            headerLayout {
                 Text(title.uppercased()).font(Editorial.heading(17))
                     .fixedSize(horizontal: false, vertical: true)
-                Spacer()
+                if !dynamicTypeSize.isAccessibilitySize { Spacer() }
                 EditorialBadge(text: badge).fixedSize()
             }
             Text(value).font(Editorial.heading(36)).monospacedDigit()
