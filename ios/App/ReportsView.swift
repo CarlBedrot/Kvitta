@@ -206,21 +206,11 @@ struct ReportsView: View {
     private var spending: some View {
         EditorialPanel(fill: Editorial.coral, padding: 12) {
             VStack(alignment: .leading, spacing: 10) {
-                metric(String(localized: "Gemensamma utgifter"), value: total(items), badge: "\(items.count)")
-                metric(String(localized: "Största utgiften"), value: items.max(by: { $0.amountMinor < $1.amountMinor }).map { MoneyFormat.string($0.amountMinor, currency, explicit: true) } ?? "—", badge: currency.code)
+                EditorialMetric(title: String(localized: "Gemensamma utgifter"), value: total(items), badge: "\(items.count)")
+                EditorialMetric(title: String(localized: "Största utgiften"), value: items.max(by: { $0.amountMinor < $1.amountMinor }).map { MoneyFormat.string($0.amountMinor, currency, explicit: true) } ?? "—", badge: currency.code)
                 EditorialWeekChart(items: items, days: days, currency: currency, selectedDay: $selectedDay)
             }
         }
-    }
-
-    private func metric(_ title: String, value: String, badge: String) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack { Text(title.uppercased()).font(Editorial.heading(17)); Spacer(); EditorialBadge(text: badge) }
-            Text(value).font(Editorial.heading(36)).monospacedDigit().fixedSize(horizontal: false, vertical: true)
-        }.foregroundStyle(Editorial.coal)
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Editorial.paper.opacity(0.17), in: .rect(cornerRadius: 20))
     }
 
     private var categoryStack: some View {

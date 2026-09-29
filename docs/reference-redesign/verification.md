@@ -75,3 +75,23 @@ accessibility-extra-large text. Categories retained its appearance and selection
 Restaurant (1000 SEK) to Alcohol (437 SEK). Screenshots are in the local `groups-category`
 artifact folder. Empty-account and custom-photo variants were source-reviewed, not separately
 runtime exercised. Ledger logic was unchanged; no new layout-only tests were added.
+
+## Group Spending and Payments — #137 (2026-09-30)
+
+The Spending composition now appears inside each group. Categories-style group cards remain
+in the group picker. Expenses uses group-scoped weekly totals/largest expense and mint daily
+bars. Payments uses settled repayment totals and the current personal balance; labels distinguish
+period totals from the current balance. Currency and week selectors are shared across the two
+tabs for that visit. Full expense and repayment histories are explicitly labelled separately.
+The repayment chart follows `Payment.countsTowardBalances`: confirmed and aged pending payments
+count, disputed and still-unconfirmed payments do not. Int64 totals detect overflow. Existing
+settlement/confirmation paths remain; the current balance opens its audit. Photo, member and
+conversion controls remain under Group information and the toolbar menu.
+
+43 AppTests passed, including new tests for repayment currency/period/group isolation, status
+policy, daily conservation, exact large integers and overflow. Simulator checks covered 1657 SEK
+weekly spending, 100 SEK and 200 DKK settled repayments in separate buckets, 4.65 SEK owed-to-you
+and 100 DKK owed balances, the previous-week empty state, the balance audit and opening/cancelling
+the 100 DKK MobilePay sheet. No payment was recorded. An accessibility-extra-large check found
+bottom navigation wrapping; the controls now stack at accessibility sizes. A subsequent build
+and simulator check cover that layout-only correction. Artifacts: local `group-spending` folder.

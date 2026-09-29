@@ -69,6 +69,9 @@ struct GroupDetailView: View {
         return ScrollView {
             // Lazy: the expense months are built as they scroll in, not all on first paint.
             LazyVStack(alignment: .leading, spacing: 16) {
+                GroupSpendingView(group: group, balances: balances, meId: meId,
+                                  paymentsMode: segment == .standing,
+                                  onAudit: { if let meId { auditingMember = meId } })
                 switch segment {
                 case .expenses:
                     if group.visibleExpenses.isEmpty {
@@ -77,6 +80,7 @@ struct GroupDetailView: View {
                             button: canSplit ? nil : ("Bjud in", { showingMembers = true })
                         )
                     }
+                    Text("Alla utgifter").font(Editorial.heading(24)).foregroundStyle(Editorial.paper)
                     ExpenseList(group: group, expenses: group.visibleExpenses, meId: meId, mode: mode) { viewingExpense = $0 }
                     DeletedExpensesSection(
                         group: group,
@@ -86,25 +90,6 @@ struct GroupDetailView: View {
                     )
 
                 case .standing:
-                    // The trust rule (product principles): every balance on screen opens the
-                    // exact lines behind it. The card audits you; a member row audits that member.
-                    GroupHeroCard(
-                        group: group,
-                        balances: balances,
-                        userId: userId,
-                        mode: mode,
-                        rates: rates.rates,
-                        photo: photos.images.uiImage(for: groupId),
-                        onPhotoPicked: { jpeg in Task { await photos.stage(jpeg, for: groupId) } },
-                        onShowPhoto: { showingPhoto = true },
-                        onMode: { displayModes.set($0, for: groupId) },
-                        onAudit: { if let meId { auditingMember = meId } },
-                        onAddExpense: {
-                            expenseModel = NewExpenseModel(ledger: ledger, userId: userId, groupId: groupId)
-                        },
-                        onMembers: { showingMembers = true }
-                    )
-
                     // Somebody's books are waiting on this answer, so it comes before anything
                     // historical.
                     PendingPaymentsCard(
@@ -135,6 +120,26 @@ struct GroupDetailView: View {
                                 rates: rates.rates, myPhoto: profile.avatarData) {
                         auditingMember = $0
                     }
+
+                    GroupRepaymentHistory(group: group)
+                    DisclosureGroup("Gruppinformation") {
+                        GroupHeroCard(
+                            group: group,
+                            balances: balances,
+                            userId: userId,
+                            mode: mode,
+                            rates: rates.rates,
+                            photo: photos.images.uiImage(for: groupId),
+                            onPhotoPicked: { jpeg in Task { await photos.stage(jpeg, for: groupId) } },
+                            onShowPhoto: { showingPhoto = true },
+                            onMode: { displayModes.set($0, for: groupId) },
+                            onAudit: { if let meId { auditingMember = meId } },
+                            onAddExpense: {
+                                expenseModel = NewExpenseModel(ledger: ledger, userId: userId, groupId: groupId)
+                            },
+                            onMembers: { showingMembers = true }
+                        )
+                    }.tint(Editorial.paper)
 
                 }
                 Color.clear.frame(height: 24)
@@ -795,7 +800,7 @@ enum GroupSegment: CaseIterable, Hashable {
     var title: LocalizedStringKey {
         switch self {
         case .expenses: return "Utgifter"
-        case .standing: return "Ställning"
+        case .standing: return "Betalningar"
         }
     }
 }
@@ -803,14 +808,21 @@ enum GroupSegment: CaseIterable, Hashable {
 /// The group uses the same charcoal/pastel navigation roles as the dashboard.
 private struct GroupBottomBar: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Binding var segment: GroupSegment
     /// Alone in the group there is nobody to split with; the plus waits until there is.
     let canAdd: Bool
     let onAdd: () -> Void
 
+    private var segmentLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: 2))
+            : AnyLayout(HStackLayout(spacing: 2))
+    }
+
     var body: some View {
         HStack(spacing: 12) {
-            HStack(spacing: 2) {
+            segmentLayout {
                 ForEach(GroupSegment.allCases, id: \.self) { candidate in
                     let isOn = segment == candidate
                     Button {
@@ -818,6 +830,7 @@ private struct GroupBottomBar: View {
                     } label: {
                         Text(candidate.title)
                             .font(.subheadline.weight(.semibold))
+                            .fixedSize(horizontal: true, vertical: false)
                             .foregroundStyle(isOn ? Editorial.coal : Editorial.muted)
                             .padding(.horizontal, 22)
                             .padding(.vertical, 11)

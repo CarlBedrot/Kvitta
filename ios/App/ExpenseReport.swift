@@ -95,3 +95,24 @@ struct ExpenseReport {
         Date(timeIntervalSince1970: Double(dayNumber) * 86_400)
     }
 }
+
+/// Repayments counted by the existing balance policy, scoped to one group/currency/period.
+struct GroupPaymentReport {
+    let payments: [Payment]
+
+    init(group: GroupState, currency: CurrencyCode, days: ClosedRange<Int>, asOf: CalendarDate = CalendarDate(Date())) {
+        payments = group.paymentsByDate.filter {
+            $0.currency == currency && days.contains($0.date.dayNumber) && $0.countsTowardBalances(asOf: asOf)
+        }
+    }
+
+    static func total(_ payments: [Payment]) -> Int64? {
+        var result: Int64 = 0
+        for payment in payments {
+            let next = result.addingReportingOverflow(payment.amountMinor)
+            guard !next.overflow else { return nil }
+            result = next.partialValue
+        }
+        return result
+    }
+}
