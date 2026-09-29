@@ -37,6 +37,12 @@ struct HomeView: View {
         }
         .background(AmbientBackground())
         .navigationBarHidden(true)
+        .navigationDestination(for: GroupID.self) { groupId in
+            GroupDetailView(ledger: ledger, userId: userId, groupId: groupId,
+                            invites: invites, profile: profile, photos: photos, rates: rates,
+                            profiles: profiles)
+                .toolbar(.visible, for: .navigationBar)
+        }
         // Said in words, up by the title: a ⊕ that opened a menu read as "add what?". Joining
         // by link lives one step in, on the Ny grupp sheet, for the person who has a link.
         .toolbar {
@@ -87,11 +93,6 @@ struct HomeView: View {
             }
             .padding(.horizontal, 20)
         }
-        .navigationDestination(for: GroupID.self) { groupId in
-            GroupDetailView(ledger: ledger, userId: userId, groupId: groupId,
-                            invites: invites, profile: profile, photos: photos, rates: rates,
-                            profiles: profiles)
-        }
     }
 
     private func groupLink(_ group: GroupState) -> some View {
@@ -131,7 +132,7 @@ struct GroupCard: View {
                 // profile pictures will fill once they sync.
                 MemberFaces(members: group.activeMembers, meId: meId, myPhoto: myPhoto,
                             name: \.displayName, size: 22)
-                Text("\(group.activeMembers.count) personer · \(group.visibleExpenses.count) utgifter")
+                Text("\(String(localized: "\(group.activeMembers.count) personer")) · \(String(localized: "\(group.visibleExpenses.count) utgifter"))")
                     .font(.caption)
                     .foregroundStyle(Theme.tertiary)
             }

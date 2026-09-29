@@ -20,7 +20,7 @@ struct ProfileEditorView: View {
                             .keyboardType(.phonePad)
                             .sliceField()
                     }
-                    Text("Dina uppgifter sparas på den här telefonen och används när du skapar eller reglerar en grupp.")
+                    Text("Ditt namn används i nya grupper. När du är inloggad delas ditt Swish-nummer med gruppmedlemmarna så att de kan betala dig.")
                         .font(.footnote)
                         .foregroundStyle(Theme.secondary)
                 }
@@ -35,7 +35,7 @@ struct ProfileEditorView: View {
         }
     }
 
-    private func field<Content: View>(_ label: String, @ViewBuilder content: () -> Content) -> some View {
+    private func field<Content: View>(_ label: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
             content()

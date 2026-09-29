@@ -21,7 +21,6 @@ struct JagView: View {
     let reminders: ReminderScheduler
     let rates: RateStore
     let userId: UserID
-    var onProfile: () -> Void = {}
 
     @State private var photoItem: PhotosPickerItem?
     @State private var failure: String?
@@ -41,7 +40,7 @@ struct JagView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                PageHeader(title: "Profil", subtitle: "Din del av slice.", profile: profile, onProfile: onProfile)
+                PageHeader(title: "Profil", subtitle: "Din del av slice.", profile: profile, onProfile: { editingProfile = true })
                     .padding(20)
                 ScrollView {
                     Group {
@@ -241,10 +240,11 @@ struct JagView: View {
     private var remindersSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             SettingsRow(systemImage: "bell.badge", fill: Theme.accent, title: "Påminn mig om skulder") {
-                Toggle("", isOn: Binding(
+                Toggle("Påminn mig om skulder", isOn: Binding(
                     get: { reminders.isEnabled },
                     set: { on in Task { await reminders.setEnabled(on, ledger: ledger, userId: userId) } }
                 ))
+                .labelsHidden()
             }
             if reminders.wasDenied {
                 Text("Notiser är avstängda för Slice i Inställningar.")
@@ -319,7 +319,7 @@ struct JagView: View {
     }
 
     private func outlinedPanel<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        content()
+        VStack(alignment: .leading, spacing: 12) { content() }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Theme.card.opacity(0.55), in: .rect(cornerRadius: 20))
@@ -329,7 +329,7 @@ struct JagView: View {
             }
     }
 
-    private func panelTitle(_ title: String) -> some View {
+    private func panelTitle(_ title: LocalizedStringKey) -> some View {
         Text(title)
             .font(.headline.weight(.semibold))
             .foregroundStyle(Theme.secondary)

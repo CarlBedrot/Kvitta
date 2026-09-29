@@ -38,8 +38,8 @@ struct BrandLogo: View {
 }
 
 struct PageHeader: View {
-    let title: String
-    let subtitle: String
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey
     let profile: UserProfile
     var onProfile: (() -> Void)?
     var showGreeting = false
@@ -53,11 +53,12 @@ struct PageHeader: View {
                     Avatar(name: profile.nameOrDefault, photo: profile.avatarData, size: 42)
                 }
                 .buttonStyle(.plain)
+                .frame(minWidth: 44, minHeight: 44)
                 .accessibilityLabel("Öppna Profil")
             }
             VStack(alignment: .leading, spacing: 4) {
                 if showGreeting {
-                    Text(profile.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Hej där" : "Hej \(profile.nameOrDefault)")
+                    Text(profile.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? String(localized: "Hej där") : String(localized: "Hej \(profile.nameOrDefault)"))
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(Theme.secondary)
                 }
@@ -91,7 +92,7 @@ struct SyncStatusBanner: View {
                     .foregroundStyle(status.isBlocked ? Theme.clay : Theme.secondary)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(status.isBlocked ? "Synk behöver din hjälp" : "Offline – dina ändringar är sparade")
+                    Text(status.isBlocked ? String(localized: "Synk behöver din hjälp") : String(localized: "Offline – dina ändringar är sparade"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Theme.ink)
                     Text(status.detail)
@@ -121,7 +122,7 @@ struct SyncStatusBanner: View {
 struct SettingsRow<Content: View>: View {
     let systemImage: String
     let fill: Color
-    let title: String
+    let title: LocalizedStringKey
     @ViewBuilder let content: () -> Content
 
     var body: some View {
@@ -149,7 +150,7 @@ private extension SyncStatus {
 
     var detail: String {
         switch self {
-        case .offline(let detail): return detail.isEmpty ? "Vi försöker igen när anslutningen är tillbaka." : detail
+        case .offline(let detail): return detail.isEmpty ? String(localized: "Vi försöker igen när anslutningen är tillbaka.") : detail
         case .blocked(let detail): return detail
         case .disabled, .idle, .syncing: return ""
         }
@@ -157,8 +158,8 @@ private extension SyncStatus {
 
     var accessibilityText: String {
         switch self {
-        case .offline: return "Offline. Dina ändringar är sparade lokalt."
-        case .blocked: return "Synk behöver din hjälp."
+        case .offline: return String(localized: "Offline. Dina ändringar är sparade lokalt.")
+        case .blocked: return String(localized: "Synk behöver din hjälp.")
         case .disabled, .idle, .syncing: return ""
         }
     }
@@ -166,8 +167,8 @@ private extension SyncStatus {
 
 struct BalanceHero: View {
     let summary: BalanceBook.Summary
-    let label: String
-    let explanation: String
+    let label: LocalizedStringKey
+    let explanation: LocalizedStringKey
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -175,8 +176,8 @@ struct BalanceHero: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(label).font(.subheadline.weight(.medium)).foregroundStyle(Theme.heroSecondary)
                     Text(summary.hasOpenBalances
-                         ? (summary.netMinor == 0 ? "0 \(summary.currency.code) netto" : MoneyFormat.string(summary.netMinor, summary.currency, sign: .always))
-                         : "Allt är jämnt")
+                         ? (summary.netMinor == 0 ? String(localized: "0 \(summary.currency.code) netto") : MoneyFormat.string(summary.netMinor, summary.currency, sign: .always))
+                         : String(localized: "Allt är jämnt"))
                         .font(.system(size: 42, weight: .heavy))
                         .monospacedDigit()
                         .minimumScaleFactor(0.68)
@@ -193,9 +194,9 @@ struct BalanceHero: View {
             }
             Divider().overlay(Theme.heroSecondary.opacity(0.25))
             HStack(alignment: .top, spacing: 16) {
-                HeroTotal(title: "Du ska få", amount: summary.receivableMinor, currency: summary.currency, color: Theme.positive)
+                HeroTotal(title: "Du ska få", amount: summary.receivableMinor, currency: summary.currency, color: Color(hex: 0x8EDAA2))
                 Rectangle().fill(Theme.heroSecondary.opacity(0.25)).frame(width: 1, height: 36)
-                HeroTotal(title: "Du ska betala", amount: summary.payableMinor, currency: summary.currency, color: Theme.negative)
+                HeroTotal(title: "Du ska betala", amount: summary.payableMinor, currency: summary.currency, color: Color(hex: 0xFFAD9F))
             }
         }
         .padding(20)
@@ -205,7 +206,7 @@ struct BalanceHero: View {
 }
 
 private struct HeroTotal: View {
-    let title: String
+    let title: LocalizedStringKey
     let amount: Int64
     let currency: CurrencyCode
     let color: Color

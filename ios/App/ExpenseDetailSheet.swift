@@ -176,7 +176,7 @@ private struct ActionButtons: View {
     var body: some View {
         VStack(spacing: 10) {
             Button("Redigera", action: onEdit)
-                .buttonStyle(PrimaryButtonStyle(fill: Theme.ink, label: Theme.heroText))
+                .buttonStyle(PrimaryButtonStyle(fill: Theme.controlFill, label: Theme.controlLabel))
 
             Button(role: .destructive, action: onDelete) {
                 Text("Ta bort")

@@ -35,7 +35,7 @@ struct RootView: View {
     @State private var showingActivity = false
     @State private var settlingTransfer: SettlementPresentation?
     @State private var selectedExpense: ExpensePresentation?
-    var payees = PayeeDirectory()
+    @State private var payees = PayeeDirectory()
     /// Held here so creating a group can push straight into it. A new group has nobody in it yet,
     /// so landing back on the list would leave you looking at a row you cannot do anything with.
     @State private var grupperPath = NavigationPath()
@@ -65,6 +65,7 @@ struct RootView: View {
                 Tab("Grupper", systemImage: "person.2", value: AppTab.grupper) {
                     grupperTab
                 }
+                if horizontalSizeClass == .regular {
                 Tab(value: AppTab.add) {
                     Color.clear
                 } label: {
@@ -77,6 +78,7 @@ struct RootView: View {
                                 .foregroundStyle(Theme.heroText)
                         }
                         .accessibilityLabel("Lägg till utgift")
+                }
                 }
                 Tab("Ställning", systemImage: "chart.pie", value: AppTab.stallning) {
                     NavigationStack {
@@ -92,17 +94,18 @@ struct RootView: View {
                 }
                 }
                 .modifier(AdaptiveTabStyle(isRegular: horizontalSizeClass == .regular))
-                .toolbar(.hidden, for: .tabBar)
+                .toolbarVisibility(horizontalSizeClass == .regular ? .automatic : .hidden, for: .tabBar)
 
+            }
+            .safeAreaInset(edge: .top, spacing: 0) {
                 SyncStatusBanner(status: sync.status) {
                     Task { await sync.syncAll() }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, horizontalSizeClass == .regular ? 20 : 8)
-                .frame(maxHeight: .infinity, alignment: .top)
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if horizontalSizeClass != .regular {
+                if horizontalSizeClass != .regular && (selectedTab != .grupper || grupperPath.isEmpty) {
                     PhoneNavigationBar(selection: $selectedTab, onAdd: startAddExpense)
                         .frame(width: max(0, rootProxy.size.width - 24))
                         .padding(.bottom, 4)
@@ -155,7 +158,8 @@ struct RootView: View {
         .sheet(item: $settlingTransfer) { presentation in
             SettleUpSheet(ledger: ledger, userId: userId, groupId: presentation.groupId,
                           transfer: presentation.transfer, payees: payees)
-                .presentationDetents([.medium])
+                .presentationDetents([.medium, .large])
+                .task { await profiles.refreshPayees(in: presentation.groupId, into: payees) }
         }
         .sheet(item: $selectedExpense) { presentation in
             ExpenseDetailSheet(ledger: ledger, userId: userId, groupId: presentation.groupId,
@@ -279,7 +283,7 @@ private struct PhoneNavigationBar: View {
         .shadow(color: .black.opacity(0.08), radius: 16, y: 5)
     }
 
-    private func destination(_ tab: RootView.AppTab, title: String, icon: String, width: CGFloat) -> some View {
+    private func destination(_ tab: RootView.AppTab, title: LocalizedStringKey, icon: String, width: CGFloat) -> some View {
         Button { selection = tab } label: {
             VStack(spacing: 3) {
                 Image(systemName: icon)
@@ -289,7 +293,7 @@ private struct PhoneNavigationBar: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
-            .foregroundStyle(selection == tab ? Theme.accentInk : Theme.ink)
+            .foregroundStyle(Theme.ink)
             .frame(width: width)
             .frame(minHeight: 44)
             .padding(.vertical, 7)

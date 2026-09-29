@@ -40,6 +40,9 @@ public struct BalanceBook: Sendable, Hashable {
         public let currency: CurrencyCode
         /// Positive means this person should pay the user; negative means the user should pay them.
         public let amountMinor: Int64
+        /// Gross directions remain independent: separate groups cannot settle each other.
+        public let receivableMinor: Int64
+        public let payableMinor: Int64
         public let groupCount: Int
         public let hasOpenBalance: Bool
 
@@ -48,12 +51,15 @@ public struct BalanceBook: Sendable, Hashable {
         public var context: String { groupCount == 1 ? "1 grupp" : "\(groupCount) grupper" }
 
         public init(identity: String, memberIds: [MemberID], name: String, currency: CurrencyCode,
-                    amountMinor: Int64, groupCount: Int, hasOpenBalance: Bool = true) {
+                    amountMinor: Int64, groupCount: Int, hasOpenBalance: Bool = true,
+                    receivableMinor: Int64? = nil, payableMinor: Int64? = nil) {
             self.identity = identity
             self.memberIds = memberIds
             self.name = name
             self.currency = currency
             self.amountMinor = amountMinor
+            self.receivableMinor = receivableMinor ?? max(0, amountMinor)
+            self.payableMinor = payableMinor ?? max(0, -amountMinor)
             self.groupCount = groupCount
             self.hasOpenBalance = hasOpenBalance
         }
@@ -83,6 +89,8 @@ public struct BalanceBook: Sendable, Hashable {
 
     public func people(for currency: CurrencyCode, userId: UserID) -> [Person] {
         var amounts: [String: Int64] = [:]
+        var receivables: [String: Int64] = [:]
+        var payables: [String: Int64] = [:]
         var open: Set<String> = []
         var counts: [String: Int] = [:]
         var names: [String: String] = [:]
@@ -97,6 +105,8 @@ public struct BalanceBook: Sendable, Hashable {
                     ?? "member:\(counterpart.rawValue.uuidString)"
                 let signedAmount = transfer.to == me ? transfer.amountMinor : -transfer.amountMinor
                 amounts[identity, default: 0] += signedAmount
+                receivables[identity, default: 0] += max(0, signedAmount)
+                payables[identity, default: 0] += max(0, -signedAmount)
                 open.insert(identity)
                 counts[identity, default: 0] += 1
                 names[identity] = names[identity] ?? member.displayName
@@ -107,11 +117,14 @@ public struct BalanceBook: Sendable, Hashable {
             guard let name = names[memberId] else { return nil }
             let amount = amounts[memberId, default: 0]
             return Person(identity: memberId, memberIds: memberIds[memberId, default: []], name: name, currency: currency,
-                          amountMinor: amount, groupCount: counts[memberId, default: 0], hasOpenBalance: true)
+                          amountMinor: amount, groupCount: counts[memberId, default: 0], hasOpenBalance: true,
+                          receivableMinor: receivables[memberId, default: 0], payableMinor: payables[memberId, default: 0])
         }
         .sorted {
             let left = abs($0.amountMinor), right = abs($1.amountMinor)
-            return left == right ? $0.name.localizedStandardCompare($1.name) == .orderedAscending : left > right
+            if left != right { return left > right }
+            let nameOrder = $0.name.localizedStandardCompare($1.name)
+            return nameOrder == .orderedSame ? $0.identity < $1.identity : nameOrder == .orderedAscending
         }
     }
 }

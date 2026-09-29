@@ -87,8 +87,8 @@ private struct BalanceFilterView: View {
         book.people(for: currency, userId: userId).filter {
             switch filter {
             case .all: true
-            case .receive: $0.amountMinor > 0
-            case .pay: $0.amountMinor < 0
+            case .receive: $0.receivableMinor > 0
+            case .pay: $0.payableMinor > 0
             }
         }
     }
@@ -97,7 +97,7 @@ private struct BalanceFilterView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 4) {
                 ForEach(BalanceFilter.allCases, id: \.self) { option in
-                    Button(option.rawValue) { filter = option }
+                    Button(LocalizedStringKey(option.rawValue)) { filter = option }
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(filter == option ? Theme.heroText : Theme.ink)
                         .frame(maxWidth: .infinity)
@@ -116,13 +116,13 @@ private struct BalanceFilterView: View {
                 .font(.headline.weight(.bold))
                 .foregroundStyle(Theme.ink)
             if people.isEmpty {
-                Text(filter == .all ? "Inga öppna saldon." : "Inga personer i det här filtret.")
+                Text(filter == .all ? String(localized: "Inga öppna saldon.") : String(localized: "Inga personer i det här filtret."))
                     .font(.subheadline)
                     .foregroundStyle(Theme.secondary)
                     .padding(.vertical, 12)
             } else {
                 ForEach(people) { person in
-                    PersonBalanceRow(person: person, groups: groups, ledger: ledger, userId: userId, currency: currency)
+                    PersonBalanceRow(person: person, groups: groups, ledger: ledger, userId: userId, currency: currency, onSettle: onSettle)
                 }
             }
         }
@@ -136,6 +136,15 @@ struct PersonBalanceRow: View {
     let ledger: LedgerStore
     let userId: UserID
     let currency: CurrencyCode
+    let onSettle: (SuggestedTransfer, GroupID) -> Void
+
+    private var groupContext: String { String(localized: "\(person.groupCount) grupper") }
+
+    private var amountLabel: String {
+        let amount = MoneyFormat.string(abs(person.amountMinor), person.currency, explicit: true)
+        return person.receivableMinor > 0 && person.payableMinor > 0
+            ? String(localized: "\(amount) netto") : amount
+    }
 
     private var hasRelationship: Bool {
         groups.contains { group in
@@ -146,7 +155,7 @@ struct PersonBalanceRow: View {
     var body: some View {
         NavigationLink {
             if hasRelationship {
-                RelationshipDetailView(ledger: ledger, userId: userId, person: person, currency: currency)
+                RelationshipDetailView(ledger: ledger, userId: userId, person: person, currency: currency, onSettle: onSettle)
             } else {
                 EmptyView()
             }
@@ -155,12 +164,12 @@ struct PersonBalanceRow: View {
                 Avatar(name: person.name, photo: nil, size: 44)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(person.name).font(.body.weight(.semibold)).foregroundStyle(Theme.ink)
-                    Text(person.amountMinor > 0 ? "ska betala dig · \(person.context)" : person.amountMinor < 0 ? "du ska betala · \(person.context)" : "öppet åt båda håll · \(person.context)")
+                    Text(person.receivableMinor > 0 && person.payableMinor > 0 ? String(localized: "öppet åt båda håll · \(groupContext)") : person.amountMinor > 0 ? String(localized: "ska betala dig · \(groupContext)") : String(localized: "du ska betala · \(groupContext)"))
                         .font(.caption).foregroundStyle(Theme.secondary)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 3) {
-                    Text(person.amountMinor == 0 ? "0 kr netto" : MoneyFormat.string(abs(person.amountMinor), person.currency))
+                    Text(amountLabel)
                         .font(.body.weight(.bold)).monospacedDigit().foregroundStyle(Theme.tint(forSign: person.amountMinor))
                     Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(Theme.tertiary)
                 }
@@ -169,7 +178,8 @@ struct PersonBalanceRow: View {
             .frame(minHeight: 64)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(person.amountMinor > 0 ? "\(person.name) ska betala dig" : person.amountMinor < 0 ? "Du ska betala \(person.name)" : "Öppna saldon åt båda håll med \(person.name)")
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("Öppnar saldon per grupp")
     }
 }
 
@@ -178,6 +188,7 @@ private struct RelationshipDetailView: View {
     let userId: UserID
     let person: BalanceBook.Person
     let currency: CurrencyCode
+    let onSettle: (SuggestedTransfer, GroupID) -> Void
 
     private var groups: [GroupState] {
         ledger.state.groupsByLastActivity.filter { group in
@@ -217,6 +228,7 @@ private struct RelationshipDetailView: View {
         .background(AmbientBackground())
         .navigationTitle("Relation")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
     }
 
     private func relationshipCard(_ group: GroupState) -> some View {
@@ -234,13 +246,17 @@ private struct RelationshipDetailView: View {
                 Text("\(transfers.count) poster").font(.caption).foregroundStyle(Theme.secondary)
             }
             ForEach(transfers, id: \.self) { transfer in
+                VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Text(transfer.from == me?.id ? "Du betalar" : "\(person.name) betalar")
+                    Text(transfer.from == me?.id ? String(localized: "Du betalar") : String(localized: "\(person.name) betalar"))
                         .foregroundStyle(Theme.secondary)
                     Spacer()
                     Text(MoneyFormat.string(transfer.amountMinor, transfer.currency, explicit: true))
                         .font(.body.weight(.bold)).monospacedDigit()
                         .foregroundStyle(Theme.tint(forSign: transfer.from == me?.id ? -1 : 1))
+                }
+                Button("Gör upp") { onSettle(transfer, group.id) }
+                    .buttonStyle(PrimaryButtonStyle())
                 }
             }
         }

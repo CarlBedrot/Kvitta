@@ -54,7 +54,7 @@ enum Theme {
     /// Sky blue from the app icon. The FAB, primary buttons and selected tab all speak Slice blue.
     static let brandBlue = adaptive(light: 0x55A9DE, dark: 0x3B8FC8)
     static let accent = brandBlue
-    static let accentInk = Color.white
+    static let accentInk = Color(hex: 0x102236)
     static let accentPressed = adaptive(light: 0x368BC7, dark: 0x2E78AB)
     static let accentSubtle = adaptive(light: 0xE2F2FC, dark: 0x163B55)
     static let pizzaOrange = adaptive(light: 0xF28A24, dark: 0xFFB34F)

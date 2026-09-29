@@ -77,7 +77,7 @@ struct SplitEditorSheet: View {
     }
 
     private func card<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        content()
+        VStack(alignment: .leading, spacing: 12) { content() }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Theme.card, in: .rect(cornerRadius: 20))

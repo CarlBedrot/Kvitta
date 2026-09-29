@@ -67,6 +67,7 @@ struct OverviewView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Din ställning i \(currency.code)")
+                .accessibilityValue(MoneyFormat.string(book.summary(for: currency, userId: userId).netMinor, currency, sign: .always, explicit: true))
                 .accessibilityHint("Öppnar Ställning")
             }
         }
@@ -82,7 +83,7 @@ struct OverviewView: View {
                     .foregroundStyle(Theme.ink)
                     .frame(width: 42, alignment: .leading)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(summary.hasOpenBalances ? MoneyFormat.string(summary.netMinor, summary.currency, sign: .always) : "Allt är jämnt")
+                    Text(summary.hasOpenBalances ? MoneyFormat.string(summary.netMinor, summary.currency, sign: .always) : String(localized: "Allt är jämnt"))
                         .font(.title3.weight(.heavy))
                         .monospacedDigit()
                         .foregroundStyle(Theme.ink)
@@ -164,7 +165,7 @@ struct OverviewView: View {
                         VStack(alignment: .leading, spacing: 3) {
                             Text("Senast aktiv i").font(.caption).foregroundStyle(Theme.secondary)
                             Text(GroupBadge.title(of: group.name)).font(.body.weight(.semibold)).foregroundStyle(Theme.ink)
-                            Text("\(group.activeMembers.count) personer · \(group.visibleExpenses.count) utgifter")
+                            Text("\(String(localized: "\(group.activeMembers.count) personer")) · \(String(localized: "\(group.visibleExpenses.count) utgifter"))")
                                 .font(.caption).foregroundStyle(Theme.secondary)
                         }
                         Spacer()
