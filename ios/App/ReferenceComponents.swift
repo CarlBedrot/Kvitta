@@ -90,6 +90,66 @@ struct EditorialPanel<Content: View>: View {
     }
 }
 
+/// Shared by the category explorer and group cards so their layers stay identical.
+struct EditorialCardStack<Top: View, Metadata: View, Content: View>: View {
+    @ViewBuilder let top: () -> Top
+    @ViewBuilder let metadata: () -> Metadata
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: -16) {
+            top()
+                .font(Editorial.heading(20)).foregroundStyle(Editorial.coal)
+                .padding(.horizontal, 18).padding(.top, 16).padding(.bottom, 30)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Editorial.coral, in: .rect(cornerRadius: 26))
+            metadata()
+                .foregroundStyle(Editorial.paper)
+                .padding(.horizontal, 18).padding(.top, 16).padding(.bottom, 30)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Editorial.coal, in: .rect(cornerRadius: 26))
+            EditorialPanel(fill: Editorial.yellow, content: content)
+        }.clipShape(.rect(cornerRadius: 28))
+    }
+}
+
+struct EditorialCardTitle: View {
+    let title: String
+    let symbol: String
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var layout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(alignment: .top))
+    }
+
+    var body: some View {
+        layout {
+            Text(title.uppercased()).font(Editorial.heading(38))
+                .foregroundStyle(Editorial.coal)
+                .fixedSize(horizontal: false, vertical: true)
+            if !dynamicTypeSize.isAccessibilitySize { Spacer() }
+            Image(systemName: symbol).font(.system(size: 20))
+                .foregroundStyle(Editorial.paper).frame(width: 40, height: 40)
+                .background(Editorial.coal, in: .circle).accessibilityHidden(true)
+        }
+    }
+}
+
+struct EditorialMetadataPill: View {
+    let text: String
+    var body: some View {
+        HStack(spacing: 8) {
+            Circle().fill(Editorial.coral).frame(width: 7, height: 7)
+            Text(text).font(.caption.weight(.medium)).monospacedDigit()
+                .fixedSize(horizontal: false, vertical: true)
+        }.foregroundStyle(Editorial.coal)
+            .padding(.horizontal, 10).padding(.vertical, 6)
+            .background(Editorial.paper.opacity(0.35), in: .capsule)
+    }
+}
+
 struct EditorialBadge: View {
     let text: String
     var body: some View {

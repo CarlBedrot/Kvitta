@@ -2,9 +2,7 @@ import SwiftUI
 import KvittaCore
 import KvittaStorage
 
-/// Grupper: the list, and nothing above it. One row per group — name, and where you stand in
-/// it — because "how do we stand?" is answered by the rows themselves, not by a card summing
-/// them up. Calm, warm, no decoration that isn't information.
+/// Groups use the same purple canvas and layered illustrated cards as Categories.
 struct HomeView: View {
     let ledger: LedgerStore
     let userId: UserID
@@ -19,23 +17,30 @@ struct HomeView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
-        // Sorted once per render: the sort scans every ledger event.
         let groups = ledger.state.groupsByLastActivity
-        let visibleGroups = searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ? groups
-            : groups.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
-        Group {
-            if groups.isEmpty {
-                VStack(alignment: .leading, spacing: 24) {
-                    PageHeader(title: "Grupper", profile: profile, onProfile: onProfile)
-                    EmptyGroupsView(onNewGroup: onNewGroup)
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let visibleGroups = query.isEmpty ? groups : groups.filter { $0.name.localizedCaseInsensitiveContains(query) }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                HStack(alignment: .top) {
+                    EditorialHeading(title: String(localized: "Grupper"), dark: true)
+                    EditorialCircleButton(symbol: "person.crop.circle", label: String(localized: "Profil"), action: onProfile)
                 }
-                .padding(20)
-            } else {
-                content(groups: visibleGroups)
-            }
+                EditorialPill(title: String(localized: "Ny grupp"), action: onNewGroup)
+                if groups.isEmpty {
+                    EmptyGroupsView(onNewGroup: onNewGroup)
+                } else {
+                    searchField
+                    if visibleGroups.isEmpty {
+                        Text("Inga grupper matchar sökningen.")
+                            .font(.subheadline).foregroundStyle(Editorial.coal)
+                            .padding(.vertical, 20)
+                    }
+                    groupCards(visibleGroups)
+                }
+            }.padding(20).padding(.bottom, 100)
         }
-        .background(AmbientBackground())
+        .background(Editorial.purple.ignoresSafeArea())
         .navigationBarHidden(true)
         .navigationDestination(for: GroupID.self) { groupId in
             GroupDetailView(ledger: ledger, userId: userId, groupId: groupId,
@@ -43,136 +48,94 @@ struct HomeView: View {
                             profiles: profiles)
                 .toolbar(.visible, for: .navigationBar)
         }
-        // Said in words, up by the title: a ⊕ that opened a menu read as "add what?". Joining
-        // by link lives one step in, on the Ny grupp sheet, for the person who has a link.
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("Ny grupp", action: onNewGroup)
-                    .font(.body.weight(.semibold))
-            }
-        }
     }
 
-    private func content(groups: [GroupState]) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-            PageHeader(title: "Grupper", profile: profile, onProfile: onProfile)
-            HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(Theme.secondary)
-                TextField("Sök grupper", text: $searchText)
-                    .textInputAutocapitalization(.never)
+    private var searchField: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass").accessibilityHidden(true)
+            TextField("Sök grupper", text: $searchText,
+                      prompt: Text("Sök grupper").foregroundStyle(Editorial.coal.opacity(0.7)))
+                .textInputAutocapitalization(.never)
+            if !searchText.isEmpty {
+                Button { searchText = "" } label: {
+                    Image(systemName: "xmark.circle.fill").frame(width: 44, height: 44)
+                }.accessibilityLabel("Rensa sökning")
             }
-            .sliceField()
-            if groups.isEmpty {
-                Text("Inga grupper matchar sökningen.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.secondary)
-                    .padding(.vertical, 20)
+        }.font(.subheadline).foregroundStyle(Editorial.coal).tint(Editorial.coal)
+            .padding(.horizontal, 16).frame(minHeight: 44)
+            .background(Editorial.paper, in: .capsule)
+    }
+
+    @ViewBuilder private func groupCards(_ groups: [GroupState]) -> some View {
+        if horizontalSizeClass == .regular {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 320), spacing: 20)], spacing: 20) {
+                ForEach(groups) { group in groupLink(group) }
             }
-            // Cards keep each group scannable on a warm canvas, matching the reference hierarchy.
-            if horizontalSizeClass == .regular {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 320), spacing: 12)], spacing: 12) {
-                    ForEach(groups) { group in groupLink(group) }
-                }
-            } else {
-                LazyVStack(spacing: 12) {
-                    ForEach(groups) { group in groupLink(group) }
-                }
+        } else {
+            LazyVStack(spacing: 20) {
+                ForEach(groups) { group in groupLink(group) }
             }
-            Button(action: onNewGroup) {
-                Label("Skapa grupp", systemImage: "plus")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(PrimaryButtonStyle())
-            .cardSurface(padding: 0)
-            .padding(.horizontal, 16)
-            .padding(.top, 4)
-            // Leave room so the last row clears the tab bar and the FAB.
-            .padding(.bottom, 120)
-            }
-            .padding(.horizontal, 20)
         }
     }
 
     private func groupLink(_ group: GroupState) -> some View {
         NavigationLink(value: group.id) {
-            GroupCard(group: group, meId: group.me(for: userId)?.id,
-                     nets: group.nets(for: userId), photo: photos.images.uiImage(for: group.id))
-                .cardSurface(padding: 0)
-        }
-        .buttonStyle(ScaleButtonStyle())
+            GroupCard(group: group, nets: group.nets(for: userId), photo: photos.images.uiImage(for: group.id))
+        }.buttonStyle(.plain)
     }
 }
 
-// MARK: - Group rows
-
-/// Badge, name with the group's faces under it, and your position — signed and coloured, no
-/// direction word: "+191,33 kr" in green is the sentence. Two currencies stack on the right.
 struct GroupCard: View {
     let group: GroupState
-    let meId: MemberID?
-    /// Your position in this group per currency, from one fold.
+    /// Preserve each currency's actual position; never combine balances.
     let nets: [Money]
     let photo: UIImage?
 
-    @Environment(\.myAvatarPhoto) private var myPhoto
-
     var body: some View {
-        let open = nets.filter { $0.amountMinor != 0 }
-        HStack(spacing: 14) {
-            GroupBadge(name: group.name, photo: photo, size: 48, groupId: group.id)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(GroupBadge.title(of: group.name))
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(Theme.ink)
-                    .lineLimit(2)
-                // Who is in it, instead of "3 personer": the faces say it and are the room
-                // profile pictures will fill once they sync.
-                MemberFaces(members: group.activeMembers, meId: meId, myPhoto: myPhoto,
-                            name: \.displayName, size: 22)
-                Text("\(String(localized: "\(group.activeMembers.count) personer")) · \(String(localized: "\(group.visibleExpenses.count) utgifter"))")
-                    .font(.caption)
-                    .foregroundStyle(Theme.tertiary)
+        EditorialCardStack {
+            HStack {
+                Text("\(group.activeMembers.count) personer")
+                Spacer()
+                Image(systemName: "arrow.up.right").accessibilityHidden(true)
             }
+        } metadata: {
+            HStack {
+                Text("\(group.visibleExpenses.count) utgifter").font(Editorial.heading(18))
+                Spacer()
+                Text(nets.isEmpty ? group.currency.code : nets.map { $0.currency.code }.joined(separator: " / "))
+                    .font(.caption)
+            }
+        } content: {
+            VStack(alignment: .leading, spacing: 14) {
+                EditorialCardTitle(title: GroupBadge.title(of: group.name), symbol: "person.2.fill")
+                balances
+                if let photo {
+                    Image(uiImage: photo).resizable().scaledToFit().frame(maxHeight: 330)
+                        .clipShape(.rect(cornerRadius: 16)).accessibilityHidden(true)
+                } else {
+                    Image("SharedDinner").resizable().scaledToFit().frame(maxHeight: 330).accessibilityHidden(true)
+                }
+                HStack {
+                    Text("Visa grupp").font(.caption2.weight(.semibold))
+                    Spacer()
+                    Image(systemName: "arrow.up.right")
+                }.foregroundStyle(Editorial.coal)
+            }
+        }.contentShape(.rect).accessibilityElement(children: .combine)
+    }
 
-            Spacer(minLength: 8)
-
+    private var balances: some View {
+        let open = nets.filter { $0.amountMinor != 0 }
+        return VStack(alignment: .leading, spacing: 8) {
             if open.isEmpty {
-                Text("Kvitt")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Theme.tertiary)
+                EditorialMetadataPill(text: String(localized: "Kvitt"))
             } else {
-                VStack(alignment: .trailing, spacing: 2) {
-                    ForEach(open, id: \.currency) { bucket in
-                        VStack(alignment: .trailing, spacing: 1) {
-                            Text(bucket.amountMinor > 0 ? "Du ska få" : "Du ska betala")
-                                .font(.caption2.weight(.semibold))
-                                .foregroundStyle(Theme.secondary)
-                            SignedAmountText(
-                            amountMinor: bucket.amountMinor,
-                            currency: bucket.currency,
-                            size: 17,
-                            explicit: bucket.currency != group.currency || open.count > 1,
-                            accessibilityPhrase: "\(GroupBadge.title(of: group.name)): \(BalanceDirection(bucket.amountMinor).spokenWord) \(MoneyFormat.string(abs(bucket.amountMinor), bucket.currency, explicit: true))"
-                            )
-                        }
-                        // Money never wraps mid-amount; the group name is what gives way.
-                        .lineLimit(1)
-                        .fixedSize()
-                    }
+                ForEach(open, id: \.currency) { bucket in
+                    let direction = bucket.amountMinor > 0 ? String(localized: "Du ska få") : String(localized: "Du ska betala")
+                    EditorialMetadataPill(text: "\(direction) · \(MoneyFormat.string(abs(bucket.amountMinor), bucket.currency, explicit: true))")
                 }
             }
-
-            Image(systemName: "chevron.right")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(Theme.tertiary)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .contentShape(.rect)
-        .accessibilityElement(children: .combine)
     }
 }
 
@@ -296,14 +259,19 @@ struct GroupBadge: View {
 
 private struct EmptyGroupsView: View {
     var onNewGroup: () -> Void
-
     var body: some View {
-        ContentUnavailableView {
-            Label("Inga grupper än", systemImage: "person.2")
-        } actions: {
-            Button("Ny grupp", action: onNewGroup)
-                .buttonStyle(PrimaryButtonStyle())
-                .fixedSize()
-        }
+        Button(action: onNewGroup) {
+            EditorialCardStack {
+                HStack { Text("Ny grupp"); Spacer(); Image(systemName: "plus") }
+            } metadata: {
+                Text("\(0) utgifter").font(Editorial.heading(18))
+            } content: {
+                VStack(alignment: .leading, spacing: 14) {
+                    EditorialCardTitle(title: String(localized: "Inga grupper än"), symbol: "person.2.fill")
+                    Image("SharedDinner").resizable().scaledToFit().frame(maxHeight: 330).accessibilityHidden(true)
+                    Text("Skapa grupp").font(.caption.weight(.semibold)).foregroundStyle(Editorial.coal)
+                }
+            }
+        }.buttonStyle(.plain)
     }
 }

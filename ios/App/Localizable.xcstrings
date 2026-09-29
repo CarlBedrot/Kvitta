@@ -3683,6 +3683,16 @@
         }
       }
     },
+    "Visa grupp" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View group"
+          }
+        }
+      }
+    },
     "Tillbaka" : {
       "localizations" : {
         "en" : {
