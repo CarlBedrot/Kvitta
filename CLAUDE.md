@@ -25,7 +25,7 @@ Full architecture: docs/expense-app-sync-design.md. Read it before touching sync
 - iOS build: xcodebuild build -scheme App -destination "platform=iOS Simulator,name=iPhone 17 Pro"
   (iPhone 17 Pro is on the iOS 26.5 runtime. Older sim names on this machine are iOS 18.2 and cannot install an iOS 26 app — the error you get is opaque.)
 - Xcode tooling via MCP: prefer Apple's official bridge (xcrun mcpbridge, Xcode 26.3+); XcodeBuildMCP as fallback for simulator automation it does not cover
-- App icon: the source of truth is docs/brand/slice-mascot.png — Carl's brand artwork, not generated. To regenerate: center-crop to 1024×1024 and flatten onto the brand blue `#4FA9E8` (the icon's sky blue; LaunchBackground now uses ivory) with PIL — `Image.new("RGB", (1024,1024), (79,169,232))` + paste with the mascot's own alpha as mask. Never strip alpha via a jpeg round-trip: transparent becomes black, which is exactly the pizza-on-a-void icon Carl asked to be rid of. The marketing icon must be opaque and exactly 1024×1024. The old SVG pipeline (tools/rasterize-icon.swift) is retired but kept for reference.
+- App icon: the source of truth is docs/brand/slice-mascot.png — Carl's brand artwork, not generated. To regenerate: center-crop to 1024×1024 and flatten onto the brand blue `#4FA9E8` (the icon's sky blue; LaunchBackground uses the current charcoal screen color) with PIL — `Image.new("RGB", (1024,1024), (79,169,232))` + paste with the mascot's own alpha as mask. Never strip alpha via a jpeg round-trip: transparent becomes black, which is exactly the pizza-on-a-void icon Carl asked to be rid of. The marketing icon must be opaque and exactly 1024×1024. The old SVG pipeline (tools/rasterize-icon.swift) is retired but kept for reference.
 - Core package tests: swift test (from ios/Core/)
 - Storage package tests: swift test (from ios/Storage/)
 - Sync package tests: swift test (from ios/Sync/)
@@ -137,8 +137,8 @@ Storage:
 - rebuild() is what launch calls, so the recovery hatch is exercised every time the app opens instead of never.
 
 SwiftUI:
-- The app intentionally uses light appearance (#127); keep `INFOPLIST_KEY_UIUserInterfaceStyle: Light` and `preferredColorScheme(.light)` paired. The adaptive dark tokens remain a fallback, not the current product appearance.
-- Visual direction (#129): exact icon sky blue `#4FA9E8` for filled actions and brand mark; ivory `#FAF9F5` across page, content surfaces, navigation and launch. Dark ink on blue buttons; the darker same-hue `accent` is for readable text/icons, not filled controls. Warm neutral placeholders share one palette. Preserve field boundaries and semantic errors; avoid outlined settings panels, white card islands and ornamental dividers.
+- Visual direction (#131 / #133) supersedes the previous ivory/blue layout: use the user's seven-screen tubik reference, adapted to Slice. Charcoal navigation, mint reports, purple charts/categories, coral statistics and yellow illustrated panels share condensed editorial typography. See docs/reference-redesign/acceptance-matrix.md and source-fidelity.md; preserve all mapped components and actual data behavior.
+- Keep the blue pizza app icon and Slice identity. The reference uses fixed dark and pastel surfaces; theme and launch background must agree. Do not restore the old forced-light ivory direction when applying earlier issues #127/#129.
 - A group is created with only you in it. Names are never typed for other people at creation — they join by link and pick their own. `MembersSheet` still adds someone by name, for the friend who will never install the app (design doc §5), and that must not be removed.
 - Never use AnyView to silence type-erasure errors. Use a @ViewBuilder generic or a switch over an enum returning concrete views. AnyView breaks SwiftUI diffing.
 - Views over ~60 lines get split into subviews.

@@ -4,17 +4,17 @@ import KvittaCore
 
 /// Roles transcribed from the user's seven-screen visual reference.
 enum Editorial {
-    static let coal = Color(hex: 0x252622)
-    static let raised = Color(hex: 0x343530)
-    static let paper = Color(hex: 0xF5F4EC)
+    static let coal = Color(hex: 0x202020)
+    static let raised = Color(hex: 0x303030)
+    static let paper = Color(hex: 0xFAFAF9)
     static let mint = Color(hex: 0xC8D8CD)
-    static let purple = Color(hex: 0x8980F4)
+    static let purple = Color(hex: 0x7974F2)
     static let coral = Color(hex: 0xFA806E)
     static let yellow = Color(hex: 0xF4D66D)
     static let muted = Color(hex: 0xBFC2B7)
 
     static func heading(_ size: CGFloat = 30) -> Font {
-        .custom("AvenirNextCondensed-DemiBold", size: size, relativeTo: .title)
+        .custom("AvenirNextCondensed-Medium", size: size, relativeTo: .title)
     }
 }
 
@@ -23,15 +23,20 @@ struct EditorialHeading: View {
     var dark = false
     var symbol = "arrow.up.right"
     var action: (() -> Void)?
+    var onBack: (() -> Void)?
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "asterisk")
-                .font(.caption.weight(.black))
-                .frame(width: 28, height: 28)
-                .foregroundStyle(Editorial.coal)
-                .background(Editorial.paper, in: .circle)
-                .accessibilityHidden(true)
+            if let onBack {
+                EditorialCircleButton(symbol: "arrow.left", label: String(localized: "Tillbaka"), action: onBack)
+            } else {
+                Image(systemName: "asterisk")
+                    .font(.system(size: 12, weight: .black))
+                    .frame(width: 28, height: 28)
+                    .foregroundStyle(Editorial.coal)
+                    .background(Editorial.paper, in: .circle)
+                    .accessibilityHidden(true)
+            }
             Text(title.uppercased())
                 .font(Editorial.heading()).fixedSize(horizontal: false, vertical: true)
                 .foregroundStyle(dark ? Editorial.coal : Editorial.paper)
@@ -49,9 +54,10 @@ struct EditorialCircleButton: View {
     let action: () -> Void
     var body: some View {
         Button(action: action) {
-            Image(systemName: symbol).font(.system(size: 18, weight: .semibold))
+            Image(systemName: symbol).font(.system(size: 15, weight: .medium))
                 .foregroundStyle(Editorial.coal)
-                .frame(width: 44, height: 44).background(fill, in: .circle)
+                .frame(width: 32, height: 32).background(fill, in: .circle)
+                .frame(width: 44, height: 44).contentShape(.rect)
         }
         .buttonStyle(.plain).accessibilityLabel(label)
     }
@@ -64,7 +70,7 @@ struct EditorialPill: View {
     let action: () -> Void
     var body: some View {
         Button(action: action) {
-            Text(title).font(.subheadline.weight(.medium))
+            Text(title).font(.caption.weight(.medium))
                 .foregroundStyle(Editorial.coal)
                 .padding(.horizontal, 16).frame(minHeight: 44)
                 .background(selected ? Editorial.mint : fill, in: .capsule)
@@ -76,7 +82,7 @@ struct EditorialPill: View {
 
 struct EditorialPanel<Content: View>: View {
     var fill: Color
-    var padding: CGFloat = 20
+    var padding: CGFloat = 16
     @ViewBuilder let content: () -> Content
     var body: some View {
         content().padding(padding).frame(maxWidth: .infinity, alignment: .leading)
@@ -134,17 +140,23 @@ struct EditorialWeekChart: View {
     var body: some View {
         VStack(spacing: 14) {
             if area {
-                HStack(spacing: 4) {
-                    ForEach(Array(days), id: \.self) { day in
-                        Button { selectedDay = selectedDay == day ? nil : day } label: {
-                            Text(String(ExpenseReport.dayLabel(day).prefix(1)))
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(Editorial.coal)
-                                .frame(maxWidth: .infinity, minHeight: 44)
-                                .background(selectedDay == day ? Editorial.paper : Editorial.paper.opacity(0.3), in: .circle)
-                        }.buttonStyle(.plain)
-                         .accessibilityLabel(ExpenseReport.label(for: day))
-                         .accessibilityAddTraits(selectedDay == day ? .isSelected : [])
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 2) {
+                        ForEach(Array(days), id: \.self) { day in
+                            let count = items.filter { $0.date.dayNumber == day }.count
+                            Button { selectedDay = selectedDay == day ? nil : day } label: {
+                                VStack(spacing: 6) {
+                                    Text(ExpenseReport.dayLabel(day)).font(.caption2)
+                                    Text("\(count)").font(.caption2.weight(.semibold))
+                                        .frame(width: 32, height: 32)
+                                        .background(selectedDay == day ? Editorial.coal : Editorial.paper.opacity(0.7), in: .circle)
+                                        .foregroundStyle(selectedDay == day ? Editorial.paper : Editorial.coal)
+                                }.foregroundStyle(Editorial.coal).frame(minWidth: 44, minHeight: 60)
+                            }.buttonStyle(.plain)
+                             .accessibilityLabel(ExpenseReport.label(for: day))
+                             .accessibilityValue(String(localized: "\(count) utgifter"))
+                             .accessibilityAddTraits(selectedDay == day ? .isSelected : [])
+                        }
                     }
                 }
             }

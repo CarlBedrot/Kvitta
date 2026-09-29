@@ -36,12 +36,12 @@ struct OverviewView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 14) {
                 identity
                 selectors
                 balances
                 EditorialPanel(fill: Editorial.purple) {
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 10) {
                         HStack(alignment: .top) {
                             Text("VECKANS\nUTGIFTER").font(Editorial.heading(30))
                             Spacer()

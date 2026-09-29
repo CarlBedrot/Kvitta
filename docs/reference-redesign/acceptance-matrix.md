@@ -2,8 +2,9 @@
 
 User direction, 2026-09-29: recreate ALL visible components of the attached reference for
 Slice's existing expense/payment features. This supersedes the previous seamless ivory/blue
-layout. The app icon/name and immutable ledger remain. Source attachment is 420 × 315;
-small labels and fine illustration details are not legible. Full-resolution source requested.
+layout. The app icon/name and immutable ledger remain. The initial attachment was 420 × 315.
+The user subsequently supplied the original [tubik design on Dribbble](https://dribbble.com/shots/26787072-AI-Powered-Mobile-App-for-Restaurant-Operations).
+See [source fidelity follow-up](source-fidelity.md) for the refinements informed by the larger source.
 
 ## Visual language
 
@@ -76,5 +77,6 @@ See [verification](verification.md) and [artwork provenance](artwork.md).
 All 33 mapped component types are present and visually checked across the seven compositions.
 Control routes were exercised for reporting, categories, periods, currency/group selection,
 activity filters/search, expense details/add/edit, profile/account cards and direct debt actions.
-Illustrations and labels are adapted for Slice; the low-resolution source does not support a
-claim of pixel-perfect reproduction. Broad hardware/VoiceOver and two-device QA remain #123/#47/#48.
+Illustrations and labels are adapted for Slice; component coverage is not a claim of
+pixel-perfect reproduction. The original source supports a closer visual comparison, but
+does not supply font files or exact UI tokens. Broad hardware/VoiceOver and two-device QA remain #123/#47/#48.

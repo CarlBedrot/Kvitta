@@ -25,6 +25,7 @@ struct ReportsView: View {
     @State private var initialized = false
     @State private var visibleLimit = 30
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var page: Page = .reports
     @State private var currency: CurrencyCode = .sek
     @State private var weekOffset = 0
@@ -67,16 +68,14 @@ struct ReportsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                HStack(alignment: .top) {
-                    EditorialHeading(title: heading, dark: isLight)
-                    EditorialCircleButton(symbol: "xmark", label: String(localized: "Stäng")) { dismiss() }
-                }
+                EditorialHeading(title: heading, dark: isLight, onBack: { dismiss() })
                 if let groupId, let group = ledger.state[groupId] {
                     Text(GroupBadge.title(of: group.name)).font(.caption)
                         .foregroundStyle(isLight ? Editorial.coal : Editorial.muted)
                 }
                 pageControls
-                if page != .activity { periodControls }
+                if page != .activity && page != .timing { periodControls }
+                if page == .timing { currencyMenu }
                 switch page {
                 case .reports: reportCover
                 case .spending: spending
@@ -206,10 +205,9 @@ struct ReportsView: View {
     }
 
     private var spending: some View {
-        EditorialPanel(fill: Editorial.coral) {
-            VStack(alignment: .leading, spacing: 18) {
+        EditorialPanel(fill: Editorial.coral, padding: 12) {
+            VStack(alignment: .leading, spacing: 10) {
                 metric(String(localized: "Gemensamma utgifter"), value: total(items), badge: "\(items.count)")
-                Rectangle().fill(Editorial.coal.opacity(0.2)).frame(height: 1)
                 metric(String(localized: "Största utgiften"), value: items.max(by: { $0.amountMinor < $1.amountMinor }).map { MoneyFormat.string($0.amountMinor, currency, explicit: true) } ?? "—", badge: currency.code)
                 EditorialWeekChart(items: items, days: days, currency: currency, selectedDay: $selectedDay)
             }
@@ -221,32 +219,46 @@ struct ReportsView: View {
             HStack { Text(title.uppercased()).font(Editorial.heading(17)); Spacer(); EditorialBadge(text: badge) }
             Text(value).font(Editorial.heading(36)).monospacedDigit().fixedSize(horizontal: false, vertical: true)
         }.foregroundStyle(Editorial.coal)
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Editorial.paper.opacity(0.17), in: .rect(cornerRadius: 20))
     }
 
     private var categoryStack: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: -16) {
             Menu {
                 ForEach(Categories.all) { option in Button(option.name) { category = option.id } }
             } label: {
                 HStack { Text("Välj kategori"); Spacer(); Image(systemName: "chevron.down") }
-                    .font(Editorial.heading(20)).foregroundStyle(Editorial.coal).padding(18)
-                    .background(Editorial.coral, in: UnevenRoundedRectangle(topLeadingRadius: 26, topTrailingRadius: 26))
+                    .font(Editorial.heading(20)).foregroundStyle(Editorial.coal)
+                    .padding(.horizontal, 18).padding(.top, 16).padding(.bottom, 30)
+                    .background(Editorial.coral, in: .rect(cornerRadius: 26))
             }
             HStack {
                 Text("\(visible.count) utgifter").font(Editorial.heading(18))
                 Spacer()
                 Text(currency.code).font(.caption)
-            }.foregroundStyle(Editorial.paper).padding(18).background(Editorial.coal)
+            }.foregroundStyle(Editorial.paper)
+                .padding(.horizontal, 18).padding(.top, 16).padding(.bottom, 30)
+                .background(Editorial.coal, in: .rect(cornerRadius: 26))
             EditorialPanel(fill: Editorial.yellow) {
                 VStack(alignment: .leading, spacing: 14) {
-                    HStack(alignment: .top) {
+                    categoryHeadingLayout {
                         Text(Categories.all.first(where: { $0.id == category })?.name.uppercased() ?? category.uppercased())
                             .font(Editorial.heading(38)).foregroundStyle(Editorial.coal)
-                        Spacer()
+                            .fixedSize(horizontal: false, vertical: true)
+                        if !dynamicTypeSize.isAccessibilitySize { Spacer() }
                         Image(systemName: Categories.symbol(for: category))
+                            .font(.system(size: 20))
                             .foregroundStyle(Editorial.paper).frame(width: 40, height: 40).background(Editorial.coal, in: .circle)
+                            .accessibilityHidden(true)
                     }
-                    Text(total(visible)).font(.headline).monospacedDigit().foregroundStyle(Editorial.coal)
+                    HStack(spacing: 8) {
+                        Circle().fill(Editorial.coral).frame(width: 7, height: 7)
+                        Text(total(visible)).font(.caption.weight(.medium)).monospacedDigit()
+                    }.foregroundStyle(Editorial.coal)
+                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .background(Editorial.paper.opacity(0.35), in: .capsule)
                     Image("SharedDinner").resizable().scaledToFit().frame(maxHeight: 330).accessibilityHidden(true)
                     HStack {
                         Text("GEMENSAMT / \(currency.code)").font(.caption2.weight(.semibold))
@@ -256,6 +268,12 @@ struct ReportsView: View {
                 }
             }
         }.clipShape(.rect(cornerRadius: 28))
+    }
+
+    private var categoryHeadingLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(alignment: .top))
     }
 
     private var timing: some View {
