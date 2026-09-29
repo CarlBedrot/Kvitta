@@ -391,9 +391,9 @@ private struct GroupHeroCard: View {
                 // own emoji corner.
                 Image(systemName: "camera.fill")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Theme.accentInk)
                     .padding(4)
-                    .background(Theme.accent, in: .circle)
+                    .background(Theme.brandBlue, in: .circle)
                     .overlay(Circle().strokeBorder(Theme.card, lineWidth: 2))
                     .offset(x: 4, y: 4)
             }
@@ -835,9 +835,9 @@ private struct GroupBottomBar: View {
                 Button(action: onAdd) {
                     Image(systemName: "plus")
                         .font(.title3.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Theme.accentInk)
                         .frame(width: 48, height: 48)
-                        .background(Theme.accent, in: .circle)
+                        .background(Theme.brandBlue, in: .circle)
                 }
                 .buttonStyle(ScaleButtonStyle())
                 .accessibilityLabel("Lägg till utgift")

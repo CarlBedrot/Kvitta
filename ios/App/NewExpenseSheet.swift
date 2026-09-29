@@ -5,9 +5,7 @@ import KvittaCore
 /// Ny utgift — the amount-first add sheet. Opens straight onto a big amount over a custom keypad,
 /// Swish-style: the 90 % case is amount + description, then Spara, in under ten seconds.
 ///
-/// Glass budget: the group menu (1) and Spara (1). The suggestion chips are drawn opaque, not
-/// glass — the mockup shows them glass, but menu + Spara + three chips would be five glass
-/// elements and the restraint rule caps a screen at three.
+/// The group and split controls sit directly on the shared ivory canvas.
 struct NewExpenseSheet: View {
     @Bindable var model: NewExpenseModel
     @Environment(\.dismiss) private var dismiss
@@ -94,7 +92,6 @@ private struct SheetHeader: View {
                     .padding(.horizontal, 13)
                     .padding(.vertical, 7)
                     .background(Theme.card, in: .capsule)
-                    .shadow(color: .black.opacity(0.05), radius: 6, y: 2)
                 }
             }
 
@@ -219,7 +216,6 @@ private struct SummaryRow: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 15)
             .background(Theme.card, in: .rect(cornerRadius: 18))
-            .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
         }
         .buttonStyle(ScaleButtonStyle())
         .padding(.horizontal, 20)

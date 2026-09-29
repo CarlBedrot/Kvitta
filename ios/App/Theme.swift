@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 import KvittaCore
 
-/// Neutral surfaces keep the ledger continuous; blue identifies actions.
+/// One ivory canvas, the app icon's sky blue for filled actions, warm neutral text.
 /// The pizza artwork remains the brand mark. Light/dark colours are paired by role.
 enum Theme {
 
@@ -16,24 +16,26 @@ enum Theme {
 
     // MARK: Surfaces and text
 
-    static let bg = adaptive(light: 0xFAF7F0, dark: 0x16181C)
-    static let card = adaptive(light: 0xFFFDFA, dark: 0x22252B)
-    static let ink = adaptive(light: 0x22262E, dark: 0xF3F4F6)
-    static let secondary = adaptive(light: 0x626B78, dark: 0xAFB6C1)
+    static let bg = adaptive(light: 0xFAF9F5, dark: 0x16181C)
+    static let card = bg
+    static let ink = adaptive(light: 0x242521, dark: 0xF3F4F6)
+    static let secondary = adaptive(light: 0x65665F, dark: 0xAFB6C1)
     static let tertiary = secondary
-    static let avatarBackground = adaptive(light: 0xEEE9DF, dark: 0x30353E)
+    static let avatarBackground = adaptive(light: 0xE8E6DC, dark: 0x30353E)
 
     // MARK: Slice brand and actions
 
-    static let brandBlue = adaptive(light: 0x2864D7, dark: 0xA0BBFF)
-    static let accent = brandBlue
-    static let accentInk = adaptive(light: 0xFFFFFF, dark: 0x142341)
-    static let accentPressed = adaptive(light: 0x2054B8, dark: 0xBCD0FF)
-    static let accentSubtle = adaptive(light: 0xE9F0FD, dark: 0x243149)
+    /// Exact dominant background colour sampled from the shipped AppIcon.png.
+    static let brandBlue = adaptive(light: 0x4FA9E8, dark: 0x4FA9E8)
+    /// A darker value of the same hue for small links/icons on ivory; never a button fill.
+    static let accent = adaptive(light: 0x23638D, dark: 0xA0D0F1)
+    static let accentInk = Color(hex: 0x142C3D)
+    static let accentPressed = brandBlue
+    static let accentSubtle = adaptive(light: 0xE6F0F4, dark: 0x243149)
     static let pizzaOrange = adaptive(light: 0xA95310, dark: 0xFFB34F)
     static let pizzaRed = adaptive(light: 0xC83B25, dark: 0xFF9078)
     // Existing selection and confirmation controls share the same action pair.
-    static let hero = accent
+    static let hero = brandBlue
     static let heroHighlight = accentPressed
     static let heroText = accentInk
     static let heroSecondary = accentInk
@@ -63,19 +65,13 @@ enum Theme {
         }
 
         static let palette: [GroupTint] = [
-            GroupTint(wash: (0xE8ECF2, 0x2C333E), foreground: (0x424C5C, 0xD4DCE8), hero: (0xFFFFFF, 0x22252B)),
-            GroupTint(wash: (0xECEEF2, 0x30343D), foreground: (0x424C5C, 0xD4DCE8), hero: (0xFFFFFF, 0x22252B)),
-            GroupTint(wash: (0xE5EAF0, 0x28313B), foreground: (0x424C5C, 0xD4DCE8), hero: (0xFFFFFF, 0x22252B)),
-            GroupTint(wash: (0xEBEDF0, 0x30343A), foreground: (0x424C5C, 0xD4DCE8), hero: (0xFFFFFF, 0x22252B)),
-            GroupTint(wash: (0xE8EBEE, 0x2C3238), foreground: (0x424C5C, 0xD4DCE8), hero: (0xFFFFFF, 0x22252B)),
-            GroupTint(wash: (0xE6E9EE, 0x2A303B), foreground: (0x424C5C, 0xD4DCE8), hero: (0xFFFFFF, 0x22252B)),
-            GroupTint(wash: (0xECEFF3, 0x303640), foreground: (0x424C5C, 0xD4DCE8), hero: (0xFFFFFF, 0x22252B)),
-            GroupTint(wash: (0xE9ECF0, 0x2D333D), foreground: (0x424C5C, 0xD4DCE8), hero: (0xFFFFFF, 0x22252B)),
-        ]
+            0xE8E6DC, 0xEAE8DE, 0xE6E4DA, 0xE9E7DD,
+            0xE7E5DB, 0xEBE9DF, 0xE5E3D9, 0xE8E6DE,
+        ].map { wash in
+            GroupTint(wash: (UInt32(wash), 0x30353E), foreground: (0x65665F, 0xAFB6C1), hero: (0xFAF9F5, 0x16181C))
+        }
 
-        /// Which of the eight a group gets. Over the id's raw bytes rather than `hashValue`,
-        /// which Swift seeds differently on every launch — a colour that changed each time the
-        /// app opened would be worse than no colour at all.
+        /// Preserve the existing eight stable identity buckets in one warm neutral family.
         nonisolated static func index(for id: GroupID) -> Int {
             let sum = withUnsafeBytes(of: id.rawValue.uuid) { bytes in
                 bytes.reduce(0) { $0 &+ Int($1) }
@@ -88,13 +84,13 @@ enum Theme {
         }
     }
 
-    /// System separator adapts to appearance and contrast preferences.
-    static let hairline = Color(.separator)
+    /// Quiet warm dividers; fields retain an explicit boundary.
+    static let hairline = adaptive(light: 0xD9D8CF, dark: 0x484B50)
 
     // MARK: The attestation control
 
     /// Confirmation track and label adapt together for readable contrast.
-    static let controlFill = accent
+    static let controlFill = brandBlue
     static let controlLabel = accentInk
 
     /// The colour an amount takes from its sign. Never the only carrier of meaning — every amount
@@ -159,9 +155,7 @@ struct AmbientBackground: View {
     }
 }
 
-/// The content container: the system's inset-grouped section — its fill, its radius, no shadow.
-/// Cards that float on drop shadows over a tinted ground are the fastest way to look generated;
-/// Settings, Wallet and Reminders all sit flat on the grouped background, so this does too.
+/// Shared spacing on the continuous canvas. Forms and notices own their visible boundaries.
 private struct CardSurface: ViewModifier {
     var padding: CGFloat
 
@@ -227,10 +221,10 @@ extension View {
     }
 }
 
-/// The primary action: accent fill, white text, radius 22, gentle press scale. With a quiet
+/// The primary action: logo-blue fill, dark readable text, radius 22, gentle press scale. With a quiet
 /// fill and ink label it is the secondary twin beside a primary — same shape, less voice.
 struct PrimaryButtonStyle: ButtonStyle {
-    var fill: Color = Theme.accent
+    var fill: Color = Theme.brandBlue
     var label: Color = Theme.accentInk
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
