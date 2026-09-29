@@ -146,26 +146,24 @@ public enum PaymentLinkBuilder {
     /// inventing one would produce a button that silently does the wrong thing. The UI pairs this
     /// with the amount on the clipboard, which is honest about what it can and cannot do.
     public static func mobilePay(amount: Money) -> PaymentLink? {
-        guard amount.amountMinor > 0,
+        guard amount.currency == .dkk, amount.amountMinor > 0,
               let url = URL(string: "mobilepay://") else { return nil }
 
         return PaymentLink(url: url, probe: url, method: .mobilePay)
     }
 
-    /// The link worth offering for this currency, if any.
+    /// Choose by the recipient's country, then check the debt currency. Never reinterpret
+    /// 100 DKK as 100 SEK just because the recipient has a Swedish number.
     public static func preferred(for amount: Money, payee: String?, message: String) -> PaymentLink? {
-        switch amount.currency {
-        case .sek:
-            guard let payee else { return nil }
+        guard let payee, let phone = PaymentPhoneNumber(payee),
+              phone.country.currency == amount.currency else { return nil }
+        switch phone.country {
+        case .sweden:
             // The `swish://payment?data=` shape, verified on a real phone. No callback: the return
             // is read from the scene phase, and a callback made Swish prompt "open Kvitta?".
-            return swishAppSwitch(payee: payee, amount: amount, message: message, callback: nil)
-        case .dkk:
+            return swishAppSwitch(payee: phone.digits, amount: amount, message: message, callback: nil)
+        case .denmark:
             return mobilePay(amount: amount)
-        default:
-            // Cash, or a bank transfer someone arranges themselves. "Markera som betald" is the
-            // whole flow, and it always has been for the cash case.
-            return nil
         }
     }
 

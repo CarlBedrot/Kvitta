@@ -54,6 +54,9 @@ struct RootView: View {
                                      onShowActivity: { showingActivity = true },
                                      onProfile: { selectedTab = .profil },
                                      onOpenActivity: openActivity,
+                                     onSettle: { transfer, groupId in
+                                         settlingTransfer = SettlementPresentation(groupId: groupId, transfer: transfer)
+                                     },
                                      onShowPosition: { selectedTab = .stallning },
                                      onOpenGroup: { groupId in
                                          grupperPath.append(groupId)
@@ -126,6 +129,13 @@ struct RootView: View {
         // Set once, read by every avatar of you anywhere below — including inside sheets, which
         // inherit the environment from whatever presented them.
         .environment(\.myAvatarPhoto, profile.avatarData)
+        .fullScreenCover(isPresented: Binding(
+            get: { !profile.isPaymentProfileComplete }, set: { _ in }
+        )) {
+            ProfileEditorView(profile: profile, required: true)
+                .interactiveDismissDisabled()
+                .preferredColorScheme(.light)
+        }
         .sheet(isPresented: $showingNewGroup) {
             NewGroupSheet(
                 ledger: ledger, userId: userId, profile: profile,
@@ -158,7 +168,7 @@ struct RootView: View {
         .sheet(item: $settlingTransfer) { presentation in
             SettleUpSheet(ledger: ledger, userId: userId, groupId: presentation.groupId,
                           transfer: presentation.transfer, payees: payees)
-                .presentationDetents([.medium, .large])
+                .presentationDetents([.large])
                 .task { await profiles.refreshPayees(in: presentation.groupId, into: payees) }
         }
         .sheet(item: $selectedExpense) { presentation in
@@ -174,7 +184,7 @@ struct RootView: View {
                 onNewGroup: { chooserWantsNewGroup = true }
             )
         }
-        // Your Swish number up to your server profile, debounced past the keystrokes. The id
+        // Your saved payment number up to the mutable server profile. The id
         // includes the sign-in state so the first push after signing in is not missed.
         .task(id: "\(profile.swishNumber)|\(session.isSignedIn)") {
             try? await Task.sleep(for: .seconds(1.5))

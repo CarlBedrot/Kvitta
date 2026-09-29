@@ -10,6 +10,7 @@ struct OverviewView: View {
     let onShowActivity: () -> Void
     let onProfile: () -> Void
     let onOpenActivity: (FeedEntry) -> Void
+    let onSettle: (SuggestedTransfer, GroupID) -> Void
     let onShowPosition: () -> Void
     let onOpenGroup: (GroupID) -> Void
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -68,6 +69,35 @@ struct OverviewView: View {
                 .buttonStyle(.plain)
                 .accessibilityElement(children: .combine)
                 .accessibilityHint("Öppnar Ställning")
+                ForEach(groups) { group in
+                    if let me = group.me(for: userId) {
+                        ForEach(group.suggestedTransfers().filter {
+                            $0.from == me.id && $0.currency == summary.currency
+                        }, id: \.self) { transfer in
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(GroupBadge.title(of: group.name))
+                                    .font(.caption).foregroundStyle(Theme.secondary)
+                                Button {
+                                    onSettle(transfer, group.id)
+                                } label: {
+                                    ViewThatFits(in: .horizontal) {
+                                        HStack {
+                                            Text("Betala \(group.members[transfer.to]?.displayName ?? "?")")
+                                            Spacer(minLength: 12)
+                                            Text(MoneyFormat.string(transfer.amountMinor, transfer.currency, explicit: true))
+                                        }
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text("Betala \(group.members[transfer.to]?.displayName ?? "?")")
+                                            Text(MoneyFormat.string(transfer.amountMinor, transfer.currency, explicit: true))
+                                        }
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                }
+                                .buttonStyle(PrimaryButtonStyle())
+                            }
+                        }
+                    }
+                }
             }
         }
     }

@@ -155,29 +155,15 @@ struct JagView: View {
         }
     }
 
-    /// The number people Swish you on.
-    ///
-    /// It stays on this phone and is never written to a group log — an event is immutable, so a
-    /// phone number in one would reach every member forever with no way to withdraw it
-    /// (CLAUDE.md). What crosses to the other person is a link you send them, from the settle-up
-    /// screen, with the amount already in it.
-    @ViewBuilder
     private var swishNumberSection: some View {
-        VStack(spacing: 8) {
-            SettingsRow(systemImage: "creditcard.fill", fill: Color(hex: 0xEE4A9B), title: "Swish-nummer") {
-                TextField("", text: $profile.swishNumber, prompt: Text("07XX XXX XX XX").placeholderStyle())
-                    .keyboardType(.phonePad)
-                    .multilineTextAlignment(.trailing)
-                    .foregroundStyle(Theme.ink)
-            }
-
-            if !profile.swishNumber.isEmpty && profile.swishNumberForPayment == nil {
-                Text("Det där ser inte ut som ett nummer Swish känner igen.")
-                    .font(.footnote)
-                    .foregroundStyle(Theme.clay)
+        Button { editingProfile = true } label: {
+            SettingsRow(systemImage: "phone", fill: Theme.accent, title: "Telefonnummer") {
+                Text(profile.paymentPhone?.international ?? "—")
+                    .foregroundStyle(Theme.secondary)
             }
         }
-        .padding(.vertical, 2)
+        .buttonStyle(.plain)
+        .accessibilityHint("Redigera profil")
     }
 
     // MARK: - Account

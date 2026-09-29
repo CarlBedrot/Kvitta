@@ -140,7 +140,7 @@ struct PaymentLinkTests {
 
     // MARK: - Which button appears
 
-    @Test("Each currency gets the button that exists for it")
+    @Test("Recipient country chooses the provider when the debt currency agrees")
     func preferredByCurrency() throws {
         let sek = PaymentLinkBuilder.preferred(
             for: Money(amountMinor: 100, currency: .sek),
@@ -154,7 +154,7 @@ struct PaymentLinkTests {
         // would give us a button that quietly does the wrong thing.
         let dkk = PaymentLinkBuilder.preferred(
             for: Money(amountMinor: 100, currency: .dkk),
-            payee: nil, message: "")
+            payee: "+45 20 12 34 56", message: "")
         #expect(dkk?.method == .mobilePay)
 
         // No payee, no link: falling back to "mark as paid" is correct, not a failure.

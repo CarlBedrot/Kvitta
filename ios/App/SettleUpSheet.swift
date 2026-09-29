@@ -33,9 +33,9 @@ struct SettleUpSheet: View {
     /// obvious, and the phantom one quietly makes the books wrong for everybody.
     @State private var awaitingReturn: PaymentMethod?
     @State private var askingToConfirm = false
-    @State private var swishNumber = ""
+    @State private var confirmingManualPayment = false
     @State private var askingForNumber = false
-    @State private var copiedAmount = false
+    @State private var copiedValue: String?
     /// Set once `PaymentRecorded` is in the log. The sheet stays up and turns into the receipt:
     /// what just happened, and — when the payee still has to answer — what has *not* happened
     /// yet. Dismissing straight away was how "why hasn't my balance moved?" got asked.
@@ -45,69 +45,115 @@ struct SettleUpSheet: View {
     private var group: GroupState? { ledger.state[groupId] }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            if recorded {
-                recordedSteps
-                    .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
-            } else {
-                amountSection
-            }
-            Spacer()
+        ScrollView {
+            VStack(spacing: 0) {
+                header
+                if recorded {
+                    recordedSteps
+                        .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
+                } else {
+                    amountSection
+                    if iAmThePayer { recipientSection }
+                }
+                Spacer(minLength: 28)
 
-            if recorded {
-                Button("Klart") { dismiss() }
-                    .buttonStyle(PrimaryButtonStyle())
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 24)
-            } else if copiedAmount {
-                Text("Beloppet är kopierat — klistra in det i MobilePay.")
-                    .font(.footnote)
-                    .foregroundStyle(Theme.secondary)
-                    .padding(.bottom, 8)
-            }
+                if recorded {
+                    Button("Klart") { dismiss() }
+                        .buttonStyle(PrimaryButtonStyle())
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 24)
+                }
+                if let copiedValue {
+                    Text(copiedValue)
+                        .font(.footnote)
+                        .foregroundStyle(Theme.secondary)
+                        .padding(.bottom, 8)
+                }
 
-            if let failure {
-                SliceNotice(text: failure).padding(.bottom, 8)
-            }
+                if let failure {
+                    SliceNotice(text: failure).padding(.bottom, 8)
+                }
 
-            if recorded {
-                EmptyView()
-            } else if askingToConfirm {
-                confirmReturn
-            } else {
-                actions
+                if recorded {
+                    EmptyView()
+                } else if askingToConfirm {
+                    confirmReturn
+                } else {
+                    actions
+                }
             }
+            .frame(maxWidth: .infinity)
         }
-        .frame(maxWidth: .infinity)
         .animation(reduceMotion ? nil : .spring(duration: 0.35), value: recorded)
         .background(AmbientBackground())
+        .tint(Theme.accent)
         .sensoryFeedback(.success, trigger: settleTick)
         .onChange(of: scenePhase) { _, phase in
             // Back from the payment app. Asking is the point — see `awaitingReturn`.
             guard phase == .active, awaitingReturn != nil else { return }
             askingToConfirm = true
         }
-        .alert("Swish-nummer", isPresented: $askingForNumber) {
-            TextField("07XX XXX XX XX", text: $swishNumber)
-                .keyboardType(.phonePad)
-            Button("Öppna Swish") {
-                payees.remember(swishNumber, for: transfer.to)
-                if let link = link(payee: swishNumber) { handOff(to: link) }
+        .sheet(isPresented: $askingForNumber) {
+            RecipientPhoneEditor(initialNumber: payees.number(for: transfer.to)) { number in
+                payees.remember(number, for: transfer.to)
+                failure = nil
             }
-            Button("Avbryt", role: .cancel) {}
-        } message: {
-            // Said plainly, because a phone number is the kind of thing people reasonably want to
-            // know the fate of before typing it in.
-            Text("Sparas bara på den här telefonen, inte i gruppen.")
         }
+    }
+
+    @ViewBuilder
+    private var recipientSection: some View {
+        VStack(spacing: 12) {
+            if let phone = recipientPhone {
+                Button { askingForNumber = true } label: {
+                    Label(phone.international, systemImage: "pencil")
+                        .font(.subheadline)
+                        .frame(minHeight: 44)
+                }
+                .accessibilityLabel(String(localized: "Ändra mottagarens nummer: \(phone.international)"))
+                if phone.country.currency != transfer.currency {
+                    Text("Numret använder \(phone.country.currency.code), men skulden är i \(transfer.currency.code). Kom överens om hur ni betalar. Slice växlar inte beloppet.")
+                        .font(.footnote).foregroundStyle(Theme.secondary)
+                        .multilineTextAlignment(.center)
+                } else if phone.country == .denmark {
+                    Text("Välj mottagare och ange beloppet i MobilePay.")
+                        .font(.footnote).foregroundStyle(Theme.secondary)
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 20) { copyNumber(phone); copyAmount }
+                        VStack { copyNumber(phone); copyAmount }
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+    }
+
+    private func copyNumber(_ phone: PaymentPhoneNumber) -> some View {
+        Button("Kopiera nummer") {
+            UIPasteboard.general.string = phone.international
+            copiedValue = String(localized: "Numret är kopierat.")
+        }
+        .font(.subheadline.weight(.semibold)).frame(minHeight: 44)
+    }
+
+    private var copyAmount: some View {
+        Button("Kopiera belopp") {
+            UIPasteboard.general.string = PaymentLinkBuilder.decimalString(transfer.amountMinor)
+            copiedValue = String(localized: "Beloppet är kopierat.")
+        }
+        .font(.subheadline.weight(.semibold)).frame(minHeight: 44)
+    }
+
+    private var recipientPhone: PaymentPhoneNumber? {
+        payees.number(for: transfer.to).flatMap { PaymentPhoneNumber($0) }
     }
 
     /// Who, before how much: the same two faces as the transfer row that opened this sheet,
     /// so the sheet reads as that row brought closer rather than as a new place.
     private var header: some View {
         VStack(spacing: 0) {
-            Text("Gör upp")
+            Text(iAmThePayer ? "Betala" : "Gör upp")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Theme.secondary)
                 .padding(.top, 20)
@@ -146,30 +192,32 @@ struct SettleUpSheet: View {
             // else's debt from your own account. The slide below is the whole flow.
             EmptyView()
         } else if let link = paymentLink {
-            // Swish pink, deliberately off-palette: recognition beats palette purity for a
-            // button whose whole job is to look like the app it opens (ui-design.md).
-            Button(link.method == .swish ? "Öppna Swish" : "Öppna MobilePay") {
+            Button(link.method == .swish ? "Betala med Swish" : "Öppna MobilePay") {
                 handOff(to: link)
             }
-            .buttonStyle(PrimaryButtonStyle(
-                fill: link.method == .swish ? Color(hex: 0xEE4A9B) : Color(hex: 0x5A78FF),
-                label: .white
-            ))
+            .buttonStyle(PrimaryButtonStyle())
             .padding(.horizontal, 20)
-            .padding(.bottom, 10)
+            .padding(.bottom, 16)
         } else if needsNumber {
-            Button("Öppna Swish") { askingForNumber = true }
-                .buttonStyle(PrimaryButtonStyle(fill: Color(hex: 0xEE4A9B), label: .white))
+            Button("Lägg till mottagarens nummer") { askingForNumber = true }
+                .buttonStyle(PrimaryButtonStyle())
                 .padding(.horizontal, 20)
-                .padding(.bottom, 10)
+                .padding(.bottom, 16)
         }
 
         // A slide, not a button: this is the action that writes PaymentRecorded — opening a
         // payment app commits nothing, which is exactly why it stays an ordinary button above.
-        SlideToConfirm(label: String(localized: "Dra för att markera som betald")) {
-            settle(method: .cash)
+        if !iAmThePayer || confirmingManualPayment {
+            SlideToConfirm(label: String(localized: "Dra för att markera som betald")) {
+                settle(method: .cash)
+            }
+            .padding(.horizontal, 20)
+        } else {
+            Button("Redan betalat?") { confirmingManualPayment = true }
+                .font(.body.weight(.medium))
+                .foregroundStyle(Theme.accent)
+                .frame(minHeight: 44)
         }
-        .padding(.horizontal, 20)
 
         Button("Avbryt") { dismiss() }
             .font(.body.weight(.medium))
@@ -204,14 +252,12 @@ struct SettleUpSheet: View {
     }
 
     private var amountSection: some View {
-        // The transfer's own bucket — in a mixed group a DKK debt is a DKK payment, and the
-        // code is spelled out whenever it strays from the group's primary.
+        // Always spell out the debt currency before leaving for a payment app.
         let currency = transfer.currency
-        let explicit = currency != group?.currency
         return VStack(spacing: 12) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(MoneyFormat.string(transfer.amountMinor, currency, explicit: explicit))
-                    .font(.system(size: 44, weight: .semibold))
+                Text(MoneyFormat.string(transfer.amountMinor, currency, explicit: true))
+                    .font(.largeTitle.weight(.semibold))
                     .monospacedDigit()
                     .foregroundStyle(Theme.ink)
             }
@@ -300,23 +346,18 @@ struct SettleUpSheet: View {
         )
     }
 
-    /// A SEK transfer with nobody's number yet: offer to ask for it rather than hiding the button.
     private var needsNumber: Bool {
-        transfer.currency == .sek && payees.number(for: transfer.to) == nil
+        (transfer.currency == .sek || transfer.currency == .dkk) && recipientPhone == nil
     }
 
     private func handOff(to link: PaymentLink) {
-        if link.method == .mobilePay {
-            // MobilePay has no public person-to-person prefill, so the exact amount goes on the
-            // clipboard instead — paste beats retyping a number you can mistype.
-            UIPasteboard.general.string = PaymentLinkBuilder.decimalString(transfer.amountMinor)
-            copiedAmount = true
-        }
+        failure = nil
         awaitingReturn = link.method
         openURL(link.url) { opened in
             guard !opened else { return }
             // The app is not installed. Say so rather than leaving a button that does nothing.
             awaitingReturn = nil
+            askingToConfirm = false
             failure = link.method == .swish
                 ? String(localized: "Swish verkar inte finnas på den här telefonen.")
                 : String(localized: "MobilePay verkar inte finnas på den här telefonen.")

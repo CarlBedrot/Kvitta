@@ -1,17 +1,7 @@
 import SwiftUI
 import KvittaCore
 
-/// Who you are on this device: a name, a picture, and the number people Swish you on.
-///
-/// Deliberately local. A member's name inside a group is an event in that group's log — this is
-/// only the default that gets offered when you create one, plus what the Jag tab shows back to
-/// you. Making it an event would mean an identity that exists outside any group, which the data
-/// model does not have until users are real (M4).
-///
-/// The Swish number is local for a stronger reason than convention: events are immutable, so a
-/// phone number written into a group log would land on every member's device forever with no way
-/// to take it back (CLAUDE.md). It travels as a link you choose to send instead — see
-/// `SettleUpSheet`.
+/// The local profile. Phone numbers sync as mutable profile data, never ledger events.
 @Observable
 final class UserProfile {
     private let defaults: UserDefaults
@@ -39,17 +29,28 @@ final class UserProfile {
         }
     }
 
-    /// Your own Swish number, exactly as you typed it — the field keeps your spacing so it still
-    /// looks like a phone number when you come back to check it.
+    /// Legacy property/key retained for installed profiles and the existing server contract.
+    /// New saves use international digits for both Sweden and Denmark.
     var swishNumber: String {
         didSet { defaults.set(swishNumber, forKey: Keys.swishNumber) }
     }
 
-    /// The same number in the form Swish wants, or `nil` if there is not a plausible one yet.
-    /// Normalised on read rather than on write so a half-typed number is never silently rewritten
-    /// underneath the cursor.
-    var swishNumberForPayment: String? {
-        SwishNumber.normalised(swishNumber)
+    var paymentPhone: PaymentPhoneNumber? { PaymentPhoneNumber(swishNumber) }
+
+    var swishNumberForPayment: String? { paymentPhone?.digits }
+
+    var isPaymentProfileComplete: Bool {
+        !displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && paymentPhone != nil
+    }
+
+    /// Draft fields never enter the synced profile until both are valid.
+    @discardableResult
+    func save(name: String, phone: String, country: PaymentPhoneNumber.Country) -> Bool {
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, let number = PaymentPhoneNumber(phone, country: country) else { return false }
+        displayName = name
+        swishNumber = number.digits
+        return true
     }
 
     var nameOrDefault: String {

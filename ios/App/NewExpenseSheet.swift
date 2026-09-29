@@ -130,6 +130,7 @@ private struct AmountDisplay: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text(display)
+                .accessibilityLabel("Belopp \(display) \(currency.code)")
                 .font(.system(size: 58, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(Theme.ink)
@@ -148,7 +149,10 @@ private struct AmountDisplay: View {
                             .font(.system(size: 13, weight: .semibold))
                     }
                     .foregroundStyle(currency == primary ? Theme.secondary : Theme.accent)
+                    .frame(minWidth: 44, minHeight: 44)
                 }
+                .accessibilityLabel("Valuta")
+                .accessibilityValue(currency.code)
             } else {
                 Text(suffix)
                     .font(.system(size: 26, weight: .medium))
@@ -159,7 +163,6 @@ private struct AmountDisplay: View {
         .padding(.bottom, 6)
         .contentTransition(.numericText())
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Belopp \(display) \(currency.code)")
     }
 }
 

@@ -80,3 +80,43 @@ Next: #122 recent activity, then the broader #123 runtime/accessibility matrix. 
 narrow phone/iPad, VoiceOver, Reduce Motion and all recovery/mutation flows are not signed off
 by this first visual pass. Physical phone results, real Swish and subjective approval remain
 open; no simulator result closes #47 or #48. Public-release readiness continues separately in #68.
+
+### Cream appearance and payment profiles — #127
+
+Carl's latest direction supersedes system-following appearance: warm cream-white, blue actions,
+required name and Swedish/Danish phone at first use (also for incomplete existing profiles).
+Edit a draft and validate before saving; retain the existing mutable profile wire/storage key.
+Route payment handoff from the recipient's country, only for a matching debt currency.
+Swish uses the previously device-verified shape. MobilePay opens the app with explicit phone
+and amount copy controls; no unverified private-payment prefill. Never record on app launch.
+Legacy/manual members can supply a number locally when paying; ownership is not SMS-verified.
+Verify normalization/routing properties, persisted profiles, simulator onboarding/edit/payment
+states and light appearance on a dark phone. Real app switching remains a physical-device gate.
+
+Implemented: cream `#FAF7F0`, warm white surfaces, fixed light app appearance, draft-based
+required name/phone setup and editing. Existing valid Swedish profiles remain valid. +46 routes
+to Swish/SEK, +45 to MobilePay/DKK; other currency combinations explain the mismatch and retain
+manual settlement. Overview lists the actual per-group recipient and exact transfer amount.
+Manual payment confirmation is behind “Already paid?”; app switching never records payment.
+Phone data stays in the existing mutable profile field, not the event log. No backend migration.
+
+Verification: 140 Core tests passed, including 1,000 generated SE/DK round-trip and routing cases;
+33 AppTests passed (profile validation, invalid-draft preservation, persistence/legacy migration,
+Danish payee storage); 31 Sync tests passed after clearing a stale local SwiftPM build plan that
+had omitted the newly added Core file. Final simulator build, install and launch passed.
+Synthetic offline runtime checks: incomplete profile requires setup; invalid numbers disable save;
+save and relaunch preserve profile; cancelled invalid edit retains the prior number; overview
+opens the correct recipient/debt; Swedish/SEK shows Swish; Danish/DKK shows MobilePay; a
+Danish-number/SEK mismatch offers no payment-app handoff. Copy controls yielded exactly
+`+4520123456` and `100.00`. Missing payment apps show recovery text and leave both debts unchanged.
+MobilePay payment view at accessibility-extra-large wraps copy controls and scrolls to cancel
+and manual confirmation. App stays cream in the simulator's dark system appearance.
+The currency menu now has its own accessibility label/value and 44pt target; it was previously
+hidden behind the amount container's label during runtime inspection.
+
+Limits: new phone ownership is not SMS-verified. Legacy/manual recipients may still need a number
+entered locally; all users of this version must complete their own profile. Real Swish/MobilePay
+app switching, return confirmation and two-phone number sharing remain #47/#48. Full VoiceOver,
+iPad/narrow-phone coverage and deferred invite acceptance are not runtime-signed-off by this pass.
+MobilePay's documented payment links are merchant flows, so no private prefill URL was invented:
+https://developer.vippsmobilepay.com/docs/knowledge-base/payment-links/ . #122 remains open.

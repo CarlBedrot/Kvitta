@@ -70,7 +70,7 @@ struct PositionView: View {
                 guard let transfer = group.suggestedTransfers().first(where: { $0.currency == currency && $0.from == me.id }) else { return nil }
                 return (transfer, group.id)
             }).first {
-                Button("Jämna ut") { onSettle(result.0, result.1) }
+                Button("Betala") { onSettle(result.0, result.1) }
                     .buttonStyle(PrimaryButtonStyle())
                     .accessibilityHint("Öppnar reglering av första öppna saldot")
             }
@@ -262,7 +262,7 @@ private struct RelationshipDetailView: View {
                         .font(.body.weight(.bold)).monospacedDigit()
                         .foregroundStyle(Theme.tint(forSign: transfer.from == me?.id ? -1 : 1))
                 }
-                Button("Gör upp") { onSettle(transfer, group.id) }
+                Button(transfer.from == me?.id ? "Betala" : "Gör upp") { onSettle(transfer, group.id) }
                     .buttonStyle(PrimaryButtonStyle())
                 }
             }
