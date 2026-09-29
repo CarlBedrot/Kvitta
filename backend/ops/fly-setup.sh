@@ -70,7 +70,7 @@ if ! fly secrets list --app "$app" | grep -q "Auth__TrialKey"; then
 fi
 
 say "Deploy"
-fly deploy --config "$backend/fly.toml" --app "$app"
+fly deploy "$backend" --config "$backend/fly.toml" --app "$app"
 
 say "Klart"
 echo "Serveradress:  https://$app.fly.dev"

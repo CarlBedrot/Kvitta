@@ -8,11 +8,14 @@ on:
 
 jobs:
   backend:
-    name: Backend (dotnet test)
+    name: Backend (Postgres ${{ matrix.postgres }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        postgres: [17, 18]
     services:
       postgres:
-        image: postgres:17
+        image: postgres:${{ matrix.postgres }}
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -36,6 +39,14 @@ jobs:
           dotnet-version: "10.0.x"
       - run: dotnet test
         working-directory: backend
+      - name: Verify backup and restore
+        env:
+          KVITTA_PG_CONTAINER: ${{ job.services.postgres.id }}
+          KVITTA_PG_USER: postgres
+          KVITTA_PG_DATABASE: kvitta_test
+        run: |
+          backend/ops/backup.sh "$RUNNER_TEMP/kvitta-backups"
+          backend/ops/verify-restore.sh "$RUNNER_TEMP"/kvitta-backups/kvitta-*.sql.gz
 
   swift-core:
     name: ios/Core (swift test)

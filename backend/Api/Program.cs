@@ -213,8 +213,7 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// M6's uptime monitor wants this, and it costs nothing now.
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+app.MapHealthEndpoints();
 
 // Says out loud when the dev sign-in shortcut is reachable from the network, which is a supported
 // setup (the friend-phone trial needs it) but an invisible one: the bind address and the flag live

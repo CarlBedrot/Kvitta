@@ -22,7 +22,7 @@ WORKDIR /app
 # line of every boot log and looks like the reason for whatever comes next — it was, on the first
 # Fly deploy, mistaken for the cause of a database timeout that was actually a stopped machine.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libgssapi-krb5-2 \
+    && apt-get install -y --no-install-recommends libgssapi-krb5-2 curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Non-root. The API talks to Postgres and writes nothing to disk, so there is no reason for it to
@@ -38,9 +38,8 @@ COPY --from=build /app .
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 
-# The health endpoint M3 added, used here rather than only by an external monitor — a container
-# that has stopped answering should be replaced without waiting for someone to notice.
+# Container liveness is process-only; Fly's /health readiness probe also checks Postgres.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
-    CMD ["/bin/sh", "-c", "curl -fsS http://localhost:8080/health || exit 1"]
+    CMD ["/bin/sh", "-c", "curl -fsS --max-time 2 http://localhost:8080/health/live || exit 1"]
 
 ENTRYPOINT ["dotnet", "Kvitta.Api.dll"]
