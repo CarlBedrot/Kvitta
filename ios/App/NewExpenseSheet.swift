@@ -37,7 +37,7 @@ struct NewExpenseSheet: View {
         }
         // The same wash as the group's own screen, so the sheet reads as part of that group —
         // and follows the picker when you change which one.
-        .background(GroupBackdrop(tint: Theme.GroupTint.forGroup(model.groupId)))
+        .background(Theme.bg)
         .sheet(isPresented: $showingSplitEditor) {
             SplitEditorSheet(model: model)
         }
@@ -170,10 +170,7 @@ private struct DescriptionSection: View {
 
     var body: some View {
         TextField("Beskrivning…", text: $model.descriptionText)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 15)
-            .background(Theme.card, in: .rect(cornerRadius: 18))
-            .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
+            .sliceField()
             .padding(.horizontal, 20)
             .padding(.top, 4)
     }

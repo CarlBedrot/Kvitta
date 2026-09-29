@@ -39,7 +39,7 @@ struct ExpenseDetailSheet: View {
                 HistoryCard(group: group, expense: expense)
 
                 if let failure {
-                    Text(failure).font(.footnote).foregroundStyle(Theme.clay)
+                    SliceNotice(text: failure)
                 }
 
                 ActionButtons(
@@ -176,7 +176,7 @@ private struct ActionButtons: View {
     var body: some View {
         VStack(spacing: 10) {
             Button("Redigera", action: onEdit)
-                .buttonStyle(PrimaryButtonStyle(fill: Theme.ink))
+                .buttonStyle(PrimaryButtonStyle(fill: Theme.controlFill, label: Theme.controlLabel))
 
             Button(role: .destructive, action: onDelete) {
                 Text("Ta bort")

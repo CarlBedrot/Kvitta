@@ -81,8 +81,9 @@ targets:
         MARKETING_VERSION: "0.1"
         GENERATE_INFOPLIST_FILE: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        # iPhone only. The zero line and the amount-first keypad are designed for one hand.
-        TARGETED_DEVICE_FAMILY: 1
+        # The phone keeps the one-handed bottom bar; larger devices use the adaptive sidebar
+        # presentation below so the same destinations remain purposeful on iPad.
+        TARGETED_DEVICE_FAMILY: "1,2"
         INFOPLIST_KEY_CFBundleDisplayName: Slice
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         # No UIUserInterfaceStyle: the app follows the phone. `Theme` now carries both halves, so
