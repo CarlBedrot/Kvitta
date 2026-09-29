@@ -40,7 +40,7 @@ struct JagView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                PageHeader(title: "Profil", subtitle: "Din del av slice.", profile: profile, onProfile: { editingProfile = true })
+                PageHeader(title: "Profil", profile: profile, onProfile: { editingProfile = true })
                     .padding(20)
                 ScrollView {
                     Group {

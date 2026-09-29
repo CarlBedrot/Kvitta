@@ -14,31 +14,39 @@ struct PositionView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                PageHeader(title: "Ställning", subtitle: ledger.state.groups.values.contains { !$0.balances().isSettled } ? "Allt jämnt. Nästan." : "Allt är jämnt.", profile: profile, onProfile: onProfile)
+                PageHeader(title: "Ställning", profile: profile, onProfile: onProfile)
                 let groups = ledger.state.groupsByLastActivity
                 let book = BalanceBook(groups: groups.map { BalanceBook.GroupSlice(name: $0.name, balances: $0.balances(), members: $0.members) })
-                let currency = book.currencies.first ?? .sek
+                let summaries = book.summariesForDisplay(userId: userId)
+                let currency = summaries.first?.currency ?? .sek
                 if horizontalSizeClass == .regular {
                     HStack(alignment: .top, spacing: 24) {
-                        BalanceHero(summary: book.summary(for: currency, userId: userId),
-                                    label: "Din nettoställning · \(currency.code)",
-                                    explanation: "Öppna saldon i \(groups.count) grupper")
-                        BalanceFilterView(book: book, currency: currency, userId: userId, groups: groups, ledger: ledger, onSettle: onSettle)
+                        BalanceHero(summary: book.summary(for: currency, userId: userId))
+                        if summaries.first?.hasOpenBalances == true {
+                            BalanceFilterView(book: book, currency: currency, userId: userId, groups: groups, ledger: ledger, onSettle: onSettle)
+                        }
                     }
                 } else {
-                    BalanceHero(summary: book.summary(for: currency, userId: userId),
-                                label: "Din nettoställning · \(currency.code)",
-                                explanation: "Öppna saldon i \(groups.count) grupper")
-                    BalanceFilterView(book: book, currency: currency, userId: userId, groups: groups, ledger: ledger, onSettle: onSettle)
+                    BalanceHero(summary: book.summary(for: currency, userId: userId))
+                    if summaries.first?.hasOpenBalances == true {
+                        BalanceFilterView(book: book, currency: currency, userId: userId, groups: groups, ledger: ledger, onSettle: onSettle)
+                    }
                 }
-                if book.currencies.count > 1 {
+                if summaries.count > 1 {
                     Text("Övriga valutor")
                         .font(.headline.weight(.bold))
                         .foregroundStyle(Theme.ink)
-                    ForEach(book.currencies.dropFirst(), id: \.self) { code in
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text(code.code).font(.headline.weight(.bold)).foregroundStyle(Theme.ink)
-                            BalanceFilterView(book: book, currency: code, userId: userId, groups: groups, ledger: ledger, onSettle: onSettle)
+                    ForEach(summaries.dropFirst(), id: \.currency) { summary in
+                        let code = summary.currency
+                        if summary.hasOpenBalances {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text(code.code).font(.headline.weight(.bold)).foregroundStyle(Theme.ink)
+                                BalanceFilterView(book: book, currency: code, userId: userId, groups: groups, ledger: ledger, onSettle: onSettle)
+                            }
+                        } else {
+                            Label("Kvitt i \(code.code)", systemImage: "checkmark")
+                                .font(.subheadline).foregroundStyle(Theme.secondary)
+                                .frame(minHeight: 44)
                         }
                     }
                 }
@@ -207,8 +215,7 @@ private struct RelationshipDetailView: View {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 5) {
                     Text(person.name)
-                        .font(.system(size: 32, weight: .heavy))
-                        .tracking(-0.8)
+                        .font(.title.weight(.semibold))
                     Text("Alla öppna saldon i \(currency.code)")
                         .font(.subheadline)
                         .foregroundStyle(Theme.secondary)

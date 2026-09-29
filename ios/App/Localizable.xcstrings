@@ -1,6 +1,54 @@
 {
   "sourceLanguage" : "sv",
   "strings" : {
+    "Du ska betala" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You owe"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du ska betala"
+          }
+        }
+      }
+    },
+    "Netto" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Net"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Netto"
+          }
+        }
+      }
+    },
+    "Kvitt i %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settled in %@"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kvitt i %@"
+          }
+        }
+      }
+    },
     "Ikon %@" : {
       "localizations" : {
         "en" : {
