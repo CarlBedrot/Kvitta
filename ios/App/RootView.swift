@@ -72,7 +72,7 @@ struct RootView: View {
                     Color.clear
                 } label: {
                     Circle()
-                        .fill(Theme.accent)
+                        .fill(Theme.brandBlue)
                         .frame(width: 54, height: 54)
                         .overlay {
                             Image(systemName: "plus")
@@ -276,7 +276,7 @@ private struct PhoneNavigationBar: View {
                         .font(.title3.weight(.bold))
                         .foregroundStyle(Theme.accentInk)
                         .frame(width: 48, height: 48)
-                        .background(Theme.accent, in: .circle)
+                        .background(Theme.brandBlue, in: .circle)
                 }
                 .frame(width: 48)
                 .frame(minWidth: 48, minHeight: 48)
@@ -289,7 +289,6 @@ private struct PhoneNavigationBar: View {
         .frame(height: 58)
         .frame(maxWidth: .infinity)
         .background(Theme.bg)
-        .overlay(alignment: .top) { Divider() }
         // Keep the persistent navigation compact; long-press exposes the full-size label.
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }

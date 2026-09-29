@@ -8,9 +8,7 @@ struct SliceMark: View {
 
     var body: some View {
         RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
-            .fill(usesGradient
-                  ? AnyShapeStyle(LinearGradient(colors: [Theme.brandBlue, Theme.heroHighlight], startPoint: .topLeading, endPoint: .bottomTrailing))
-                  : AnyShapeStyle(Theme.brandBlue))
+            .fill(Theme.brandBlue)
             .frame(width: size, height: size)
             .overlay {
                 Image("LaunchLogo")

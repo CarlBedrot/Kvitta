@@ -120,3 +120,24 @@ app switching, return confirmation and two-phone number sharing remain #47/#48. 
 iPad/narrow-phone coverage and deferred invite acceptance are not runtime-signed-off by this pass.
 MobilePay's documented payment links are merchant flows, so no private prefill URL was invented:
 https://developer.vippsmobilepay.com/docs/knowledge-base/payment-links/ . #122 remains open.
+
+### Seamless logo palette — #129
+
+The user rejected the cobalt/cream pass. Match the actual AppIcon's dominant `#4FA9E8`
+(sampled from the asset), paired with Anthropic's documented light `#FAF9F5`:
+https://github.com/anthropics/skills/blob/main/skills/brand-guidelines/SKILL.md .
+Use one continuous ivory surface for page/card/navigation/launch, warm neutral placeholders,
+dark labels on sky buttons, and a darker same-hue value only for readable links/icons. Remove
+profile panel outlines and ornamental overview/navigation dividers. Keep field/error boundaries,
+photos, payment behavior and all destinations. Validate contrast, build, existing AppTests and
+inspect the main screens plus payment/expense sheets in the simulator before merge.
+
+Implemented and checked: 33 AppTests pass. The first run caught a collapsed group-colour index;
+the existing eight stable identity buckets are preserved, now using closely related warm neutrals.
+Simulator inspection covered Overview, Groups, Position, Profile, payment/manual-confirmation,
+expense entry and split selection. Payment and expense drafts were cancelled. Group/expense
+shadows, profile panel borders and overview/navigation separators no longer split the canvas.
+The static launch background also uses ivory. Calculated contrast: button text 5.61:1, inline
+links 6.15:1, secondary text 5.51:1, primary text 14.64:1. This is visual simulator verification,
+not new physical-device, full VoiceOver or launch-animation timing evidence.
+Screenshot: `slice-seamless-overview.png` in the local 2026-09-29 visualization folder.

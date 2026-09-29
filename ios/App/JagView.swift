@@ -108,9 +108,9 @@ struct JagView: View {
                         Avatar(name: profile.nameOrDefault, photo: profile.avatarData, size: 72)
                         Image(systemName: "camera.fill")
                             .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Theme.accentInk)
                             .padding(5)
-                            .background(Theme.accent, in: .circle)
+                            .background(Theme.brandBlue, in: .circle)
                             .overlay(Circle().strokeBorder(Theme.card, lineWidth: 2))
                     }
                 }
@@ -306,13 +306,8 @@ struct JagView: View {
 
     private func outlinedPanel<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 12) { content() }
-            .padding(16)
+            .padding(.vertical, 16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.card.opacity(0.55), in: .rect(cornerRadius: 20))
-            .overlay {
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(Theme.hairline, lineWidth: 1)
-            }
     }
 
     private func panelTitle(_ title: LocalizedStringKey) -> some View {

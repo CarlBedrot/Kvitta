@@ -12,10 +12,10 @@ struct FAB: View {
         Button(action: action) {
             Label("Lägg till utgift", systemImage: "plus")
                 .font(.body.weight(.semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.accentInk)
                 .padding(.horizontal, 20)
                 .frame(height: 52)
-                .background(Theme.accent, in: .capsule)
+                .background(Theme.brandBlue, in: .capsule)
         }
         .buttonStyle(ScaleButtonStyle())
         .accessibilityLabel("Lägg till utgift")

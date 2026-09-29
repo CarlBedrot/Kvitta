@@ -184,7 +184,7 @@ private struct PersonToggle: View {
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(Theme.accentInk)
                             .frame(width: 20, height: 20)
-                            .background(Theme.accent, in: .circle)
+                            .background(Theme.brandBlue, in: .circle)
                             .overlay(Circle().strokeBorder(Theme.card, lineWidth: 2))
                             .transition(.scale.combined(with: .opacity))
                     }

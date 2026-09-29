@@ -41,12 +41,10 @@ struct OverviewView: View {
 
     private var overviewSections: some View {
         VStack(alignment: .leading, spacing: 24) {
-            Divider()
             VStack(alignment: .leading, spacing: 8) {
                 activityHeader
                 recentActivity
             }
-            Divider()
             relevantGroup
         }
         .frame(maxWidth: .infinity, alignment: .leading)
