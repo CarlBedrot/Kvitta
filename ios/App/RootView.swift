@@ -33,6 +33,9 @@ struct RootView: View {
     @State private var chosenGroup: GroupID?
     @State private var chooserWantsNewGroup = false
     @State private var showingActivity = false
+    @State private var reportPage: ReportDestination?
+    @State private var reportGroupNavigation: GroupID?
+    @State private var reportWantsExpense = false
     @State private var settlingTransfer: SettlementPresentation?
     @State private var selectedExpense: ExpensePresentation?
     @State private var payees = PayeeDirectory()
@@ -61,7 +64,8 @@ struct RootView: View {
                                      onOpenGroup: { groupId in
                                          grupperPath.append(groupId)
                                          selectedTab = .grupper
-                                     })
+                                     },
+                                     onReport: { reportPage = $0 })
                     }
                 }
                 Tab("Grupper", systemImage: "person.2", value: AppTab.grupper) {
@@ -134,7 +138,7 @@ struct RootView: View {
         )) {
             ProfileEditorView(profile: profile, required: true)
                 .interactiveDismissDisabled()
-                .preferredColorScheme(.light)
+                .preferredColorScheme(.dark)
         }
         .sheet(isPresented: $showingNewGroup) {
             NewGroupSheet(
@@ -159,6 +163,19 @@ struct RootView: View {
         .sheet(item: $expenseModel) { model in
             NewExpenseSheet(model: model)
                 .presentationDragIndicator(.visible)
+        }
+        .sheet(item: $reportPage, onDismiss: {
+            if reportWantsExpense { reportWantsExpense = false; startAddExpense() }
+            else if let groupId = reportGroupNavigation {
+                reportGroupNavigation = nil; grupperPath.append(groupId); selectedTab = .grupper
+            }
+        }) { page in
+            ReportsView(ledger: ledger, userId: userId, initialPage: page.page,
+                        initialCurrency: page.currency, groupId: page.groupId,
+                        onOpenGroup: { groupId in reportGroupNavigation = groupId; reportPage = nil }) {
+                reportWantsExpense = true
+                reportPage = nil
+            }
         }
         .sheet(isPresented: $showingActivity) {
             NavigationStack {
@@ -276,7 +293,7 @@ private struct PhoneNavigationBar: View {
                         .font(.title3.weight(.bold))
                         .foregroundStyle(Theme.accentInk)
                         .frame(width: 48, height: 48)
-                        .background(Theme.brandBlue, in: .circle)
+                        .background(Editorial.yellow, in: .circle)
                 }
                 .frame(width: 48)
                 .frame(minWidth: 48, minHeight: 48)
@@ -288,7 +305,7 @@ private struct PhoneNavigationBar: View {
         }
         .frame(height: 58)
         .frame(maxWidth: .infinity)
-        .background(Theme.bg)
+        .background(Editorial.raised, in: .rect(cornerRadius: 24))
         // Keep the persistent navigation compact; long-press exposes the full-size label.
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
@@ -303,10 +320,11 @@ private struct PhoneNavigationBar: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
-            .foregroundStyle(selection == tab ? Theme.accent : Theme.secondary)
+            .foregroundStyle(selection == tab ? Editorial.coal : Editorial.muted)
             .frame(width: width)
             .frame(minHeight: 44)
-            .padding(.vertical, 7)
+            .padding(.vertical, 4)
+            .background(selection == tab ? Editorial.mint : .clear, in: .rect(cornerRadius: 18))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)

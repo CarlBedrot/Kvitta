@@ -45,7 +45,7 @@ struct PageHeader: View {
         HStack(alignment: .center, spacing: 16) {
             Group {
                 if showsBrand { BrandLogo() }
-                else { Text(title).font(.title.weight(.semibold)).foregroundStyle(Theme.ink) }
+                else { Text(title).textCase(.uppercase).font(Editorial.heading()).foregroundStyle(Theme.ink) }
             }
             .accessibilityAddTraits(.isHeader)
             Spacer(minLength: 8)

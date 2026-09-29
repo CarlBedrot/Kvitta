@@ -1,6 +1,694 @@
 {
   "sourceLanguage" : "sv",
   "strings" : {
+  "Senast redigerad %@%@": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Senast redigerad %@%@"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Last edited %@%@"
+        }
+      }
+    }
+  },
+  " av %@": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": " av %@"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": " by %@"
+        }
+      }
+    }
+  },
+  "Kategorier": {
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Categories"
+        }
+      },
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Kategorier"
+        }
+      }
+    }
+  },
+  "Inga matchande poster": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Inga matchande poster"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "No matching entries"
+        }
+      }
+    }
+  },
+  "Utgifter & betalningar": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Utgifter & betalningar"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Expenses & payments"
+        }
+      }
+    }
+  },
+  "Rapporter": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Rapporter"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Reports"
+        }
+      }
+    }
+  },
+  "Veckorytm": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Veckorytm"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Weekly rhythm"
+        }
+      }
+    }
+  },
+  "Gemensamma utgifter": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Gemensamma utgifter"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Shared spending"
+        }
+      }
+    }
+  },
+  "VECKANS\nUTGIFTER": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "VECKANS\nUTGIFTER"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "WEEKLY\nSPENDING"
+        }
+      }
+    }
+  },
+  "SENASTE UTGIFTER": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "SENASTE UTGIFTER"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "RECENT EXPENSES"
+        }
+      }
+    }
+  },
+  "DIN STÄLLNING": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "DIN STÄLLNING"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "YOUR BALANCE"
+        }
+      }
+    }
+  },
+  "DIN VECKA": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "DIN VECKA"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "YOUR WEEK"
+        }
+      }
+    }
+  },
+  "SLICE / RAPPORTER": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "SLICE / RAPPORTER"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "SLICE / REPORTS"
+        }
+      }
+    }
+  },
+  "Visa rapport": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Visa rapport"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "View report"
+        }
+      }
+    }
+  },
+  "Alla utgifter": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Alla utgifter"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "All expenses"
+        }
+      }
+    }
+  },
+  "Inga matchande utgifter": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Inga matchande utgifter"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "No matching expenses"
+        }
+      }
+    }
+  },
+  "Inga utgifter under perioden": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Inga utgifter under perioden"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "No expenses in this period"
+        }
+      }
+    }
+  },
+  "Beloppet är för stort för att visas.": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Beloppet är för stort för att visas."
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "This amount is too large to display."
+        }
+      }
+    }
+  },
+  "Föregående vecka": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Föregående vecka"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Previous week"
+        }
+      }
+    }
+  },
+  "Nästa vecka": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Nästa vecka"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Next week"
+        }
+      }
+    }
+  },
+  "Den här veckan": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Den här veckan"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "This week"
+        }
+      }
+    }
+  },
+  "Största utgiften": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Största utgiften"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Largest expense"
+        }
+      }
+    }
+  },
+  "Välj kategori": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Välj kategori"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Choose category"
+        }
+      }
+    }
+  },
+  "GEMENSAMT / %@": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "GEMENSAMT / %@"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "SHARED / %@"
+        }
+      }
+    }
+  },
+  "NÄR NI DELAR\nPÅ VARDAGEN": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "NÄR NI DELAR\nPÅ VARDAGEN"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "HOW YOU SHARE\nYOUR WEEK"
+        }
+      }
+    }
+  },
+  "Antal utgifter per veckodag": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Antal utgifter per veckodag"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Expense count by weekday"
+        }
+      }
+    }
+  },
+  "Sök utgifter": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Sök utgifter"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Search expenses"
+        }
+      }
+    }
+  },
+  "Rensa sökning": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Rensa sökning"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Clear search"
+        }
+      }
+    }
+  },
+  "Dina gemensamma utgifter": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Dina gemensamma utgifter"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Your shared expenses"
+        }
+      }
+    }
+  },
+  "Sök i det ni har lagt till. Tryck på en post för detaljer.": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Sök i det ni har lagt till. Tryck på en post för detaljer."
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Search what you have added. Tap an entry for details."
+        }
+      }
+    }
+  },
+  "Registrerat av %@": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Registrerat av %@"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Added by %@"
+        }
+      }
+    }
+  },
+  "utgifter": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "utgifter"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "expenses"
+        }
+      }
+    }
+  },
+  "Visa fler": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Visa fler"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Show more"
+        }
+      }
+    }
+  },
+  "Utgifter per dag, %@": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Utgifter per dag, %@"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Daily expenses, %@"
+        }
+      }
+    }
+  },
+  "Betalning & konto": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Betalning & konto"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Payments & account"
+        }
+      }
+    }
+  },
+  "Svenska nummer · SEK": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Svenska nummer · SEK"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Swedish numbers · SEK"
+        }
+      }
+    }
+  },
+  "Danska nummer · DKK": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Danska nummer · DKK"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Danish numbers · DKK"
+        }
+      }
+    }
+  },
+  "Mottagare med +46": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Mottagare med +46"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Recipients with +46"
+        }
+      }
+    }
+  },
+  "Mottagare med +45": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Mottagare med +45"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Recipients with +45"
+        }
+      }
+    }
+  },
+  "Ditt konto": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Ditt konto"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Your account"
+        }
+      }
+    }
+  },
+  "Profil & synkronisering": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Profil & synkronisering"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Profile & sync"
+        }
+      }
+    }
+  },
+  "Se kontostatus": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Se kontostatus"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "View account status"
+        }
+      }
+    }
+  },
+  "Redigera ditt telefonnummer": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Redigera ditt telefonnummer"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Edit your phone number"
+        }
+      }
+    }
+  },
     "Redan betalat?": {
       "localizations": {
         "sv": {

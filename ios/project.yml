@@ -87,7 +87,7 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Slice
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         # Light appearance is intentional; keep this paired with KvittaApp's colour scheme.
-        INFOPLIST_KEY_UIUserInterfaceStyle: Light
+        INFOPLIST_KEY_UIUserInterfaceStyle: Dark
         # Signing, so it survives `xcodegen generate` — setting it in Xcode's UI does not, because
         # the .xcodeproj is regenerated from this file. Team IDs are not secret; they ship inside
         # every signed app bundle.

@@ -2,8 +2,7 @@ import SwiftUI
 import UIKit
 import KvittaCore
 
-/// One ivory canvas, the app icon's sky blue for filled actions, warm neutral text.
-/// The pizza artwork remains the brand mark. Light/dark colours are paired by role.
+/// Editorial charcoal and pastel roles from the reference. The pizza icon remains unchanged.
 enum Theme {
 
     /// One token, both halves. Every call site stays exactly as it was — the app changes palette
@@ -16,26 +15,26 @@ enum Theme {
 
     // MARK: Surfaces and text
 
-    static let bg = adaptive(light: 0xFAF9F5, dark: 0x16181C)
-    static let card = bg
-    static let ink = adaptive(light: 0x242521, dark: 0xF3F4F6)
-    static let secondary = adaptive(light: 0x65665F, dark: 0xAFB6C1)
+    static let bg = adaptive(light: 0xFAF9F5, dark: 0x252622)
+    static let card = adaptive(light: 0xF0EFE7, dark: 0x343530)
+    static let ink = adaptive(light: 0x242521, dark: 0xF5F4EC)
+    static let secondary = adaptive(light: 0x65665F, dark: 0xBFC2B7)
     static let tertiary = secondary
-    static let avatarBackground = adaptive(light: 0xE8E6DC, dark: 0x30353E)
+    static let avatarBackground = adaptive(light: 0xE8E6DC, dark: 0x44463E)
 
     // MARK: Slice brand and actions
 
     /// Exact dominant background colour sampled from the shipped AppIcon.png.
     static let brandBlue = adaptive(light: 0x4FA9E8, dark: 0x4FA9E8)
     /// A darker value of the same hue for small links/icons on ivory; never a button fill.
-    static let accent = adaptive(light: 0x23638D, dark: 0xA0D0F1)
+    static let accent = adaptive(light: 0x23638D, dark: 0xC8D8CD)
     static let accentInk = Color(hex: 0x142C3D)
     static let accentPressed = brandBlue
     static let accentSubtle = adaptive(light: 0xE6F0F4, dark: 0x243149)
     static let pizzaOrange = adaptive(light: 0xA95310, dark: 0xFFB34F)
     static let pizzaRed = adaptive(light: 0xC83B25, dark: 0xFF9078)
     // Existing selection and confirmation controls share the same action pair.
-    static let hero = brandBlue
+    static let hero = Editorial.purple
     static let heroHighlight = accentPressed
     static let heroText = accentInk
     static let heroSecondary = accentInk
@@ -90,7 +89,7 @@ enum Theme {
     // MARK: The attestation control
 
     /// Confirmation track and label adapt together for readable contrast.
-    static let controlFill = brandBlue
+    static let controlFill = Editorial.mint
     static let controlLabel = accentInk
 
     /// The colour an amount takes from its sign. Never the only carrier of meaning — every amount
@@ -224,7 +223,7 @@ extension View {
 /// The primary action: logo-blue fill, dark readable text, radius 22, gentle press scale. With a quiet
 /// fill and ink label it is the secondary twin beside a primary — same shape, less voice.
 struct PrimaryButtonStyle: ButtonStyle {
-    var fill: Color = Theme.brandBlue
+    var fill: Color = Editorial.mint
     var label: Color = Theme.accentInk
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion

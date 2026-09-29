@@ -44,7 +44,7 @@ struct KvittaApp: App {
                     profiles: profiles,
                     photos: photos
                 )
-                .preferredColorScheme(.light)
+                .preferredColorScheme(.dark)
                 .task {
                     await session.restore(server: Bootstrap.activeBaseURL ?? ServerEndpoint.localhost)
                     await Bootstrap.adoptBuiltInServer(session: session, displayName: profile.displayName)
@@ -93,7 +93,7 @@ struct KvittaApp: App {
                 }
             case .failed(let message):
                 StartupFailureView(message: message)
-                    .preferredColorScheme(.light)
+                    .preferredColorScheme(.dark)
             }
         }
     }
