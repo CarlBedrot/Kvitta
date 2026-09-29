@@ -164,15 +164,15 @@ struct BalanceHero: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if summary.hasOpenBalances {
-                Text(direction).font(.subheadline.weight(.medium)).foregroundStyle(Theme.heroSecondary)
+                Text(direction).font(.subheadline.weight(.medium)).foregroundStyle(Theme.secondary)
                 Text(MoneyFormat.string(bothDirections ? summary.netMinor : abs(summary.netMinor),
                                         summary.currency, sign: bothDirections ? .always : .none, explicit: true))
                     .font(.largeTitle.weight(.semibold))
                     .monospacedDigit()
-                    .foregroundStyle(Theme.heroText)
+                    .foregroundStyle(Theme.ink)
                     .fixedSize(horizontal: false, vertical: true)
                 if bothDirections {
-                    Divider().overlay(Theme.heroSecondary.opacity(0.25))
+                    Divider()
                     let layout = dynamicTypeSize.isAccessibilitySize
                         ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
                         : AnyLayout(HStackLayout(alignment: .top, spacing: 16))
@@ -184,12 +184,11 @@ struct BalanceHero: View {
             } else {
                 Label("Kvitt i \(summary.currency.code)", systemImage: "checkmark.circle")
                     .font(.title2.weight(.semibold))
-                    .foregroundStyle(Theme.heroText)
+                    .foregroundStyle(Theme.ink)
             }
         }
-        .padding(20)
+        .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.hero, in: .rect(cornerRadius: 20))
     }
 }
 
@@ -200,9 +199,9 @@ private struct HeroTotal: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(title).font(.caption).foregroundStyle(Theme.heroSecondary)
+            Text(title).font(.caption).foregroundStyle(Theme.secondary)
             Text(MoneyFormat.string(amount, currency, explicit: true))
-                .font(.headline).monospacedDigit().foregroundStyle(Theme.heroText)
+                .font(.headline).monospacedDigit().foregroundStyle(Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

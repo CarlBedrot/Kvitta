@@ -7,48 +7,51 @@ struct OverviewView: View {
     let ledger: LedgerStore
     let userId: UserID
     let profile: UserProfile
-    let onAddExpense: () -> Void
     let onShowActivity: () -> Void
     let onProfile: () -> Void
     let onOpenActivity: (FeedEntry) -> Void
     let onShowPosition: () -> Void
     let onOpenGroup: (GroupID) -> Void
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
+            VStack(alignment: .leading, spacing: 28) {
                 PageHeader(title: "Översikt", profile: profile, onProfile: onProfile, showsBrand: true)
 
                 if horizontalSizeClass == .regular {
                     HStack(alignment: .top, spacing: 24) {
-                        VStack(spacing: 16) {
-                            overviewCard
-                            addExpenseButton
-                        }
-                        VStack(alignment: .leading, spacing: 12) {
-                            activityHeader
-                            recentActivity
-                            relevantGroup
-                        }
+                        overviewBalances
+                        overviewSections
                     }
                 } else {
-                    overviewCard
-                    addExpenseButton
-                    activityHeader
-                    recentActivity
-                    relevantGroup
+                    overviewBalances
+                    overviewSections
                 }
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
-            .padding(.bottom, 130)
+            .padding(.bottom, 32)
         }
         .background(AmbientBackground())
         .navigationBarHidden(true)
     }
 
-    private var overviewCard: some View {
+    private var overviewSections: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            Divider()
+            VStack(alignment: .leading, spacing: 8) {
+                activityHeader
+                recentActivity
+            }
+            Divider()
+            relevantGroup
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var overviewBalances: some View {
         let groups = ledger.state.groupsByLastActivity
         let book = BalanceBook(groups: groups.map { group in
             BalanceBook.GroupSlice(name: group.name, balances: group.balances(), members: group.members)
@@ -89,23 +92,19 @@ struct OverviewView: View {
         }
     }
 
-    private var addExpenseButton: some View {
-        Button(action: onAddExpense) {
-            Label("Lägg till utgift", systemImage: "plus")
-                .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(PrimaryButtonStyle())
-    }
-
     private var activityHeader: some View {
-        HStack {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 0))
+            : AnyLayout(HStackLayout())
+        return layout {
             Text("Senaste aktivitet")
-                .font(.title3.weight(.bold))
+                .font(.headline.weight(.semibold))
                 .foregroundStyle(Theme.ink)
-            Spacer()
+                .frame(maxWidth: .infinity, alignment: .leading)
             Button("Visa alla", action: onShowActivity)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.secondary)
+                .foregroundStyle(Theme.accent)
+                .frame(minHeight: 44)
         }
     }
 
@@ -117,12 +116,15 @@ struct OverviewView: View {
                     .font(.subheadline)
                     .foregroundStyle(Theme.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(18)
+                    .padding(.vertical, 8)
             } else {
                 ForEach(entries) { entry in
                     Button { onOpenActivity(entry) } label: {
                     HStack(spacing: 12) {
-                        IconBadge(systemImage: entry.kind.isPayment ? "arrow.left.arrow.right" : "receipt", tint: entry.kind.isPayment ? Theme.positive : Theme.pizzaOrange, size: 38)
+                        Image(systemName: entry.kind.isPayment ? "arrow.left.arrow.right" : "receipt")
+                            .foregroundStyle(Theme.secondary)
+                            .frame(width: 28)
+                            .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(entry.title).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
                             Text(entry.subtitle).font(.caption).foregroundStyle(Theme.secondary)
@@ -133,12 +135,10 @@ struct OverviewView: View {
                     }
                     .buttonStyle(.plain)
                     .padding(.vertical, 12)
-                    if entry.id != entries.last?.id { Divider().padding(.leading, 50) }
+                    if entry.id != entries.last?.id { Divider().padding(.leading, 40) }
                 }
             }
         }
-        .padding(.horizontal, 16)
-        .background(Theme.card, in: .rect(cornerRadius: 24))
     }
 
     private var relevantGroup: some View {
@@ -147,7 +147,7 @@ struct OverviewView: View {
             if let group {
                 Button { onOpenGroup(group.id) } label: {
                     HStack(spacing: 12) {
-                        GroupBadge(name: group.name, size: 48, groupId: group.id)
+                        GroupBadge(name: group.name, size: 40, groupId: group.id)
                         VStack(alignment: .leading, spacing: 3) {
                             Text("Senast aktiv i").font(.caption).foregroundStyle(Theme.secondary)
                             Text(GroupBadge.title(of: group.name)).font(.body.weight(.semibold)).foregroundStyle(Theme.ink)
@@ -157,8 +157,7 @@ struct OverviewView: View {
                         Spacer()
                         Image(systemName: "chevron.right").foregroundStyle(Theme.tertiary)
                     }
-                    .padding(16)
-                    .background(Theme.card, in: .rect(cornerRadius: 22))
+                    .padding(.vertical, 8)
                 }
                 .buttonStyle(.plain)
             } else {
@@ -166,9 +165,8 @@ struct OverviewView: View {
                     Text("Börja dela tillsammans").font(.headline.weight(.bold)).foregroundStyle(Theme.ink)
                     Text("Skapa en grupp och lägg till din första utgift.").font(.subheadline).foregroundStyle(Theme.secondary)
                 }
-                .padding(18)
+                .padding(.vertical, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Theme.accentSubtle, in: .rect(cornerRadius: 22))
             }
         }
     }

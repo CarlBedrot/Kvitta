@@ -37,6 +37,29 @@ This direction supersedes the old warm/clay palette and three-tab layout describ
 
 ## Verification status
 
+### Composition revision — 2026-09-29
+
+Carl's screenshot feedback supersedes the first pass's filled balance card: the overview still
+looks like disconnected modules and its colours compete. Put balances on the page, remove the
+overview's row containers and duplicate add button, and use neutral surfaces/placeholders with
+one blue action accent. Keep currency/direction, offset gross debts, photos and all destinations.
+Verify both appearances, large text and expense entry before merging; subjective approval and
+the remaining #123/device gates stay open.
+
+Implemented in #125: flat balance presentation, unboxed overview rows, neutral avatar/group
+placeholders and one adaptive blue action pair. The phone navigation shares the page background;
+its add button remains available and opens the existing expense flow. At accessibility sizes,
+the activity heading stacks above its link. Navigation labels are capped at xxxLarge and expose
+the system large-content viewer.
+
+Verification: simulator build/install/launch passed; 30 AppTests passed. Overview, Position,
+Groups and Profile visually inspected in both appearances; expense entry and split controls
+opened in both appearances and the draft cancelled. Overview's balance, header and navigation
+checked at accessibility-extra-large. This is not the full accessibility/VoiceOver matrix.
+Calculated contrast: action labels 5.39:1 light / 8.20:1 dark; secondary text on page 5.12:1 /
+8.70:1; avatar initials 4.55:1 / 6.03:1. Local screenshots: `/tmp/slice-cohesion-evidence/`.
+The existing recent-activity scope defect remains #122; no ledger or sync behaviour changed.
+
 ### First implementation batch — 2026-09-29 (#120/#121)
 
 - Overview and Position now share personal open-balance ordering, with alphabetic currency

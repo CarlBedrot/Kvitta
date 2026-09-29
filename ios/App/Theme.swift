@@ -2,27 +2,8 @@ import SwiftUI
 import UIKit
 import KvittaCore
 
-/// The design system: Slice's sky-blue brand, the warm pizza mascot, and colour otherwise reserved
-/// for the direction of money. The app should feel like a friendly shared pizza table, not a
-/// generic finance dashboard.
-///
-/// Token names kept from the first design where the *role* survived (`ink`, `secondary`, `card`),
-/// so the diff shows what actually changed: the values, and the retirement of glass.
-///
-/// ## The dark half
-///
-/// Not a second design — the same one with the lights turned down. The light palette already
-/// contained its own night: `ink` was never neutral black but a *warm* near-black at hue 42°, the
-/// same family as the cream. So dark mode turns the app inside out rather than inventing a new
-/// scheme — the ink becomes the ground, the cream becomes the type, and every grey stays warm.
-///
-/// That is the whole argument against the obvious alternative. Stock dark mode is neutral
-/// charcoal, and Slice's light identity is specifically a refusal of grey-blue fintech in favour
-/// of something warm. A neutral dark mode would throw away the one thing that stops this looking
-/// like Splitwise.
-///
-/// Blue remains the brand in both modes; money colours adapt independently so direction stays
-/// legible without confusing a balance with a button.
+/// Neutral surfaces keep the ledger continuous; blue identifies actions.
+/// The pizza artwork remains the brand mark. Light/dark colours are paired by role.
 enum Theme {
 
     /// One token, both halves. Every call site stays exactly as it was — the app changes palette
@@ -33,65 +14,40 @@ enum Theme {
         })
     }
 
-    // MARK: Surfaces
+    // MARK: Surfaces and text
 
-    /// The screen behind everything. Blue-tinted paper by day; by night a deep navy a step deeper
-    /// than `ink`, so cards have somewhere to sit above.
-    static let bg = adaptive(light: 0xF4F8FC, dark: 0x0B1724)
-    /// Cards are pure white and *float*. By day elevation comes from `cardSurface`'s shadow; by
-    /// night a shadow on a dark ground is invisible, so the card carries its own light instead —
-    /// see `CardSurface`.
-    static let card = adaptive(light: 0xFFFFFF, dark: 0x14283A)
+    static let bg = adaptive(light: 0xF8F9FB, dark: 0x16181C)
+    static let card = adaptive(light: 0xFFFFFF, dark: 0x22252B)
+    static let ink = adaptive(light: 0x22262E, dark: 0xF3F4F6)
+    static let secondary = adaptive(light: 0x626B78, dark: 0xAFB6C1)
+    static let tertiary = secondary
+    static let avatarBackground = adaptive(light: 0xE9ECF1, dark: 0x30353E)
 
-    // MARK: Text hierarchy
+    // MARK: Slice brand and actions
 
-    static let ink = adaptive(light: 0x102236, dark: 0xF3F8FD)
-    static let secondary = adaptive(light: 0x56697A, dark: 0xB8C8D8)
-    static let tertiary = adaptive(light: 0x6C7F90, dark: 0x8FA5B8)
-
-    // MARK: Slice brand
-
-    /// Sky blue from the app icon. The FAB, primary buttons and selected tab all speak Slice blue.
-    static let brandBlue = adaptive(light: 0x55A9DE, dark: 0x3B8FC8)
+    static let brandBlue = adaptive(light: 0x2864D7, dark: 0xA0BBFF)
     static let accent = brandBlue
-    static let accentInk = Color(hex: 0x102236)
-    static let accentPressed = adaptive(light: 0x368BC7, dark: 0x2E78AB)
-    static let accentSubtle = adaptive(light: 0xE2F2FC, dark: 0x163B55)
-    static let pizzaOrange = adaptive(light: 0xF28A24, dark: 0xFFB34F)
-    static let pizzaRed = adaptive(light: 0xE94D2F, dark: 0xFF7655)
-    static let hero = adaptive(light: 0x123B5D, dark: 0x0C2944)
-    static let heroHighlight = adaptive(light: 0x246994, dark: 0x164E75)
-    static let heroText = Color.white
-    static let heroSecondary = adaptive(light: 0xC8E4F6, dark: 0xB1D2E8)
+    static let accentInk = adaptive(light: 0xFFFFFF, dark: 0x142341)
+    static let accentPressed = adaptive(light: 0x2054B8, dark: 0xBCD0FF)
+    static let accentSubtle = adaptive(light: 0xE9F0FD, dark: 0x243149)
+    static let pizzaOrange = adaptive(light: 0xA95310, dark: 0xFFB34F)
+    static let pizzaRed = adaptive(light: 0xC83B25, dark: 0xFF9078)
+    // Existing selection and confirmation controls share the same action pair.
+    static let hero = accent
+    static let heroHighlight = accentPressed
+    static let heroText = accentInk
+    static let heroSecondary = accentInk
 
     // MARK: Money direction
 
-    /// You are owed. Green appears *only* on positive balances. The dark value is much lighter
-    /// than the light one: 3.75:1 was not readable, this is 7.35:1 on a card.
-    static let positive = adaptive(light: 0x3E7D4E, dark: 0x6CBF82)
-    /// You owe. Distinct from the accent so a debt never looks like a button — the two sit 8° apart
-    /// in hue in *both* halves, deliberately the same separation the light theme already ships,
-    /// because colour is never the only carrier here: every amount also spells its direction out.
-    static let negative = adaptive(light: 0xD9503F, dark: 0xE8604F)
-    /// The wash behind the "Alla är kvitt" celebration card — and, at night, the one thing in
-    /// the app that gives off light. See `SettledGlow`.
-    static let positiveWash = adaptive(light: 0xDDEDDC, dark: 0x1B3324)
+    static let positive = adaptive(light: 0x327349, dark: 0x82C99B)
+    static let negative = adaptive(light: 0xB83E36, dark: 0xF79891)
+    static let positiveWash = adaptive(light: 0xE8F1EB, dark: 0x22352A)
 
     // MARK: Group identity
 
-    /// The colour a group wears when it has no photo: a wash behind its badge, and a faint tint
-    /// on its hero card. Chosen by the group's id, so a group is the same colour on every phone
-    /// and after every reinstall without anyone picking it — and two groups side by side stop
-    /// looking like the same grey circle with different letters in it.
-    ///
-    /// Eight warm tones only. Nothing blue, because blue is the accent and means "do this";
-    /// nothing as green as `positiveWash`, because that green means "settled". Each tone is a
-    /// pair per half: the wash the badge sits on, and the deeper voice of the same hue the
-    /// initials are written in. Contrast of initials on wash, light / dark:
-    /// peach 5.27 / 7.81 · rose 5.08 / 7.45 · mauve 5.52 / 7.40 · honey 5.35 / 6.96 ·
-    /// olive 5.01 / 7.36 · sand 5.16 / 7.06 · terracotta 4.69 / 7.19 · plum 5.63 / 6.71.
-    /// The hero tint is the wash at 45% over the card of its half; ink stays above 11:1 on
-    /// every one of them, so the card is coloured without the numbers paying for it.
+    /// Stable neutral shades distinguish placeholders without introducing competing accents.
+    /// Names, initials and photos carry identity; group headers share the normal card surface.
     struct GroupTint: Equatable, Sendable {
         /// Behind the badge.
         let wash: Color
@@ -107,14 +63,14 @@ enum Theme {
         }
 
         static let palette: [GroupTint] = [
-            GroupTint(wash: (0xF7DFC9, 0x4A3120), foreground: (0x8A4B1E, 0xF2C9A5), hero: (0xFBF1E7, 0x34271D)), // peach
-            GroupTint(wash: (0xF7D6D6, 0x4A2626), foreground: (0x9A3B3B, 0xF0B4B4), hero: (0xFBEDED, 0x342220)), // rose
-            GroupTint(wash: (0xEBDDF0, 0x3E2E44), foreground: (0x6E4A7A, 0xD9BEE3), hero: (0xF6F0F8, 0x2F262D)), // mauve
-            GroupTint(wash: (0xF7EBC4, 0x4A3E1A), foreground: (0x7A5A10, 0xEAD08A), hero: (0xFBF6E4, 0x342D1B)), // honey
-            GroupTint(wash: (0xE6E7C8, 0x3A3B22), foreground: (0x5E6420, 0xD0D39A), hero: (0xF4F4E6, 0x2D2C1E)), // olive
-            GroupTint(wash: (0xEDE3D2, 0x3F372B), foreground: (0x6F5A3A, 0xD8C7A8), hero: (0xF7F2EB, 0x2F2A22)), // sand
-            GroupTint(wash: (0xF3D6CB, 0x4B2C22), foreground: (0x96482E, 0xEDB9A6), hero: (0xFAEDE8, 0x34251E)), // terracotta
-            GroupTint(wash: (0xE9D8E0, 0x44303C), foreground: (0x7C3F5E, 0xDDB6CB), hero: (0xF5EDF1, 0x31272A)), // plum
+            GroupTint(wash: (0xE8ECF2, 0x2C333E), foreground: (0x424C5C, 0xD4DCE8), hero: (0xFFFFFF, 0x22252B)),
+            GroupTint(wash: (0xECEEF2, 0x30343D), foreground: (0x424C5C, 0xD4DCE8), hero: (0xFFFFFF, 0x22252B)),
+            GroupTint(wash: (0xE5EAF0, 0x28313B), foreground: (0x424C5C, 0xD4DCE8), hero: (0xFFFFFF, 0x22252B)),
+            GroupTint(wash: (0xEBEDF0, 0x30343A), foreground: (0x424C5C, 0xD4DCE8), hero: (0xFFFFFF, 0x22252B)),
+            GroupTint(wash: (0xE8EBEE, 0x2C3238), foreground: (0x424C5C, 0xD4DCE8), hero: (0xFFFFFF, 0x22252B)),
+            GroupTint(wash: (0xE6E9EE, 0x2A303B), foreground: (0x424C5C, 0xD4DCE8), hero: (0xFFFFFF, 0x22252B)),
+            GroupTint(wash: (0xECEFF3, 0x303640), foreground: (0x424C5C, 0xD4DCE8), hero: (0xFFFFFF, 0x22252B)),
+            GroupTint(wash: (0xE9ECF0, 0x2D333D), foreground: (0x424C5C, 0xD4DCE8), hero: (0xFFFFFF, 0x22252B)),
         ]
 
         /// Which of the eight a group gets. Over the id's raw bytes rather than `hashValue`,
@@ -132,28 +88,14 @@ enum Theme {
         }
     }
 
-    /// Hairline separator inside cards. Used for row dividers only — never around a card.
-    ///
-    /// Carries its own alpha per half rather than one opacity over both: 7% ink on white is a
-    /// clear line, while 7% cream on a dark card disappears. Dark surfaces need more of the
-    /// lighter colour to read as the same weight of rule.
+    /// System separator adapts to appearance and contrast preferences.
     static let hairline = Color(.separator)
 
     // MARK: The attestation control
 
-    /// The track of `SlideToConfirm`, and whatever it carries.
-    ///
-    /// The control used to be `ink` with a white label — a pairing that only works by day. At
-    /// night `ink` is the cream, and white on cream is 1.16:1: the one gesture in the app that
-    /// writes money into the books became an unlabelled bar. The fix is not a different colour
-    /// but a *pair*: the fill is still the ink of its half, and the label is always the ground of
-    /// that half — white by day (16.81:1), the deep warm black by night (16.01:1 on the cream).
-    /// Both halves end up with more contrast than a button ever had, and the control keeps
-    /// reading as the heaviest object on the sheet, which is the point of it.
-    static let controlFill = hero
-    /// What sits on `controlFill`: the label, and the knob. Never `.white` — that is the light
-    /// half's value leaking into the dark one, which is exactly the bug this token retires.
-    static let controlLabel = heroText
+    /// Confirmation track and label adapt together for readable contrast.
+    static let controlFill = accent
+    static let controlLabel = accentInk
 
     /// The colour an amount takes from its sign. Never the only carrier of meaning — every amount
     /// on screen also spells its direction in words.
@@ -174,13 +116,7 @@ enum Theme {
     static let espresso = ink
 }
 
-/// The flat warm background. The first design layered radial washes here for glass to refract;
-/// there is no glass any more, and the mockups are calmer for it.
-/// The prompt text inside a text field. The system draws placeholders in its own tertiary grey,
-/// which lands at 2.6:1 on a white row by day and 3.0:1 on a card by night — the "what am I
-/// supposed to type here" hint was the least readable text on the screen. `Theme.secondary`
-/// clears 4.5:1 in both halves (5.4:1 on the light card, 6.0:1 on the dark one) and is still
-/// visibly not the typed value, which is the only other thing a placeholder has to be.
+/// Keep prompts readable on the app's neutral surfaces.
 extension Text {
     func placeholderStyle() -> Text {
         foregroundStyle(Theme.secondary)
