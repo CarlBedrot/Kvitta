@@ -1,6 +1,342 @@
 {
   "sourceLanguage" : "sv",
   "strings" : {
+    "Redan betalat?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redan betalat?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Already paid?"
+          }
+        }
+      }
+    },
+    "Telefonnummer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phone number"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Telefonnummer"
+          }
+        }
+      }
+    },
+    "Land": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Country"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Land"
+          }
+        }
+      }
+    },
+    "Sverige +46": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sweden +46"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sverige +46"
+          }
+        }
+      }
+    },
+    "Danmark +45": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Denmark +45"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Danmark +45"
+          }
+        }
+      }
+    },
+    "Din profil": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your profile"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Din profil"
+          }
+        }
+      }
+    },
+    "Fortsätt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fortsätt"
+          }
+        }
+      }
+    },
+    "Betala": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pay"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Betala"
+          }
+        }
+      }
+    },
+    "Betala %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pay %@"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Betala %@"
+          }
+        }
+      }
+    },
+    "Betala med Swish": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pay with Swish"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Betala med Swish"
+          }
+        }
+      }
+    },
+    "Kontrollera numret och landskoden.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check the number and country code."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kontrollera numret och landskoden."
+          }
+        }
+      }
+    },
+    "Ange numret du använder för Swish eller MobilePay. Det delas med dina gruppmedlemmar när du är inloggad.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter the number you use for Swish or MobilePay. It is shared with your group members when you are signed in."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ange numret du använder för Swish eller MobilePay. Det delas med dina gruppmedlemmar när du är inloggad."
+          }
+        }
+      }
+    },
+    "Mottagarens nummer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recipient’s number"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mottagarens nummer"
+          }
+        }
+      }
+    },
+    "Ändra mottagarens nummer: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit recipient’s number: %@"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ändra mottagarens nummer: %@"
+          }
+        }
+      }
+    },
+    "Numret använder %@, men skulden är i %@. Kom överens om hur ni betalar. Slice växlar inte beloppet.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This number uses %@, but the debt is in %@. Agree on how to pay. Slice does not convert the amount."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Numret använder %@, men skulden är i %@. Kom överens om hur ni betalar. Slice växlar inte beloppet."
+          }
+        }
+      }
+    },
+    "Välj mottagare och ange beloppet i MobilePay.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose the recipient and enter the amount in MobilePay."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj mottagare och ange beloppet i MobilePay."
+          }
+        }
+      }
+    },
+    "Kopiera nummer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy number"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopiera nummer"
+          }
+        }
+      }
+    },
+    "Kopiera belopp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy amount"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopiera belopp"
+          }
+        }
+      }
+    },
+    "Numret är kopierat.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Number copied."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Numret är kopierat."
+          }
+        }
+      }
+    },
+    "Beloppet är kopierat.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Amount copied."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beloppet är kopierat."
+          }
+        }
+      }
+    },
+    "Lägg till mottagarens nummer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add recipient’s number"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till mottagarens nummer"
+          }
+        }
+      }
+    },
     "Du ska betala" : {
       "localizations" : {
         "en" : {

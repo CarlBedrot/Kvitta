@@ -8,6 +8,7 @@ import KvittaSync
 struct KvittaApp: App {
     @State private var profile: UserProfile
     @State private var startup: Startup
+    @State private var pendingInviteToken: UUID?
     @State private var reminders = ReminderScheduler()
     @State private var rates = RateStore()
     @Environment(\.scenePhase) private var scenePhase
@@ -43,10 +44,7 @@ struct KvittaApp: App {
                     profiles: profiles,
                     photos: photos
                 )
-                // Follows the phone. `Theme` has both halves now, so this and the plist's
-                // UIUserInterfaceStyle came out together — either one alone would leave
-                // system-drawn labels on the wrong ground, which is what the first run on real
-                // hardware turned up.
+                .preferredColorScheme(.light)
                 .task {
                     await session.restore(server: Bootstrap.activeBaseURL ?? ServerEndpoint.localhost)
                     await Bootstrap.adoptBuiltInServer(session: session, displayName: profile.displayName)
@@ -70,7 +68,16 @@ struct KvittaApp: App {
                     // that does not exist until the deploy. Adding universal links later is
                     // additive — the token and the endpoint do not change.
                     guard let token = InviteModel.token(in: url.absoluteString) else { return }
-                    Task { await invites.accept(token: token) }
+                    if profile.isPaymentProfileComplete {
+                        Task { await invites.accept(token: token) }
+                    } else {
+                        pendingInviteToken = token
+                    }
+                }
+                .task(id: profile.isPaymentProfileComplete) {
+                    guard profile.isPaymentProfileComplete, let token = pendingInviteToken else { return }
+                    pendingInviteToken = nil
+                    await invites.accept(token: token)
                 }
                 .onChange(of: scenePhase) { _, phase in
                     // Foreground pull is the guarantee (design doc §6). Everything else —
@@ -85,12 +92,8 @@ struct KvittaApp: App {
                     Task { await profiles.push(profile) }
                 }
             case .failed(let message):
-                // Entirely system-drawn (`ContentUnavailableView`), so it was the one screen the
-                // light lock was actively helping. Now that the rest of the app follows the phone,
-                // pinning this one would make the failure screen the only thing on a dark phone
-                // rendering white — which is a bad look for the screen whose whole job is to be
-                // legible when something has already gone wrong.
                 StartupFailureView(message: message)
+                    .preferredColorScheme(.light)
             }
         }
     }

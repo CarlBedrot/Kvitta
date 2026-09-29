@@ -187,7 +187,7 @@ struct GroupDetailView: View {
         .sheet(item: $settlingTransfer) { presentation in
             SettleUpSheet(ledger: ledger, userId: userId, groupId: groupId,
                           transfer: presentation.transfer, payees: payees)
-                .presentationDetents([.medium])
+                .presentationDetents([.large])
         }
         .sheet(item: $auditingMember) { memberId in
             BalanceAuditSheet(ledger: ledger, userId: userId, groupId: groupId, memberId: memberId)

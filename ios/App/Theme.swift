@@ -16,12 +16,12 @@ enum Theme {
 
     // MARK: Surfaces and text
 
-    static let bg = adaptive(light: 0xF8F9FB, dark: 0x16181C)
-    static let card = adaptive(light: 0xFFFFFF, dark: 0x22252B)
+    static let bg = adaptive(light: 0xFAF7F0, dark: 0x16181C)
+    static let card = adaptive(light: 0xFFFDFA, dark: 0x22252B)
     static let ink = adaptive(light: 0x22262E, dark: 0xF3F4F6)
     static let secondary = adaptive(light: 0x626B78, dark: 0xAFB6C1)
     static let tertiary = secondary
-    static let avatarBackground = adaptive(light: 0xE9ECF1, dark: 0x30353E)
+    static let avatarBackground = adaptive(light: 0xEEE9DF, dark: 0x30353E)
 
     // MARK: Slice brand and actions
 
@@ -232,15 +232,17 @@ extension View {
 struct PrimaryButtonStyle: ButtonStyle {
     var fill: Color = Theme.accent
     var label: Color = Theme.accentInk
+    @Environment(\.isEnabled) private var isEnabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.body.weight(.semibold))
-            .foregroundStyle(label)
+            .foregroundStyle(isEnabled ? label : Theme.secondary)
             .frame(maxWidth: .infinity)
+            .padding(.horizontal, 16)
             .padding(.vertical, 16)
-            .background(fill, in: .rect(cornerRadius: 22))
+            .background(isEnabled ? fill : Theme.avatarBackground, in: .rect(cornerRadius: 22))
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(reduceMotion ? nil : .spring(duration: 0.25), value: configuration.isPressed)
     }

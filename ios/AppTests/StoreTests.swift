@@ -53,6 +53,48 @@ struct StoreTests {
         #expect(payees.number(for: bertil) == "46702222222")
     }
 
+    @Test("Profile requires a name and payment phone; invalid drafts preserve the saved profile")
+    func paymentProfile() {
+        let defaults = freshDefaults()
+        let profile = UserProfile(defaults: defaults)
+        #expect(!profile.isPaymentProfileComplete)
+        #expect(!profile.save(name: " ", phone: "0701234567", country: .sweden))
+        #expect(!profile.save(name: "Anna", phone: "12", country: .sweden))
+        #expect(profile.save(name: " Anna ", phone: "070-123 45 67", country: .sweden))
+        #expect(profile.isPaymentProfileComplete)
+        #expect(profile.displayName == "Anna")
+        #expect(profile.swishNumberForPayment == "46701234567")
+        #expect(!profile.save(name: "Different", phone: "broken", country: .denmark))
+        #expect(profile.displayName == "Anna")
+        #expect(profile.swishNumberForPayment == "46701234567")
+        #expect(profile.save(name: "Anna", phone: "20 12 34 56", country: .denmark))
+        let reopened = UserProfile(defaults: defaults)
+        #expect(reopened.isPaymentProfileComplete)
+        #expect(reopened.paymentPhone?.country == .denmark)
+        #expect(reopened.swishNumberForPayment == "4520123456")
+    }
+
+    @Test("Legacy Swedish profiles need no migration; incomplete profiles require setup")
+    func legacyPaymentProfile() {
+        let defaults = freshDefaults()
+        defaults.set("Anna", forKey: "se.kvitta.profile.displayName")
+        defaults.set("070-123 45 67", forKey: "se.kvitta.profile.swishNumber")
+        #expect(UserProfile(defaults: defaults).isPaymentProfileComplete)
+        defaults.set("1233268190", forKey: "se.kvitta.profile.swishNumber")
+        #expect(!UserProfile(defaults: defaults).isPaymentProfileComplete)
+    }
+
+    @Test("Danish member profiles survive storage and invalid edits")
+    func danishPayee() {
+        let defaults = freshDefaults()
+        let member = MemberID()
+        let payees = PayeeDirectory(defaults: defaults)
+        payees.absorb([member: "4520123456"])
+        payees.remember("ring 4520123456", for: member)
+        let reopened = PayeeDirectory(defaults: defaults)
+        #expect(reopened.number(for: member) == "4520123456")
+    }
+
     // MARK: - CurrencyDisplayStore
 
     @Test("Every display mode round-trips through storage")

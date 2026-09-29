@@ -1,14 +1,8 @@
 import Foundation
 import KvittaCore
 
-/// Swish numbers for the people you settle up with, on this device only.
-///
-/// Deliberately not an event. A phone number in the group log would be copied to every member's
-/// device forever and could never be taken back — events are immutable — which is a lot of
-/// permanence for a detail one person needs in order to press one button. It is also not the
-/// group's business who has whose number.
-///
-/// So it lives here: remembered after the first time you type it, per member, on this phone.
+/// Payment numbers from mutable server profiles, plus a device-local fallback for manual members.
+/// Phone numbers never enter the immutable group log.
 @MainActor
 @Observable
 final class PayeeDirectory {
@@ -36,16 +30,16 @@ final class PayeeDirectory {
         generation += 1
     }
 
-    /// Stored as typed, so it still reads like a phone number later — but only once Swish would
-    /// accept it. Remembering "12" would leave the button quietly missing with nothing to explain
-    /// why.
+    /// Keep legacy display formatting, but only store a plausible Swedish or Danish number.
     func remember(_ number: String, for memberId: MemberID) {
-        guard SwishNumber.normalised(number) != nil else { return }
+        guard PaymentPhoneNumber(number) != nil else { return }
         defaults.set(number, forKey: key(memberId))
+        generation += 1
     }
 
     func forget(_ memberId: MemberID) {
         defaults.removeObject(forKey: key(memberId))
+        generation += 1
     }
 
     private func key(_ memberId: MemberID) -> String {
