@@ -3693,6 +3693,116 @@
         }
       }
     },
+    "Avräknade återbetalningar" : {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settled repayments"
+          }
+        }
+      }
+    },
+    "Du ska få · nu" : {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You’re owed · now"
+          }
+        }
+      }
+    },
+    "Du ska betala · nu" : {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You owe · now"
+          }
+        }
+      }
+    },
+    "Visa saldohistorik" : {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View balance history"
+          }
+        }
+      }
+    },
+    "Återbetalningar" : {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repayments"
+          }
+        }
+      }
+    },
+    "Återbetalningar per dag, %@" : {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Daily repayments, %@"
+          }
+        }
+      }
+    },
+    "Inga avräknade återbetalningar under perioden" : {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No settled repayments in this period"
+          }
+        }
+      }
+    },
+    "Alla återbetalningar" : {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All repayments"
+          }
+        }
+      }
+    },
+    "Avräknad" : {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settled"
+          }
+        }
+      }
+    },
+    "Bestriden" : {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disputed"
+          }
+        }
+      }
+    },
+    "Gruppinformation" : {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Group information"
+          }
+        }
+      }
+    },
     "Tillbaka" : {
       "localizations" : {
         "en" : {

@@ -76,3 +76,46 @@ struct ExpenseReportTests {
         #expect(ExpenseReport(groups: ledger.state.groupsByLastActivity).items.isEmpty)
     }
 }
+
+struct GroupPaymentReportTests {
+    private let today = CalendarDate(iso8601: "2026-09-30")!
+
+    private func payment(_ amount: Int64, currency: CurrencyCode = .sek,
+                         date: String = "2026-09-29", status: PaymentStatus = .confirmed) throws -> Payment {
+        Payment(id: PaymentID(), payload: try PaymentRecordedPayload(
+            fromMemberId: MemberID(), toMemberId: MemberID(), currency: currency,
+            amountMinor: amount, date: CalendarDate(iso8601: date)!, method: .cash),
+                recordedBy: UserID(), recordedAt: Timestamp(epochMilliseconds: 0), status: status)
+    }
+
+    @Test func periodCurrencyAndStatusMatchTheBalancePolicy() throws {
+        let confirmed = try payment(100), pending = try payment(200, status: .pending)
+        let disputed = try payment(300, status: .disputed), foreign = try payment(400, currency: .dkk)
+        let aged = try payment(500, date: "2026-09-20", status: .pending)
+        let records = [confirmed, pending, disputed, foreign, aged]
+        let group = GroupState(id: GroupID(), name: "Home", currency: .sek,
+                               payments: Dictionary(uniqueKeysWithValues: records.map { ($0.id, $0) }))
+        let week = ExpenseReport.week(containing: today)
+        let current = GroupPaymentReport(group: group, currency: .sek, days: week, asOf: today)
+        #expect(current.payments.map(\.id) == [confirmed.id])
+        #expect(GroupPaymentReport.total(current.payments) == 100)
+        #expect(GroupPaymentReport.total(GroupPaymentReport(group: group, currency: .dkk, days: week, asOf: today).payments) == 400)
+        let oldWeek = ExpenseReport.week(containing: aged.date)
+        #expect(GroupPaymentReport(group: group, currency: .sek, days: oldWeek, asOf: today).payments.map(\.id) == [aged.id])
+        #expect(GroupPaymentReport(group: group, currency: .sek, days: oldWeek, asOf: aged.date).payments.isEmpty)
+        let other = GroupState(id: GroupID(), name: "Other", currency: .sek)
+        #expect(GroupPaymentReport(group: other, currency: .sek, days: week, asOf: today).payments.isEmpty)
+    }
+
+    @Test func dailyRepaymentTotalsConserveMinorUnits() throws {
+        let entries = try (1...7).map { try payment(Int64($0 * 137), date: String(format: "2026-09-%02d", 20 + $0)) }
+        let daily = Set(entries.map(\.date)).map { day in GroupPaymentReport.total(entries.filter { $0.date == day })! }.reduce(0, +)
+        #expect(daily == GroupPaymentReport.total(entries))
+    }
+
+    @Test func repaymentTotalsStayExactAndOverflowIsExplicit() throws {
+        #expect(GroupPaymentReport.total([]) == 0)
+        #expect(GroupPaymentReport.total([try payment(9_007_199_254_740_993)]) == 9_007_199_254_740_993)
+        #expect(GroupPaymentReport.total([try payment(Int64.max), try payment(1)]) == nil)
+    }
+}

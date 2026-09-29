@@ -150,6 +150,29 @@ struct EditorialMetadataPill: View {
     }
 }
 
+/// The inset statistic panel used by Spending and group payment summaries.
+struct EditorialMetric: View {
+    let title: String
+    let value: String
+    let badge: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(title.uppercased()).font(Editorial.heading(17))
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer()
+                EditorialBadge(text: badge).fixedSize()
+            }
+            Text(value).font(Editorial.heading(36)).monospacedDigit()
+                .fixedSize(horizontal: false, vertical: true)
+        }.foregroundStyle(Editorial.coal)
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Editorial.paper.opacity(0.17), in: .rect(cornerRadius: 20))
+    }
+}
+
 struct EditorialBadge: View {
     let text: String
     var body: some View {
@@ -191,10 +214,16 @@ struct EditorialWeekChart: View {
     let days: ClosedRange<Int>
     let currency: CurrencyCode
     var area = false
+    var payments: [Payment]? = nil
     @Binding var selectedDay: Int?
 
     private var points: [(day: Int, total: Int64?)] {
-        days.map { day in (day, ExpenseReport.total(items.filter { $0.date.dayNumber == day })) }
+        days.map { day in
+            if let payments {
+                return (day, GroupPaymentReport.total(payments.filter { $0.date.dayNumber == day }))
+            }
+            return (day, ExpenseReport.total(items.filter { $0.date.dayNumber == day }))
+        }
     }
 
     var body: some View {
@@ -246,7 +275,7 @@ struct EditorialWeekChart: View {
             .chartYScale(domain: 0...max(points.compactMap(\.total).max() ?? 0, 1))
             .frame(height: area ? 130 : 210)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(String(localized: "Utgifter per dag, \(currency.code)"))
+            .accessibilityLabel(payments == nil ? String(localized: "Utgifter per dag, \(currency.code)") : String(localized: "Återbetalningar per dag, \(currency.code)"))
             .accessibilityValue(points.map { "\(ExpenseReport.label(for: $0.day)): \(amount($0.total))" }.joined(separator: "; "))
             if !area {
                 HStack(spacing: 4) {
@@ -261,11 +290,14 @@ struct EditorialWeekChart: View {
             }
             HStack {
                 Circle().fill(Editorial.coal).frame(width: 5, height: 5)
-                Text("Gemensamma utgifter").font(.caption)
+                Text(payments == nil ? String(localized: "Gemensamma utgifter") : String(localized: "Återbetalningar")).font(.caption)
                 Spacer()
                 Text(currency.code).font(.caption.weight(.semibold))
             }.foregroundStyle(Editorial.coal)
-            if items.isEmpty { Text("Inga utgifter under perioden").font(.caption).foregroundStyle(Editorial.coal) }
+            if payments?.isEmpty ?? items.isEmpty {
+                Text(payments == nil ? String(localized: "Inga utgifter under perioden") : String(localized: "Inga avräknade återbetalningar under perioden"))
+                    .font(.caption).foregroundStyle(Editorial.coal)
+            }
             if points.contains(where: { $0.total == nil }) {
                 Text("Beloppet är för stort för att visas.").font(.caption).foregroundStyle(Editorial.coal)
             }
