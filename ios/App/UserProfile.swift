@@ -71,8 +71,7 @@ extension EnvironmentValues {
     @Entry var myAvatarPhoto: Data?
 }
 
-/// A round avatar: the photo if there is one, otherwise initials on a colour derived from the
-/// name, so everyone in a group is reliably a different colour without anyone choosing one.
+/// A photo or readable initials on a neutral placeholder.
 struct Avatar: View {
     let name: String
     var photo: Data?
@@ -87,9 +86,9 @@ struct Avatar: View {
             } else {
                 Text(initials)
                     .font(.system(size: size * 0.38, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Theme.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Avatar.colour(for: name))
+                    .background(Theme.avatarBackground)
             }
         }
         .frame(width: size, height: size)
@@ -102,22 +101,6 @@ struct Avatar: View {
         let words = name.split(separator: " ").prefix(2)
         let letters = words.compactMap { $0.first }.map(String.init)
         return letters.isEmpty ? "?" : letters.joined().uppercased()
-    }
-
-    /// Warm hues only, so an avatar never fights the cream-and-clay palette.
-    static func colour(for name: String) -> Color {
-        let palette: [Color] = [
-            Theme.clay,
-            Theme.sage,
-            Color(hex: 0x9A6A4B),
-            Color(hex: 0x6E7F5C),
-            Color(hex: 0xB08238),
-            Color(hex: 0x7C6A86)
-        ]
-        // Hashed by content rather than by `hashValue`, which is seeded per launch and would
-        // give the same person a different colour every time the app starts.
-        let seed = name.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0xFFFFFF }
-        return palette[seed % palette.count]
     }
 }
 

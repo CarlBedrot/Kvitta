@@ -51,7 +51,6 @@ struct RootView: View {
                 Tab("Översikt", systemImage: "house.fill", value: AppTab.overview) {
                     NavigationStack {
                         OverviewView(ledger: ledger, userId: userId, profile: profile,
-                                     onAddExpense: startAddExpense,
                                      onShowActivity: { showingActivity = true },
                                      onProfile: { selectedTab = .profil },
                                      onOpenActivity: openActivity,
@@ -70,7 +69,7 @@ struct RootView: View {
                     Color.clear
                 } label: {
                     Circle()
-                        .fill(Theme.ink)
+                        .fill(Theme.accent)
                         .frame(width: 54, height: 54)
                         .overlay {
                             Image(systemName: "plus")
@@ -112,6 +111,7 @@ struct RootView: View {
                 }
             }
         }
+        .background(Theme.bg.ignoresSafeArea())
         // One accent for the whole app. Without this the selected tab, and every control that
         // falls back to the system accent, comes out iOS blue.
         .tint(Theme.accent)
@@ -264,9 +264,9 @@ private struct PhoneNavigationBar: View {
                 Button(action: onAdd) {
                     Image(systemName: "plus")
                         .font(.title3.weight(.bold))
-                        .foregroundStyle(Theme.heroText)
+                        .foregroundStyle(Theme.accentInk)
                         .frame(width: 48, height: 48)
-                        .background(Theme.hero, in: .circle)
+                        .background(Theme.accent, in: .circle)
                 }
                 .frame(width: 48)
                 .frame(minWidth: 48, minHeight: 48)
@@ -278,9 +278,10 @@ private struct PhoneNavigationBar: View {
         }
         .frame(height: 58)
         .frame(maxWidth: .infinity)
-        .background(Theme.card.opacity(0.97), in: .rect(cornerRadius: 26))
-        .overlay(RoundedRectangle(cornerRadius: 26).stroke(Theme.hairline, lineWidth: 1))
-        .shadow(color: .black.opacity(0.08), radius: 16, y: 5)
+        .background(Theme.bg)
+        .overlay(alignment: .top) { Divider() }
+        // Keep the persistent navigation compact; long-press exposes the full-size label.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 
     private func destination(_ tab: RootView.AppTab, title: LocalizedStringKey, icon: String, width: CGFloat) -> some View {
@@ -293,15 +294,15 @@ private struct PhoneNavigationBar: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
-            .foregroundStyle(Theme.ink)
+            .foregroundStyle(selection == tab ? Theme.accent : Theme.secondary)
             .frame(width: width)
             .frame(minHeight: 44)
             .padding(.vertical, 7)
-            .background(selection == tab ? Theme.accentSubtle : .clear, in: .rect(cornerRadius: 18))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
         .accessibilityAddTraits(selection == tab ? .isSelected : [])
+        .accessibilityShowsLargeContentViewer { Label(title, systemImage: icon) }
     }
 }
 
