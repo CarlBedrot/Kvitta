@@ -276,8 +276,7 @@ private struct PendingPaymentsCard: View {
                 Text("\(name(payment.fromMemberId)) → \(name(payment.toMemberId))")
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Theme.ink)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
+                    .fixedSize(horizontal: false, vertical: true)
                 NeutralAmountText(
                     amountMinor: payment.amountMinor,
                     currency: payment.currency,

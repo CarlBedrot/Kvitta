@@ -115,3 +115,28 @@ to their own group. Normal-size screenshots show the complete picker and compact
 No ledger or projection changes; the earlier 43 AppTests were not rerun for this layout change.
 Local screenshots: `compact-groups`. Simulator text preferences are restored to normal and the
 app relaunched after accessibility inspection, avoiding the stale enlarged preview.
+
+## Accessibility review — PR #139 (2026-09-30)
+
+Reviewed the PR against current main, including the compact group picker. Profile edit,
+sign-out and diagnostic controls have 44pt minimum heights; reminder and payment controls
+have explicit accessibility labels; activity rows expose a combined description. Settlement
+and deleted-expense animations respect Reduce Motion.
+
+Review corrections: names wrap instead of being forced into one truncated line. The new-expense
+form scrolls when content or the keyboard needs more room, and its summary wraps. At accessibility
+text sizes, split modes use two columns, and payer/member widths scale with the text. Normal text
+retains the compact split layout and the existing root/group menu design.
+
+Validation: 43 AppTests passed on the integrated PR before the additional layout-only corrections;
+the final corrected app builds, installs and launches in the iOS 26.5 simulator. Normal-size checks
+covered Profile labels, Overview payment/activity labels and expense/split entry. At accessibility-
+extra-large, Groups, expense entry and the split editor were inspected visually. A local-only QA
+expense saved 120 SEK with three 40 SEK shares, edited to 150 SEK with three 50 SEK shares, then
+was recoverably deleted. No external payment was made. Screenshot: local `a11y-review/split-large.png`.
+
+Still unverified: real VoiceOver traversal, Reduce Motion interaction on a device, long-name end-to-end
+entry, full keyboard/narrow-phone/iPad coverage, every split mode, restore and recorded-settlement flows
+on this revision, and physical two-phone sync/payment handoff. Native simulator automation could not
+activate some navigation-bar controls; an attempted long-name group was cancelled without saving.
+Issue #123 stays open; this PR resolves specific findings, not the entire acceptance matrix.
