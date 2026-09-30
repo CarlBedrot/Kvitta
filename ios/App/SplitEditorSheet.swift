@@ -195,6 +195,7 @@ private struct PersonToggle: View {
                     .font(.caption.weight(isOn ? .semibold : .regular))
                     .foregroundStyle(isOn ? Theme.ink : Theme.tertiary)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.7)
 
                 // The share keeps its slot when the person is out, so the grid does not reflow on
                 // every tap — an en dash is the placeholder.
@@ -256,6 +257,7 @@ private struct PayerStrip: View {
                                 .font(.caption.weight(isPayer ? .semibold : .regular))
                                 .foregroundStyle(isPayer ? Theme.ink : Theme.tertiary)
                                 .lineLimit(1)
+                                .minimumScaleFactor(0.7)
                         }
                         .frame(width: 68)
                         .contentShape(.rect)

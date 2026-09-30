@@ -141,7 +141,7 @@ struct JagView: View {
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Theme.ink)
                         .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
+                        .frame(minHeight: 44)
                         .overlay(Capsule().stroke(Theme.ink, lineWidth: 1))
                 }
             }
@@ -248,6 +248,7 @@ struct JagView: View {
                     set: { on in Task { await reminders.setEnabled(on, ledger: ledger, userId: userId) } }
                 ))
                 .labelsHidden()
+                .accessibilityLabel("Påminn mig om skulder")
             }
             if reminders.wasDenied {
                 Text("Notiser är avstängda för Slice i Inställningar.")
@@ -304,6 +305,7 @@ struct JagView: View {
                         SettingsIcon(systemImage: "ladybug", fill: Theme.secondary)
                         Text("Dela felrapport").foregroundStyle(Theme.ink)
                     }
+                    .frame(minHeight: 44)
                 }
             }
         }
@@ -315,8 +317,7 @@ struct JagView: View {
                 Button("Logga ut", role: .destructive) {
                     Task { await session.signOut() }
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 4)
+                .frame(maxWidth: .infinity, minHeight: 44)
             }
         }
     }

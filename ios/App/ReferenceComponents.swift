@@ -338,5 +338,6 @@ struct EditorialActivityRow: View {
                     .background(Editorial.paper, in: .circle)
             }.foregroundStyle(Editorial.paper).padding(.vertical, 12).contentShape(.rect)
         }.buttonStyle(.plain)
+            .accessibilityElement(children: .combine)
     }
 }

@@ -75,6 +75,8 @@ private struct SheetHeader: View {
                 Text(model.group?.name ?? "")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                     .padding(.horizontal, 13)
                     .padding(.vertical, 7)
             } else {
@@ -84,7 +86,7 @@ private struct SheetHeader: View {
                     }
                 } label: {
                     HStack(spacing: 6) {
-                        Text(model.group?.name ?? "")
+                        Text(model.group?.name ?? "").lineLimit(1).minimumScaleFactor(0.8)
                         Image(systemName: "chevron.down").font(.caption)
                     }
                     .font(.subheadline.weight(.semibold))
