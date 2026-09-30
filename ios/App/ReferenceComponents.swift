@@ -222,6 +222,7 @@ struct EditorialWeekChart: View {
     let currency: CurrencyCode
     var area = false
     var payments: [Payment]? = nil
+    var barHeight: CGFloat = 210
     @Binding var selectedDay: Int?
 
     private var points: [(day: Int, total: Int64?)] {
@@ -280,7 +281,7 @@ struct EditorialWeekChart: View {
             .chartXAxis(.hidden).chartYAxis(.hidden)
             .chartXScale(domain: (days.lowerBound - 1)...(days.upperBound + 1))
             .chartYScale(domain: 0...max(points.compactMap(\.total).max() ?? 0, 1))
-            .frame(height: area ? 130 : 210)
+            .frame(height: area ? 130 : barHeight)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(payments == nil ? String(localized: "Utgifter per dag, \(currency.code)") : String(localized: "Återbetalningar per dag, \(currency.code)"))
             .accessibilityValue(points.map { "\(ExpenseReport.label(for: $0.day)): \(amount($0.total))" }.joined(separator: "; "))

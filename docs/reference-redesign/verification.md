@@ -95,3 +95,23 @@ and 100 DKK owed balances, the previous-week empty state, the balance audit and 
 the 100 DKK MobilePay sheet. No payment was recorded. An accessibility-extra-large check found
 bottom navigation wrapping; the controls now stack at accessibility sizes. A subsequent build
 and simulator check cover that layout-only correction. Artifacts: local `group-spending` folder.
+
+## Compact group picker — #140 (2026-09-30)
+
+Each overlapping colored layer now represents a real group and opens that group. The most
+recently active group is the illustrated front card; older group names remain visible above
+it. A single group produces one card. The picker contains group identity only: member counts,
+expense counts and financial summaries belong inside the group. The purple canvas and pizza
+artwork remain, with the front illustration reduced to 190pt and the stack capped at 520pt wide.
+
+Member/expense counts now lead group detail. Group Spending uses a smaller heading and 160pt
+bar chart. The compact menu stays horizontal with 44pt targets and the same navigation text-size
+cap as the root menu; the rest of the content still honors accessibility text sizes.
+
+Validation: simulator build/install/launch passed. Two real local groups were checked: Norrebr
+opens with 1 person / 0 expenses; Fjällresan with 3 people / 6 expenses and unchanged 1657 SEK
+weekly spending. Search was checked with one match, no matches and clear. Both layers navigate
+to their own group. Normal-size screenshots show the complete picker and compact group detail.
+No ledger or projection changes; the earlier 43 AppTests were not rerun for this layout change.
+Local screenshots: `compact-groups`. Simulator text preferences are restored to normal and the
+app relaunched after accessibility inspection, avoiding the stale enlarged preview.

@@ -14,7 +14,6 @@ struct HomeView: View {
     var onNewGroup: () -> Void
     var onProfile: () -> Void = {}
     @State private var searchText = ""
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
         let groups = ledger.state.groupsByLastActivity
@@ -66,76 +65,60 @@ struct HomeView: View {
             .background(Editorial.paper, in: .capsule)
     }
 
-    @ViewBuilder private func groupCards(_ groups: [GroupState]) -> some View {
-        if horizontalSizeClass == .regular {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 320), spacing: 20)], spacing: 20) {
-                ForEach(groups) { group in groupLink(group) }
+    private func groupCards(_ groups: [GroupState]) -> some View {
+        // The most recently active group is the illustrated front card. Every visible
+        // layer is a different group, with enough exposed height for a full tap target.
+        let stacked = Array(groups.reversed())
+        return LazyVStack(spacing: -16) {
+            ForEach(Array(stacked.enumerated()), id: \.element.id) { index, group in
+                NavigationLink(value: group.id) {
+                    GroupCard(group: group, photo: photos.images.uiImage(for: group.id),
+                              isFront: index == stacked.count - 1, dark: index % 2 == 1)
+                }.buttonStyle(.plain)
             }
-        } else {
-            LazyVStack(spacing: 20) {
-                ForEach(groups) { group in groupLink(group) }
-            }
-        }
-    }
-
-    private func groupLink(_ group: GroupState) -> some View {
-        NavigationLink(value: group.id) {
-            GroupCard(group: group, nets: group.nets(for: userId), photo: photos.images.uiImage(for: group.id))
-        }.buttonStyle(.plain)
+        }.frame(maxWidth: 520).frame(maxWidth: .infinity)
     }
 }
 
+/// A picker layer shows group identity only; counts and money belong inside the group.
 struct GroupCard: View {
     let group: GroupState
-    /// Preserve each currency's actual position; never combine balances.
-    let nets: [Money]
     let photo: UIImage?
+    let isFront: Bool
+    let dark: Bool
+
+    private var fill: Color { isFront ? Editorial.yellow : dark ? Editorial.coal : Editorial.coral }
+    private var ink: Color { !isFront && dark ? Editorial.paper : Editorial.coal }
 
     var body: some View {
-        EditorialCardStack {
-            HStack {
-                Text("\(group.activeMembers.count) personer")
-                Spacer()
-                Image(systemName: "arrow.up.right").accessibilityHidden(true)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 12) {
+                Text(GroupBadge.title(of: group.name).uppercased())
+                    .font(Editorial.heading(isFront ? 30 : 24))
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+                Image(systemName: "arrow.up.right").font(.system(size: 17, weight: .medium))
+                    .frame(width: 32, height: 32)
+                    .background(ink.opacity(0.08), in: .circle)
             }
-        } metadata: {
-            HStack {
-                Text("\(group.visibleExpenses.count) utgifter").font(Editorial.heading(18))
-                Spacer()
-                Text(nets.isEmpty ? group.currency.code : nets.map { $0.currency.code }.joined(separator: " / "))
-                    .font(.caption)
-            }
-        } content: {
-            VStack(alignment: .leading, spacing: 14) {
-                EditorialCardTitle(title: GroupBadge.title(of: group.name), symbol: "person.2.fill")
-                balances
+            if isFront {
                 if let photo {
-                    Image(uiImage: photo).resizable().scaledToFit().frame(maxHeight: 330)
-                        .clipShape(.rect(cornerRadius: 16)).accessibilityHidden(true)
+                    Image(uiImage: photo).resizable().scaledToFit().frame(maxHeight: 190)
+                        .frame(maxWidth: .infinity).clipShape(.rect(cornerRadius: 16))
                 } else {
-                    Image("SharedDinner").resizable().scaledToFit().frame(maxHeight: 330).accessibilityHidden(true)
-                }
-                HStack {
-                    Text("Visa grupp").font(.caption2.weight(.semibold))
-                    Spacer()
-                    Image(systemName: "arrow.up.right")
-                }.foregroundStyle(Editorial.coal)
-            }
-        }.contentShape(.rect).accessibilityElement(children: .combine)
-    }
-
-    private var balances: some View {
-        let open = nets.filter { $0.amountMinor != 0 }
-        return VStack(alignment: .leading, spacing: 8) {
-            if open.isEmpty {
-                EditorialMetadataPill(text: String(localized: "Kvitt"))
-            } else {
-                ForEach(open, id: \.currency) { bucket in
-                    let direction = bucket.amountMinor > 0 ? String(localized: "Du ska få") : String(localized: "Du ska betala")
-                    EditorialMetadataPill(text: "\(direction) · \(MoneyFormat.string(abs(bucket.amountMinor), bucket.currency, explicit: true))")
+                    Image("SharedDinner").resizable().scaledToFit().frame(maxHeight: 190)
+                        .frame(maxWidth: .infinity)
                 }
             }
-        }
+        }.foregroundStyle(ink)
+            .padding(.horizontal, 18).padding(.top, 16)
+            .padding(.bottom, isFront ? 16 : 32)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(fill, in: .rect(cornerRadius: 26))
+            .contentShape(.rect)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(GroupBadge.title(of: group.name))
+            .accessibilityHint("Visa grupp")
     }
 }
 
@@ -261,16 +244,13 @@ private struct EmptyGroupsView: View {
     var onNewGroup: () -> Void
     var body: some View {
         Button(action: onNewGroup) {
-            EditorialCardStack {
-                HStack { Text("Ny grupp"); Spacer(); Image(systemName: "plus") }
-            } metadata: {
-                Text("\(0) utgifter").font(Editorial.heading(18))
-            } content: {
+            EditorialPanel(fill: Editorial.yellow) {
                 VStack(alignment: .leading, spacing: 14) {
-                    EditorialCardTitle(title: String(localized: "Inga grupper än"), symbol: "person.2.fill")
-                    Image("SharedDinner").resizable().scaledToFit().frame(maxHeight: 330).accessibilityHidden(true)
-                    Text("Skapa grupp").font(.caption.weight(.semibold)).foregroundStyle(Editorial.coal)
-                }
+                    Text("Inga grupper än").font(Editorial.heading(30))
+                    Image("SharedDinner").resizable().scaledToFit().frame(maxHeight: 190)
+                        .frame(maxWidth: .infinity).accessibilityHidden(true)
+                    Label("Skapa grupp", systemImage: "plus").font(.caption.weight(.semibold))
+                }.foregroundStyle(Editorial.coal)
             }
         }.buttonStyle(.plain)
     }
