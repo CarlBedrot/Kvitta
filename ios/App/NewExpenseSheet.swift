@@ -18,20 +18,27 @@ struct NewExpenseSheet: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            SheetHeader(model: model, groups: selectableGroups, onCancel: { dismiss() })
-            AmountDisplay(
-                display: model.amount.display,
-                currency: model.currency,
-                primary: model.group?.currency ?? .sek,
-                // Locked while editing: correcting an amount is not re-denominating the dinner.
-                onCurrency: model.isEditing ? nil : { model.currency = $0 }
-            )
-            DescriptionSection(model: model)
-            SummaryRow(model: model) { showingSplitEditor = true }
-            Spacer(minLength: 8)
-            Keypad(amount: $model.amount)
-            SaveButton(enabled: model.isValid, action: save)
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: 0) {
+                    SheetHeader(model: model, groups: selectableGroups, onCancel: { dismiss() })
+                    AmountDisplay(
+                        display: model.amount.display,
+                        currency: model.currency,
+                        primary: model.group?.currency ?? .sek,
+                        // Editing an amount must not change its currency.
+                        onCurrency: model.isEditing ? nil : { model.currency = $0 }
+                    )
+                    DescriptionSection(model: model)
+                    SummaryRow(model: model) { showingSplitEditor = true }
+                    Spacer(minLength: 8)
+                    Keypad(amount: $model.amount)
+                    SaveButton(enabled: model.isValid, action: save)
+                }
+                .frame(minHeight: geometry.size.height)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .scrollDismissesKeyboard(.interactively)
         }
         // The same wash as the group's own screen, so the sheet reads as part of that group —
         // and follows the picker when you change which one.
@@ -75,6 +82,7 @@ private struct SheetHeader: View {
                 Text(model.group?.name ?? "")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 13)
                     .padding(.vertical, 7)
             } else {
@@ -85,6 +93,7 @@ private struct SheetHeader: View {
                 } label: {
                     HStack(spacing: 6) {
                         Text(model.group?.name ?? "")
+                            .fixedSize(horizontal: false, vertical: true)
                         Image(systemName: "chevron.down").font(.caption)
                     }
                     .font(.subheadline.weight(.semibold))
@@ -100,6 +109,8 @@ private struct SheetHeader: View {
             Button("Avbryt", action: onCancel)
                 .font(.body.weight(.medium))
                 .foregroundStyle(Theme.secondary)
+                .fixedSize()
+                .frame(minHeight: 44)
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
@@ -193,7 +204,9 @@ private struct SummaryRow: View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    summaryText(count: preview.participants.count).foregroundStyle(Theme.ink)
+                    summaryText(count: preview.participants.count)
+                        .foregroundStyle(Theme.ink)
+                        .fixedSize(horizontal: false, vertical: true)
                     Spacer()
                     Image(systemName: "chevron.right").foregroundStyle(Theme.tertiary)
                 }
@@ -207,8 +220,7 @@ private struct SummaryRow: View {
                             .font(.subheadline)
                             .foregroundStyle(Theme.secondary)
                             .monospacedDigit()
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .contentTransition(.numericText())
                 }

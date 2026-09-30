@@ -184,6 +184,7 @@ struct OverviewView: View {
                                 .font(.subheadline.weight(.semibold)).foregroundStyle(Editorial.coal)
                                 .padding(14).background(Editorial.mint, in: .rect(cornerRadius: 18))
                             }.buttonStyle(.plain)
+                            .accessibilityElement(children: .combine)
                             .accessibilityHint(GroupBadge.title(of: group.name))
                         }
                     }

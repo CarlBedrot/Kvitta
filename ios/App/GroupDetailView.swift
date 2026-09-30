@@ -276,6 +276,7 @@ private struct PendingPaymentsCard: View {
                 Text("\(name(payment.fromMemberId)) → \(name(payment.toMemberId))")
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Theme.ink)
+                    .fixedSize(horizontal: false, vertical: true)
                 NeutralAmountText(
                     amountMinor: payment.amountMinor,
                     currency: payment.currency,
@@ -933,12 +934,13 @@ private struct DeletedExpensesSection: View {
     @Binding var showingDeleted: Bool
     let failure: String?
     let onRestore: (ExpenseID) -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let deleted = group.deletedExpenses
         if !deleted.isEmpty {
             Button {
-                withAnimation(.spring(duration: 0.3)) { showingDeleted.toggle() }
+                withAnimation(reduceMotion ? nil : .spring(duration: 0.3)) { showingDeleted.toggle() }
             } label: {
                 Text(showingDeleted ? "Dölj borttagna" : "Visa borttagna (\(deleted.count))")
                     .font(.footnote.weight(.medium))

@@ -70,8 +70,10 @@ struct PositionView: View {
                 guard let transfer = group.suggestedTransfers().first(where: { $0.currency == currency && $0.from == me.id }) else { return nil }
                 return (transfer, group.id)
             }).first {
+                let counterpart = groups.first(where: { $0.id == result.1 })?.members[result.0.to]?.displayName ?? "?"
                 Button("Betala") { onSettle(result.0, result.1) }
                     .buttonStyle(PrimaryButtonStyle())
+                    .accessibilityLabel(String(localized: "Betala \(counterpart), \(MoneyFormat.string(result.0.amountMinor, result.0.currency, explicit: true))"))
                     .accessibilityHint("Öppnar reglering av första öppna saldot")
             }
         }

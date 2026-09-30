@@ -44,7 +44,7 @@ struct SlideToConfirm: View {
                     }
                     .padding(4)
                     .offset(x: offset)
-                    .animation(.spring(duration: 0.3), value: offset)
+                    .animation(reduceMotion ? nil : .spring(duration: 0.3), value: offset)
                     .gesture(drag(travel: travel))
             }
         }

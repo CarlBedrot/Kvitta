@@ -10,6 +10,7 @@ struct SplitEditorSheet: View {
     @Bindable var model: NewExpenseModel
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var shareMap: [MemberID: Int64] {
         let shares = model.draft.resolvedShares(totalMinor: model.amountMinor, members: model.memberIds) ?? []
@@ -52,13 +53,15 @@ struct SplitEditorSheet: View {
     }
 
     private var modePicker: some View {
-        HStack(spacing: 4) {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4),
+                                 count: dynamicTypeSize.isAccessibilitySize ? 2 : 4), spacing: 4) {
             ForEach(SplitDraft.Mode.allCases) { mode in
                 Button {
                     model.draft.mode = mode
                 } label: {
                     Text(mode.label)
                         .font(.subheadline.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
                         .foregroundStyle(model.draft.mode == mode ? Theme.heroText : Theme.ink)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 11)
@@ -109,7 +112,12 @@ private struct EqualRows: View {
     let shareMap: [MemberID: Int64]
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private let columns = [GridItem(.adaptive(minimum: 78, maximum: 110), spacing: 12)]
+    @ScaledMetric(relativeTo: .caption) private var minimumColumnWidth = 78.0
+    @ScaledMetric(relativeTo: .caption) private var maximumColumnWidth = 110.0
+
+    private var columns: [GridItem] {
+        [GridItem(.adaptive(minimum: minimumColumnWidth, maximum: maximumColumnWidth), spacing: 12)]
+    }
 
     var body: some View {
         LazyVGrid(columns: columns, spacing: 14) {
@@ -194,7 +202,8 @@ private struct PersonToggle: View {
                 Text(name)
                     .font(.caption.weight(isOn ? .semibold : .regular))
                     .foregroundStyle(isOn ? Theme.ink : Theme.tertiary)
-                    .lineLimit(1)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 // The share keeps its slot when the person is out, so the grid does not reflow on
                 // every tap — an en dash is the placeholder.
@@ -230,6 +239,7 @@ private struct PersonToggle: View {
 private struct PayerStrip: View {
     @Bindable var model: NewExpenseModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .caption) private var personWidth = 68.0
 
     @Environment(\.myAvatarPhoto) private var myPhoto
 
@@ -255,9 +265,10 @@ private struct PayerStrip: View {
                             Text(model.name(for: member))
                                 .font(.caption.weight(isPayer ? .semibold : .regular))
                                 .foregroundStyle(isPayer ? Theme.ink : Theme.tertiary)
-                                .lineLimit(1)
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
-                        .frame(width: 68)
+                        .frame(width: personWidth)
                         .contentShape(.rect)
                     }
                     .buttonStyle(ScaleButtonStyle())
