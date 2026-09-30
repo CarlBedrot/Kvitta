@@ -22,9 +22,9 @@ struct GroupSpendingView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 14) {
             Text(paymentsMode ? "Betalningar" : "Utgifter")
-                .textCase(.uppercase).font(Editorial.heading(30)).foregroundStyle(Editorial.paper)
+                .textCase(.uppercase).font(Editorial.heading(26)).foregroundStyle(Editorial.paper)
                 .accessibilityAddTraits(.isHeader)
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 8) { currencyMenu; periodControls }
@@ -46,7 +46,7 @@ struct GroupSpendingView: View {
                         EditorialMetric(title: String(localized: "Största utgiften"), value: items.map(\.amountMinor).max().map { amount($0) } ?? "—", badge: currency.code)
                     }
                     EditorialWeekChart(items: items, days: days, currency: currency,
-                                       payments: paymentsMode ? repayments : nil, selectedDay: $selectedDay)
+                                       payments: paymentsMode ? repayments : nil, barHeight: 160, selectedDay: $selectedDay)
                 }
             }
         }

@@ -69,6 +69,11 @@ struct GroupDetailView: View {
         return ScrollView {
             // Lazy: the expense months are built as they scroll in, not all on first paint.
             LazyVStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 8) {
+                    Text("\(group.activeMembers.count) personer")
+                    Text("·").accessibilityHidden(true)
+                    Text("\(group.visibleExpenses.count) utgifter")
+                }.font(.caption).foregroundStyle(Editorial.muted)
                 GroupSpendingView(group: group, balances: balances, meId: meId,
                                   paymentsMode: segment == .standing,
                                   onAudit: { if let meId { auditingMember = meId } })
@@ -810,32 +815,25 @@ enum GroupSegment: CaseIterable, Hashable {
 /// The group uses the same charcoal/pastel navigation roles as the dashboard.
 private struct GroupBottomBar: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Binding var segment: GroupSegment
     /// Alone in the group there is nobody to split with; the plus waits until there is.
     let canAdd: Bool
     let onAdd: () -> Void
 
-    private var segmentLayout: AnyLayout {
-        dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(spacing: 2))
-            : AnyLayout(HStackLayout(spacing: 2))
-    }
-
     var body: some View {
         HStack(spacing: 12) {
-            segmentLayout {
+            HStack(spacing: 2) {
                 ForEach(GroupSegment.allCases, id: \.self) { candidate in
                     let isOn = segment == candidate
                     Button {
                         withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) { segment = candidate }
                     } label: {
                         Text(candidate.title)
-                            .font(.subheadline.weight(.semibold))
+                            .font(.caption.weight(.semibold))
                             .fixedSize(horizontal: true, vertical: false)
                             .foregroundStyle(isOn ? Editorial.coal : Editorial.muted)
-                            .padding(.horizontal, 22)
-                            .padding(.vertical, 11)
+                            .padding(.horizontal, 18)
+                            .frame(minHeight: 44)
                             .background(isOn ? Editorial.mint : .clear, in: .capsule)
                             .contentShape(.capsule)
                     }
@@ -858,6 +856,8 @@ private struct GroupBottomBar: View {
                 .accessibilityLabel("Lägg till utgift")
             }
         }
+        // Match the compact app navigation; content above still honors larger text.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .padding(.horizontal, 20)
         .padding(.top, 8)
         .padding(.bottom, 4)
