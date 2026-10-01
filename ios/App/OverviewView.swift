@@ -199,6 +199,7 @@ struct OverviewView: View {
             Text(MoneyFormat.string(amount, currency, explicit: true))
                 .font(.headline).monospacedDigit().foregroundStyle(Editorial.paper)
         }
+        .accessibilityElement(children: .combine)
     }
 
     private var reportLinks: some View {

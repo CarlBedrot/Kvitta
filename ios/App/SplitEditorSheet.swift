@@ -175,6 +175,7 @@ private struct PersonToggle: View {
     let action: () -> Void
 
     @Environment(\.myAvatarPhoto) private var myPhoto
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Button(action: action) {
@@ -194,7 +195,7 @@ private struct PersonToggle: View {
                             .frame(width: 20, height: 20)
                             .background(Theme.brandBlue, in: .circle)
                             .overlay(Circle().strokeBorder(Theme.card, lineWidth: 2))
-                            .transition(.scale.combined(with: .opacity))
+                            .transition(reduceMotion ? .identity : .scale.combined(with: .opacity))
                     }
                 }
                 .scaleEffect(isOn ? 1 : 0.92)

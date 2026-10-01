@@ -4959,6 +4959,61 @@
           }
         }
       }
+    },
+    "Inga utgifter än" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No expenses yet"
+          }
+        }
+      }
+    },
+    "Bjud in någon först" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invite someone first"
+          }
+        }
+      }
+    },
+    "Dra för att markera som betald" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag to mark as paid"
+          }
+        }
+      }
+    },
+    "Dra för att bekräfta betalningen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag to confirm the payment"
+          }
+        }
+      }
+    },
+    "Gick betalningen igenom?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Did the payment go through?"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
