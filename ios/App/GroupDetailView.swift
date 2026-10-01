@@ -652,7 +652,7 @@ private struct TransferRow: View {
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Theme.ink)
                             .lineLimit(1)
-                            .minimumScaleFactor(0.85)
+                            .minimumScaleFactor(0.7)
                         SignedAmountText(
                             amountMinor: transfer.amountMinor,
                             currency: transfer.currency,
