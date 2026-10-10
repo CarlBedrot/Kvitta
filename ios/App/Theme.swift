@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 import KvittaCore
 
-/// Editorial charcoal and pastel roles from the reference. The pizza icon remains unchanged.
+/// Adaptive neutral surfaces alongside the fixed Slice brand and pastel roles.
 enum Theme {
 
     /// One token, both halves. Every call site stays exactly as it was — the app changes palette

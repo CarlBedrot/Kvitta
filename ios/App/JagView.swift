@@ -22,6 +22,7 @@ struct JagView: View {
     let rates: RateStore
     let userId: UserID
 
+    @AppStorage(AppAppearance.defaultsKey) private var appearance = AppAppearance.system
     @State private var photoItem: PhotosPickerItem?
     @State private var failure: String?
     @State private var editingProfile = false
@@ -164,12 +165,31 @@ struct JagView: View {
             outlinedPanel {
                 VStack(alignment: .leading, spacing: 12) {
                     panelTitle("Inställningar")
+                    appearanceSection
+                    Divider().overlay(Theme.hairline)
                     swishNumberSection
                     Divider().overlay(Theme.hairline)
                     remindersSection
                 }
             }
         }
+    }
+
+    private var appearanceSection: some View {
+        HStack {
+            Label("Utseende", systemImage: "circle.lefthalf.filled")
+                .foregroundStyle(Theme.ink)
+            Spacer(minLength: 12)
+            Picker("Utseende", selection: $appearance) {
+                ForEach(AppAppearance.allCases) { option in
+                    Text(option.title).tag(option)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .accessibilityIdentifier("appearancePicker")
+        }
+        .frame(minHeight: 44)
     }
 
     private var swishNumberSection: some View {

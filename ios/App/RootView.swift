@@ -138,7 +138,6 @@ struct RootView: View {
         )) {
             ProfileEditorView(profile: profile, required: true)
                 .interactiveDismissDisabled()
-                .preferredColorScheme(.dark)
         }
         .sheet(isPresented: $showingNewGroup) {
             NewGroupSheet(
@@ -305,7 +304,7 @@ private struct PhoneNavigationBar: View {
         }
         .frame(height: 58)
         .frame(maxWidth: .infinity)
-        .background(Editorial.raised, in: .rect(cornerRadius: 24))
+        .background(Theme.card, in: .rect(cornerRadius: 24))
         // Keep the persistent navigation compact; long-press exposes the full-size label.
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
@@ -320,7 +319,7 @@ private struct PhoneNavigationBar: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
-            .foregroundStyle(selection == tab ? Editorial.coal : Editorial.muted)
+            .foregroundStyle(selection == tab ? Editorial.coal : Theme.secondary)
             .frame(width: width)
             .frame(minHeight: 44)
             .padding(.vertical, 4)

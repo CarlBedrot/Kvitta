@@ -11,6 +11,7 @@ struct KvittaApp: App {
     @State private var pendingInviteToken: UUID?
     @State private var reminders = ReminderScheduler()
     @State private var rates = RateStore()
+    @AppStorage(AppAppearance.defaultsKey) private var appearance = AppAppearance.system
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -44,7 +45,7 @@ struct KvittaApp: App {
                     profiles: profiles,
                     photos: photos
                 )
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(appearance.colorScheme)
                 .task {
                     await session.restore(server: Bootstrap.activeBaseURL ?? ServerEndpoint.localhost)
                     await Bootstrap.adoptBuiltInServer(session: session, displayName: profile.displayName)
@@ -93,7 +94,7 @@ struct KvittaApp: App {
                 }
             case .failed(let message):
                 StartupFailureView(message: message)
-                    .preferredColorScheme(.dark)
+                    .preferredColorScheme(appearance.colorScheme)
             }
         }
     }

@@ -73,7 +73,7 @@ struct GroupDetailView: View {
                     Text("\(group.activeMembers.count) personer")
                     Text("·").accessibilityHidden(true)
                     Text("\(group.visibleExpenses.count) utgifter")
-                }.font(.caption).foregroundStyle(Editorial.muted)
+                }.font(.caption).foregroundStyle(Theme.secondary)
                 GroupSpendingView(group: group, balances: balances, meId: meId,
                                   paymentsMode: segment == .standing,
                                   onAudit: { if let meId { auditingMember = meId } })
@@ -85,7 +85,7 @@ struct GroupDetailView: View {
                             button: canSplit ? nil : ("Bjud in", { showingMembers = true })
                         )
                     }
-                    Text("Alla utgifter").font(Editorial.heading(24)).foregroundStyle(Editorial.paper)
+                    Text("Alla utgifter").font(Editorial.heading(24)).foregroundStyle(Theme.ink)
                     ExpenseList(group: group, expenses: group.visibleExpenses, meId: meId, mode: mode) { viewingExpense = $0 }
                     DeletedExpensesSection(
                         group: group,
@@ -144,7 +144,7 @@ struct GroupDetailView: View {
                             },
                             onMembers: { showingMembers = true }
                         )
-                    }.tint(Editorial.paper)
+                    }.tint(Theme.ink)
 
                 }
                 Color.clear.frame(height: 24)
@@ -830,7 +830,7 @@ private struct GroupBottomBar: View {
                         Text(candidate.title)
                             .font(.caption.weight(.semibold))
                             .fixedSize(horizontal: true, vertical: false)
-                            .foregroundStyle(isOn ? Editorial.coal : Editorial.muted)
+                            .foregroundStyle(isOn ? Editorial.coal : Theme.secondary)
                             .padding(.horizontal, 18)
                             .frame(minHeight: 44)
                             .background(isOn ? Editorial.mint : .clear, in: .capsule)
@@ -841,7 +841,7 @@ private struct GroupBottomBar: View {
                 }
             }
             .padding(4)
-            .background(Editorial.raised, in: .capsule)
+            .background(Theme.card, in: .capsule)
 
             if canAdd {
                 Button(action: onAdd) {

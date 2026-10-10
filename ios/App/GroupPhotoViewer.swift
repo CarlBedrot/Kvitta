@@ -66,6 +66,5 @@ struct GroupPhotoViewer: View {
                 }
             }
         }
-        .preferredColorScheme(.light)
     }
 }

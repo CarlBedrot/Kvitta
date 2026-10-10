@@ -39,7 +39,7 @@ struct EditorialHeading: View {
             }
             Text(title.uppercased())
                 .font(Editorial.heading()).fixedSize(horizontal: false, vertical: true)
-                .foregroundStyle(dark ? Editorial.coal : Editorial.paper)
+                .foregroundStyle(dark ? Editorial.coal : Theme.ink)
                 .accessibilityAddTraits(.isHeader)
             Spacer(minLength: 2)
             if let action { EditorialCircleButton(symbol: symbol, label: title, action: action) }
@@ -210,7 +210,7 @@ struct EditorialExpenseRow: View {
                     .frame(width: 28, height: 28).background(Editorial.paper, in: .circle)
                     .foregroundStyle(Editorial.coal)
             }
-            .foregroundStyle(dark ? Editorial.coal : Editorial.paper)
+            .foregroundStyle(dark ? Editorial.coal : Theme.ink)
             .padding(.vertical, 12).contentShape(.rect)
         }.buttonStyle(.plain)
     }
@@ -327,7 +327,7 @@ struct EditorialActivityRow: View {
                     .background(entry.paymentStatus == nil ? Editorial.coral : Editorial.mint, in: .circle)
                 VStack(alignment: .leading, spacing: 5) {
                     Text(entry.title).font(.body.weight(.semibold))
-                    Text(entry.subtitle).font(.caption).foregroundStyle(Editorial.muted)
+                    Text(entry.subtitle).font(.caption).foregroundStyle(Theme.secondary)
                     Text(MoneyFormat.string(entry.amountMinor, entry.currency, explicit: true)).font(.subheadline).monospacedDigit()
                     if entry.wasEdited { Text("redigerad").font(.caption2) }
                     if entry.paymentStatus == .pending { Text("väntar").font(.caption2) }
@@ -337,7 +337,7 @@ struct EditorialActivityRow: View {
                 Image(systemName: "arrow.up.right").font(.caption.weight(.bold))
                     .foregroundStyle(Editorial.coal).frame(width: 28, height: 28)
                     .background(Editorial.paper, in: .circle)
-            }.foregroundStyle(Editorial.paper).padding(.vertical, 12).contentShape(.rect)
+            }.foregroundStyle(Theme.ink).padding(.vertical, 12).contentShape(.rect)
         }.buttonStyle(.plain)
             .accessibilityElement(children: .combine)
     }
