@@ -53,12 +53,12 @@ struct OverviewView: View {
                     }
                 }
                 HStack {
-                    Text("Senaste aktivitet").textCase(.uppercase).font(Editorial.heading(22)).foregroundStyle(Editorial.paper)
+                    Text("Senaste aktivitet").textCase(.uppercase).font(Editorial.heading(22)).foregroundStyle(Theme.ink)
                     Spacer()
                     EditorialCircleButton(symbol: "arrow.up.right", label: String(localized: "Aktivitet")) { onReport(ReportDestination(page: .activity, currency: currency, groupId: selectedGroup)) }
                 }
                 if recent.isEmpty {
-                    Text("Inga matchande utgifter").font(.subheadline).foregroundStyle(Editorial.muted).padding(.vertical, 8)
+                    Text("Inga matchande utgifter").font(.subheadline).foregroundStyle(Theme.secondary).padding(.vertical, 8)
                 }
                 ForEach(recent.prefix(3)) { item in
                     EditorialActivityRow(entry: item) { onOpenActivity(item) }
@@ -69,17 +69,17 @@ struct OverviewView: View {
                         HStack(spacing: 12) {
                             GroupBadge(name: group.name, size: 40, groupId: group.id)
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Senast aktiv i").font(.caption).foregroundStyle(Editorial.muted)
-                                Text(GroupBadge.title(of: group.name)).font(.headline).foregroundStyle(Editorial.paper)
+                                Text("Senast aktiv i").font(.caption).foregroundStyle(Theme.secondary)
+                                Text(GroupBadge.title(of: group.name)).font(.headline).foregroundStyle(Theme.ink)
                             }
                             Spacer()
-                            Image(systemName: "arrow.up.right").foregroundStyle(Editorial.paper)
+                            Image(systemName: "arrow.up.right").foregroundStyle(Theme.ink)
                         }.padding(.vertical, 12)
                     }.buttonStyle(.plain)
                 }
             }.padding(.horizontal, 20).padding(.top, 8).padding(.bottom, 24)
         }
-        .background(Editorial.coal.ignoresSafeArea())
+        .background(Theme.bg.ignoresSafeArea())
         .navigationBarHidden(true)
         .onAppear { reconcileSelection() }
         .onChange(of: ledger.state.appliedEventIds.count) { _, _ in reconcileSelection() }
@@ -99,8 +99,8 @@ struct OverviewView: View {
         HStack(spacing: 10) {
             SliceMark(size: 34)
             VStack(alignment: .leading, spacing: 2) {
-                Text("slice").font(.title3.weight(.bold)).foregroundStyle(Editorial.paper)
-                Text(profile.nameOrDefault).font(.caption).foregroundStyle(Editorial.muted)
+                Text("slice").font(.title3.weight(.bold)).foregroundStyle(Theme.ink)
+                Text(profile.nameOrDefault).font(.caption).foregroundStyle(Theme.secondary)
             }
             Spacer()
             EditorialCircleButton(symbol: "bell", label: String(localized: "Aktivitet"), action: onShowActivity)
@@ -142,16 +142,16 @@ struct OverviewView: View {
             BalanceBook.GroupSlice(name: $0.name, balances: $0.balances(), members: $0.members)
         })
         let summaries = book.summariesForDisplay(userId: userId)
-        return EditorialPanel(fill: Editorial.raised, padding: 16) {
+        return EditorialPanel(fill: Theme.card, padding: 16) {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .top, spacing: 12) {
                     Image(systemName: "arrow.left.arrow.right").font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(Editorial.coal).frame(width: 40, height: 40)
                         .background(Editorial.yellow, in: .rect(cornerRadius: 12))
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("DIN STÄLLNING").font(Editorial.heading(20)).foregroundStyle(Editorial.paper)
+                        Text("DIN STÄLLNING").font(Editorial.heading(20)).foregroundStyle(Theme.ink)
                         if summaries.isEmpty || !summaries.contains(where: \.hasOpenBalances) {
-                            Text("Alla är kvitt").font(.subheadline).foregroundStyle(Editorial.muted)
+                            Text("Alla är kvitt").font(.subheadline).foregroundStyle(Theme.secondary)
                         }
                         ForEach(summaries.filter(\.hasOpenBalances), id: \.currency) { summary in
                             if summary.payableMinor > 0 {
@@ -195,9 +195,9 @@ struct OverviewView: View {
 
     private func balanceLine(_ title: String, _ amount: Int64, _ currency: CurrencyCode) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(title).font(.caption).foregroundStyle(Editorial.muted)
+            Text(title).font(.caption).foregroundStyle(Theme.secondary)
             Text(MoneyFormat.string(amount, currency, explicit: true))
-                .font(.headline).monospacedDigit().foregroundStyle(Editorial.paper)
+                .font(.headline).monospacedDigit().foregroundStyle(Theme.ink)
         }
     }
 

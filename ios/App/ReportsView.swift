@@ -52,7 +52,7 @@ struct ReportsView: View {
                         days: page == .activity ? nil : selectedDay.map { $0...$0 } ?? days,
                         category: page == .categories ? category : nil, search: query)
     }
-    private var surface: Color { page == .reports || page == .timing ? Editorial.mint : page == .categories ? Editorial.purple : Editorial.coal }
+    private var surface: Color { page == .reports || page == .timing ? Editorial.mint : page == .categories ? Editorial.purple : Theme.bg }
     private var isLight: Bool { page != .spending && page != .activity }
     private var heading: String {
         switch page {
@@ -70,7 +70,7 @@ struct ReportsView: View {
                 EditorialHeading(title: heading, dark: isLight, onBack: { dismiss() })
                 if let groupId, let group = ledger.state[groupId] {
                     Text(GroupBadge.title(of: group.name)).font(.caption)
-                        .foregroundStyle(isLight ? Editorial.coal : Editorial.muted)
+                        .foregroundStyle(isLight ? Editorial.coal : Theme.secondary)
                 }
                 pageControls
                 if page != .activity && page != .timing { periodControls }
@@ -84,7 +84,7 @@ struct ReportsView: View {
                 }
                 if page != .activity {
                     Text("\(visible.count) utgifter").font(.caption.weight(.semibold))
-                        .foregroundStyle(isLight ? Editorial.coal : Editorial.muted)
+                        .foregroundStyle(isLight ? Editorial.coal : Theme.secondary)
                     ForEach(visible.prefix(visibleLimit)) { item in
                         EditorialExpenseRow(item: item, dark: isLight) { selectedItem = item }
                     }
@@ -93,7 +93,7 @@ struct ReportsView: View {
                     }
                     if visible.isEmpty {
                         Text("Inga utgifter under perioden")
-                            .font(.subheadline).foregroundStyle(isLight ? Editorial.coal : Editorial.muted)
+                            .font(.subheadline).foregroundStyle(isLight ? Editorial.coal : Theme.secondary)
                     }
                 }
             }.padding(20).padding(.bottom, 32)
@@ -102,11 +102,11 @@ struct ReportsView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if page == .activity {
                 searchField.padding(.horizontal, 20).padding(.vertical, 12)
-                    .background(Editorial.coal)
+                    .background(Theme.bg)
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .tint(Editorial.coal)
+        .tint(isLight ? Editorial.coal : Theme.ink)
         .onAppear {
             guard !initialized else { return }
             page = initialPage; currency = report.currencies.contains(initialCurrency) ? initialCurrency : report.currencies[0]; initialized = true
@@ -261,15 +261,15 @@ struct ReportsView: View {
                 Image(systemName: "magnifyingglass").foregroundStyle(Editorial.coal)
                     .frame(width: 44, height: 44).background(Editorial.coral, in: .circle)
             }.accessibilityLabel("Sök utgifter")
-            TextField("Sök utgifter", text: $query, prompt: Text("Sök utgifter").foregroundStyle(Editorial.muted))
-                .font(.subheadline).foregroundStyle(Editorial.paper)
+            TextField("Sök utgifter", text: $query, prompt: Text("Sök utgifter").foregroundStyle(Theme.secondary))
+                .font(.subheadline).foregroundStyle(Theme.ink)
                 .submitLabel(.search)
                 .onSubmit { page = .activity }
             if !query.isEmpty {
                 Button { query = "" } label: { Image(systemName: "xmark.circle.fill").frame(width: 44, height: 44) }
-                    .foregroundStyle(Editorial.paper).accessibilityLabel("Rensa sökning")
+                    .foregroundStyle(Theme.ink).accessibilityLabel("Rensa sökning")
             }
-        }.padding(.horizontal, 14).frame(minHeight: 48).background(Editorial.raised, in: .capsule)
+        }.padding(.horizontal, 14).frame(minHeight: 48).background(Theme.card, in: .capsule)
     }
 
     private var activity: some View {
@@ -279,9 +279,9 @@ struct ReportsView: View {
                 Image(systemName: "asterisk").foregroundStyle(Editorial.coal)
                     .frame(width: 30, height: 30).background(Editorial.yellow, in: .circle)
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Utgifter & betalningar").font(.headline).foregroundStyle(Editorial.paper)
+                    Text("Utgifter & betalningar").font(.headline).foregroundStyle(Theme.ink)
                     Text("Sök i det ni har lagt till. Tryck på en post för detaljer.")
-                        .font(.subheadline).foregroundStyle(Editorial.muted)
+                        .font(.subheadline).foregroundStyle(Theme.secondary)
                 }
             }
             ViewThatFits(in: .horizontal) {
@@ -313,7 +313,7 @@ struct ReportsView: View {
             if activityEntries.count > visibleLimit {
                 EditorialPill(title: String(localized: "Visa fler")) { visibleLimit += 30 }
             }
-            if activityEntries.isEmpty { Text("Inga matchande poster").foregroundStyle(Editorial.muted) }
+            if activityEntries.isEmpty { Text("Inga matchande poster").foregroundStyle(Theme.secondary) }
         }
     }
 

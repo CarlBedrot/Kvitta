@@ -1,6 +1,70 @@
 {
   "sourceLanguage" : "sv",
   "strings" : {
+  "Utseende": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Utseende"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Appearance"
+        }
+      }
+    }
+  },
+  "Följ telefonen": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Följ telefonen"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Follow device"
+        }
+      }
+    }
+  },
+  "Ljust": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Ljust"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Light"
+        }
+      }
+    }
+  },
+  "Mörkt": {
+    "localizations": {
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Mörkt"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Dark"
+        }
+      }
+    }
+  },
   "Betala %@, %@": {
     "localizations": {
       "en": {
