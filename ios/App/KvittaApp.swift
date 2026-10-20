@@ -95,6 +95,10 @@ struct KvittaApp: App {
             case .failed(let message):
                 StartupFailureView(message: message)
                     .preferredColorScheme(appearance.colorScheme)
+            #if DEBUG
+            case .stevenGallery(let page):
+                Steven.Gallery(page: page)
+            #endif
             }
         }
     }
@@ -103,6 +107,10 @@ struct KvittaApp: App {
 enum Startup {
     case ready(LedgerStore, SyncEngine, SessionModel, InviteModel, ProfileSyncer, GroupPhotoSyncer)
     case failed(String)
+    #if DEBUG
+    /// `-StevenGallery <page>`: the Steven component gallery instead of the app (#145).
+    case stevenGallery(Steven.GalleryPage)
+    #endif
 }
 
 @MainActor
@@ -122,6 +130,9 @@ enum Bootstrap {
     /// only surface alive in that window, so that is where the branding goes (`UILaunchScreen`
     /// in project.yml). Do not add a loading state here expecting it to help.
     static func run(profile: UserProfile) -> Startup {
+        #if DEBUG
+        if let page = Steven.GalleryPage.launchPage { return .stevenGallery(page) }
+        #endif
         do {
             let ledger = LedgerStore(
                 store: try EventStore.onDisk(at: databaseURL),
