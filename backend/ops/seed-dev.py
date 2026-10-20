@@ -102,6 +102,7 @@ class Group:
     def __init__(self, api: Api, you: dict, name: str, currency: str, friend_names, friends) -> None:
         self.api = api
         self.you = you
+        self.friends = friends
         self.name = name
         self.group_id = str(uuid.uuid4())
         self.members: dict[str, str] = {"Du": str(uuid.uuid4())}
@@ -135,8 +136,11 @@ class Group:
             "payers": [{"memberId": self.members[paid_by], "amountMinor": amount}],
             "shares": shares, "splitMethod": "equal",
         }
+        # Authored by whoever paid, as on their own phone — so the app's Notiser feed, which
+        # lists what *others* did, has something in it.
+        author = self.you if paid_by == "Du" else self.friends[paid_by]
         self.push([self.envelope(str(uuid.uuid4()), "ExpenseCreated", payload,
-                                 self.you, days_ago)], self.you)
+                                 author, days_ago)], author)
 
     def payment(self, from_name, to_name, amount, days_ago, currency="SEK") -> None:
         payload = {

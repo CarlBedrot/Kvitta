@@ -12,7 +12,6 @@ struct ActivityView: View {
     let ledger: LedgerStore
     let userId: UserID
     let unread: UnreadStore
-    @Environment(\.dismiss) private var dismiss
 
     /// Which rows to draw a dot on, frozen when the screen appeared.
     ///
@@ -55,7 +54,6 @@ struct ActivityView: View {
         }
         .background(AmbientBackground())
         .navigationTitle("Notiser")
-        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Stäng") { dismiss() } } }
         // Keyed on the log's size, not just `onAppear`: expenses that arrive while this screen is
         // open would otherwise light the tab badge for a feed the user is looking straight at, and
         // would keep it lit until they navigated away and back.
