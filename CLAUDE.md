@@ -137,8 +137,8 @@ Storage:
 - rebuild() is what launch calls, so the recovery hatch is exercised every time the app opens instead of never.
 
 SwiftUI:
-- Visual direction (#131 / #133) supersedes the previous ivory/blue layout: use the user's seven-screen tubik reference, adapted to Slice. Charcoal navigation, mint reports, purple charts/categories, coral statistics and yellow illustrated panels share condensed editorial typography. See docs/reference-redesign/acceptance-matrix.md and source-fidelity.md; preserve all mapped components and actual data behavior.
-- Keep the blue pizza app icon and Slice identity. The reference uses fixed dark and pastel surfaces; theme and launch background must agree. Do not restore the old forced-light ivory direction when applying earlier issues #127/#129.
+- Visual direction (2026-10-20) is **Steven**: docs/reference/steven/ (screenshots + README.md) is the source of truth for every screen, token and flow, and supersedes docs/reference-redesign/ (tubik, #131/#133). Deviations are only ours: blue brand instead of teal, our app icon, group banners and avatars, plus the Steven features we do not have (wallet, card, bank links, subscriptions). Do not guess design — match the reference image named in the issue.
+- Keep the blue pizza app icon and Slice identity. Light/Dark/System stays (#143); dark tokens are derived per README §6.3.
 - A group is created with only you in it. Names are never typed for other people at creation — they join by link and pick their own. `MembersSheet` still adds someone by name, for the friend who will never install the app (design doc §5), and that must not be removed.
 - Never use AnyView to silence type-erasure errors. Use a @ViewBuilder generic or a switch over an enum returning concrete views. AnyView breaks SwiftUI diffing.
 - Views over ~60 lines get split into subviews.
