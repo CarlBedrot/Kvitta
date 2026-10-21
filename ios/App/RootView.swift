@@ -29,6 +29,9 @@ struct RootView: View {
     /// Owned here rather than by `ActivityView`, because the badge has to be right on the tab bar
     /// while the feed itself is off screen — which is the only time the badge matters.
     @State private var unread = UnreadStore()
+    /// Owned here, not by `HomeView`, for the same reason as `unread`: a fresh `HomeView` on
+    /// every tab switch must not forget what was swiped away moments earlier.
+    @State private var archivedGroups = ArchivedGroupsStore()
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private var isRegular: Bool { horizontalSizeClass == .regular }
@@ -136,9 +139,9 @@ struct RootView: View {
     private var grupperTab: some View {
         NavigationStack(path: $grupperPath) {
             HomeView(ledger: ledger, userId: userId, invites: invites, profile: profile,
-                     photos: photos, rates: rates, profiles: profiles,
+                     photos: photos, rates: rates, profiles: profiles, archivedGroups: archivedGroups,
                      onNewGroup: { showingNewGroup = true },
-                     onProfile: { selectedTab = .more })
+                     onJoinGroup: { showingJoin = true })
         }
     }
 }
