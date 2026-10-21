@@ -2,7 +2,8 @@ import SwiftUI
 import KvittaCore
 import KvittaStorage
 
-/// Groups use the same purple canvas and layered illustrated cards as Categories.
+/// Grupper (README §1.2): a white `Steven.Card` per group, newest activity first, with
+/// swipe-to-archive and a push to the archived groups behind "VISA ARKIVERADE".
 struct HomeView: View {
     let ledger: LedgerStore
     let userId: UserID
@@ -11,35 +12,50 @@ struct HomeView: View {
     let photos: GroupPhotoSyncer
     let rates: RateStore
     let profiles: ProfileSyncer
+    let archivedGroups: ArchivedGroupsStore
     var onNewGroup: () -> Void
-    var onProfile: () -> Void = {}
-    @State private var searchText = ""
+    var onJoinGroup: () -> Void = {}
 
     var body: some View {
         let groups = ledger.state.groupsByLastActivity
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let visibleGroups = query.isEmpty ? groups : groups.filter { $0.name.localizedCaseInsensitiveContains(query) }
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                HStack(alignment: .top) {
-                    EditorialHeading(title: String(localized: "Grupper"), dark: true)
-                    EditorialCircleButton(symbol: "person.crop.circle", label: String(localized: "Profil"), action: onProfile)
+        let visible = groups.filter { !archivedGroups.isArchived($0.id) }
+        let archived = groups.filter { archivedGroups.isArchived($0.id) }
+
+        List {
+            // `ScreenHeader` carries its own horizontal padding, so this row gets none of its own.
+            Steven.ScreenHeader(title: "Grupper", actionTitle: "Ny grupp", action: onNewGroup)
+                .rowStyle(horizontal: 0, bottom: StevenMetric.cardGap)
+
+            if groups.isEmpty {
+                EmptyGroupsView(onCreate: onNewGroup, onJoin: onJoinGroup)
+                    .rowStyle()
+            } else {
+                ForEach(visible) { group in
+                    GroupRow(group: group, userId: userId)
+                        // A plain `NavigationLink` row draws a disclosure chevron Steven's cards
+                        // don't have (§1.2 lists no such glyph); the push still works because the
+                        // invisible link underneath is what actually catches the tap — `Color.clear`
+                        // fills the row's size and stays hit-testable, unlike an empty label.
+                        .background(NavigationLink(value: group.id) { Color.clear })
+                        .rowStyle(bottom: StevenMetric.cardGap)
+                        .swipeActions(edge: .trailing) {
+                            Button("Arkivera", systemImage: "archivebox") {
+                                archivedGroups.archive(group.id)
+                            }
+                            .tint(StevenColor.accent)
+                        }
                 }
-                EditorialPill(title: String(localized: "Ny grupp"), action: onNewGroup)
-                if groups.isEmpty {
-                    EmptyGroupsView(onNewGroup: onNewGroup)
-                } else {
-                    searchField
-                    if visibleGroups.isEmpty {
-                        Text("Inga grupper matchar sökningen.")
-                            .font(.subheadline).foregroundStyle(Editorial.coal)
-                            .padding(.vertical, 20)
-                    }
-                    groupCards(visibleGroups)
-                }
-            }.padding(20).padding(.bottom, 100)
+            }
+
+            if !archived.isEmpty {
+                ShowArchivedButton()
+                    .background(NavigationLink(value: ArchivedGroupsRoute()) { Color.clear })
+                    .rowStyle()
+            }
         }
-        .background(Editorial.purple.ignoresSafeArea())
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(StevenColor.screen.ignoresSafeArea())
         .navigationBarHidden(true)
         .navigationDestination(for: GroupID.self) { groupId in
             GroupDetailView(ledger: ledger, userId: userId, groupId: groupId,
@@ -47,78 +63,124 @@ struct HomeView: View {
                             profiles: profiles)
                 .toolbar(.visible, for: .navigationBar)
         }
-    }
-
-    private var searchField: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass").accessibilityHidden(true)
-            TextField("Sök grupper", text: $searchText,
-                      prompt: Text("Sök grupper").foregroundStyle(Editorial.coal.opacity(0.7)))
-                .textInputAutocapitalization(.never)
-            if !searchText.isEmpty {
-                Button { searchText = "" } label: {
-                    Image(systemName: "xmark.circle.fill").frame(width: 44, height: 44)
-                }.accessibilityLabel("Rensa sökning")
-            }
-        }.font(.subheadline).foregroundStyle(Editorial.coal).tint(Editorial.coal)
-            .padding(.horizontal, 16).frame(minHeight: 44)
-            .background(Editorial.paper, in: .capsule)
-    }
-
-    private func groupCards(_ groups: [GroupState]) -> some View {
-        // The most recently active group is the illustrated front card. Every visible
-        // layer is a different group, with enough exposed height for a full tap target.
-        let stacked = Array(groups.reversed())
-        return LazyVStack(spacing: -16) {
-            ForEach(Array(stacked.enumerated()), id: \.element.id) { index, group in
-                NavigationLink(value: group.id) {
-                    GroupCard(group: group, photo: photos.images.uiImage(for: group.id),
-                              isFront: index == stacked.count - 1, dark: index % 2 == 1)
-                }.buttonStyle(.plain)
-            }
-        }.frame(maxWidth: 520).frame(maxWidth: .infinity)
+        .navigationDestination(for: ArchivedGroupsRoute.self) { _ in
+            ArchivedGroupsScreen(ledger: ledger, userId: userId, archivedGroups: archivedGroups)
+                .navigationTitle("Arkiverade grupper")
+                .toolbar(.visible, for: .navigationBar)
+        }
     }
 }
 
-/// A picker layer shows group identity only; counts and money belong inside the group.
-struct GroupCard: View {
-    let group: GroupState
-    let photo: UIImage?
-    let isFront: Bool
-    let dark: Bool
-
-    private var fill: Color { isFront ? Editorial.yellow : dark ? Editorial.coal : Editorial.coral }
-    private var ink: Color { !isFront && dark ? Editorial.paper : Editorial.coal }
+/// The pushed list behind "VISA ARKIVERADE" — the same cards, with "Återställ" instead of
+/// "Arkivera". No reference image shows this screen (README §1.2: "[gissning: push, samma
+/// kortlista]"), so it reuses `GroupRow` rather than inventing a second layout. Tapping a card
+/// still resolves against `HomeView`'s own `navigationDestination(for: GroupID.self)` — it stays
+/// an ancestor in the stack, and `NavigationStack` only wants that declared once.
+private struct ArchivedGroupsScreen: View {
+    let ledger: LedgerStore
+    let userId: UserID
+    let archivedGroups: ArchivedGroupsStore
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top, spacing: 12) {
-                Text(GroupBadge.title(of: group.name).uppercased())
-                    .font(Editorial.heading(isFront ? 30 : 24))
-                    .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 0)
-                Image(systemName: "arrow.up.right").font(.system(size: 17, weight: .medium))
-                    .frame(width: 32, height: 32)
-                    .background(ink.opacity(0.08), in: .circle)
-            }
-            if isFront {
-                if let photo {
-                    Image(uiImage: photo).resizable().scaledToFit().frame(maxHeight: 190)
-                        .frame(maxWidth: .infinity).clipShape(.rect(cornerRadius: 16))
-                } else {
-                    Image("SharedDinner").resizable().scaledToFit().frame(maxHeight: 190)
-                        .frame(maxWidth: .infinity)
+        let groups = ledger.state.groupsByLastActivity.filter { archivedGroups.isArchived($0.id) }
+        List {
+            if groups.isEmpty {
+                Text("Inga arkiverade grupper")
+                    .stevenFont(.rowTitle)
+                    .foregroundStyle(StevenColor.muted)
+                    .padding(.top, 40)
+                    .frame(maxWidth: .infinity)
+                    .rowStyle()
+            } else {
+                ForEach(groups) { group in
+                    GroupRow(group: group, userId: userId)
+                        .background(NavigationLink(value: group.id) { Color.clear })
+                        .rowStyle(bottom: StevenMetric.cardGap)
+                        .swipeActions(edge: .trailing) {
+                            Button("Återställ", systemImage: "arrow.uturn.backward") {
+                                archivedGroups.restore(group.id)
+                            }
+                            .tint(StevenColor.accent)
+                        }
                 }
             }
-        }.foregroundStyle(ink)
-            .padding(.horizontal, 18).padding(.top, 16)
-            .padding(.bottom, isFront ? 16 : 32)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(fill, in: .rect(cornerRadius: 26))
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(StevenColor.screen.ignoresSafeArea())
+    }
+}
+
+/// A marker value for the archived-groups push — `NavigationPath` pushes any `Hashable`, so this
+/// just needs to exist to be its own destination type alongside `GroupID`.
+private struct ArchivedGroupsRoute: Hashable {}
+
+/// "VISA ARKIVERADE" (01, 02): centred, grey, capitals.
+private struct ShowArchivedButton: View {
+    var body: some View {
+        Text("Visa arkiverade")
+            .stevenFont(.section)
+            .fontWeight(.semibold)
+            .foregroundStyle(StevenColor.section)
+            .frame(maxWidth: .infinity, minHeight: StevenMetric.minimumHitTarget)
             .contentShape(.rect)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(GroupBadge.title(of: group.name))
-            .accessibilityHint("Visa grupp")
+    }
+}
+
+/// One group: name, avatar stack, "N vänner" and the balance (§1.2). Shared by the live list and
+/// the archived one — only the swipe action differs between the two.
+private struct GroupRow: View {
+    let group: GroupState
+    let userId: UserID
+
+    var body: some View {
+        Steven.Card {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(verbatim: group.name)
+                    .stevenFont(.cardTitle)
+                    .foregroundStyle(StevenColor.ink)
+                    .lineLimit(2)
+                Steven.AvatarStack(members: group.activeMembers, me: me?.id)
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Text("\(friendCount) vänner")
+                        .stevenFont(.rowTitle)
+                        .foregroundStyle(StevenColor.muted)
+                        .lineLimit(1)
+                    Spacer(minLength: 8)
+                    Steven.BalanceLabel(state: balance, showsArchiveHint: true)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("Visa grupp")
+    }
+
+    private var me: Member? { group.me(for: userId) }
+
+    private var friendCount: Int {
+        group.activeMembers.filter { $0.id != me?.id }.count
+    }
+
+    /// The largest *open* currency (§1.2: "visa den största öppna valutan"). Settled in every
+    /// currency — including a group with no linked member, which nets to zero everywhere —
+    /// reads as `.settled`.
+    private var balance: Steven.Balance {
+        let open = group.nets(for: userId).filter { $0.amountMinor != 0 }
+        guard let largest = open.max(by: { abs($0.amountMinor) < abs($1.amountMinor) }) else {
+            return .settled
+        }
+        return Steven.Balance(netMinor: largest.amountMinor, currency: largest.currency)
+    }
+}
+
+extension View {
+    /// The list-row boilerplate every Grupper row needs: no inset list chrome, Steven's own
+    /// gutter instead (unless the row already carries its own, like `ScreenHeader`), and `bottom`
+    /// as the gap to the next card (§2.3's 12 pt `cardGap`).
+    fileprivate func rowStyle(horizontal: CGFloat = StevenMetric.gutter, bottom: CGFloat = 0) -> some View {
+        listRowInsets(EdgeInsets(top: 0, leading: horizontal, bottom: bottom, trailing: horizontal))
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
     }
 }
 
@@ -240,18 +302,24 @@ struct GroupBadge: View {
     }
 }
 
+/// README §1.2, marked "[gissning]": a centred message with both ways into a group.
 private struct EmptyGroupsView: View {
-    var onNewGroup: () -> Void
+    var onCreate: () -> Void
+    var onJoin: () -> Void
+
     var body: some View {
-        Button(action: onNewGroup) {
-            EditorialPanel(fill: Editorial.yellow) {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("Inga grupper än").font(Editorial.heading(30))
-                    Image("SharedDinner").resizable().scaledToFit().frame(maxHeight: 190)
-                        .frame(maxWidth: .infinity).accessibilityHidden(true)
-                    Label("Skapa grupp", systemImage: "plus").font(.caption.weight(.semibold))
-                }.foregroundStyle(Editorial.coal)
+        VStack(spacing: 20) {
+            Text("Inga grupper än")
+                .stevenFont(.cardTitle)
+                .foregroundStyle(StevenColor.ink)
+            VStack(spacing: 12) {
+                Button("Skapa grupp", action: onCreate)
+                    .buttonStyle(Steven.FilledButtonStyle())
+                Button("Gå med via länk", action: onJoin)
+                    .buttonStyle(Steven.OutlineButtonStyle())
             }
-        }.buttonStyle(.plain)
+        }
+        .padding(.top, 60)
+        .frame(maxWidth: .infinity)
     }
 }
