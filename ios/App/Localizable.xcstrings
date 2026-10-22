@@ -5263,6 +5263,126 @@
           }
         }
       }
+    },
+    "Inga utgifter än" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No expenses yet"
+          }
+        }
+      }
+    },
+    "%lld vänner" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld friend"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld friends"
+                }
+              }
+            }
+          }
+        },
+        "sv" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld vän"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld vänner"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Du och %lld vänner" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "You and %lld friend"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "You and %lld friends"
+                }
+              }
+            }
+          }
+        },
+        "sv" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Du och %lld vän"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Du och %lld vänner"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Hej! Du är skyldig mig %@ i %@. 🙂" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi! You owe me %@ in %@. 🙂"
+          }
+        }
+      }
+    },
+    "Hej! Du är skyldig mig %@ i %@. Swisha gärna till %@ 🙂" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi! You owe me %@ in %@. Please Swish it to %@ 🙂"
+          }
+        }
+      }
+    },
+    "Hej! Du är skyldig mig %@ i %@. Betala gärna med MobilePay till %@ 🙂" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi! You owe me %@ in %@. Please pay via MobilePay to %@ 🙂"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

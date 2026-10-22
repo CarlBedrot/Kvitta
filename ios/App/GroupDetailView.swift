@@ -1,13 +1,15 @@
 import SwiftUI
-import PhotosUI
+import UIKit
 import KvittaCore
 import KvittaStorage
 
-/// Gruppvy: the hero balance, who owes whom, the members, and the expense list by month.
+/// Gruppvy (README §1.2, §6.2, §6.4): Steven's shell — nav row, head, three tabs, fixed balance
+/// footer — around UTGIFTER. STÄLLNING and BETALNINGAR keep today's content unchanged until
+/// Steven 5 and 6 (#149, #150) rebuild them.
 ///
 /// Everything here is a read of the projection — `balances()`, `suggestedTransfers()`,
-/// `visibleExpenses` — plus one write path: a transfer's "Gör upp" opens `SettleUpSheet`, which
-/// records a `PaymentRecorded` through `LedgerStore.record`.
+/// `visibleExpenses` — plus two writes: "Betala" opens `SettleUpSheet`, which records a
+/// `PaymentRecorded`; the payee's pending-payment answer records `PaymentConfirmed`/`PaymentDisputed`.
 struct GroupDetailView: View {
     let ledger: LedgerStore
     let userId: UserID
@@ -20,6 +22,8 @@ struct GroupDetailView: View {
     let profiles: ProfileSyncer
     var displayModes = CurrencyDisplayStore()
 
+    @Environment(\.dismiss) private var dismiss
+
     @State private var settlingTransfer: TransferPresentation?
     @State private var auditingMember: MemberID?
     @State private var viewingExpense: ExpenseID?
@@ -28,11 +32,13 @@ struct GroupDetailView: View {
     @State private var confirmFailure: String?
     @State private var showingMembers = false
     @State private var showingPhoto = false
+    /// The Påminn share sheet's text, set once there is something to share.
+    @State private var remindingText: String?
     /// Adding an expense from inside the group it belongs to — the group is the screen you are
     /// standing on, so there is nothing to guess.
     @State private var expenseModel: NewExpenseModel?
-    /// Which of the three views of the group is up. Per visit: a group opens on its expenses.
-    @State private var segment: GroupSegment = .expenses
+    /// Which of the three tabs is up. Per visit: a group opens on its expenses.
+    @State private var tab: GroupTab = .expenses
     /// The live group out of the projection. `nil` only if the group vanished mid-navigation,
     /// which a rebuild from a bad log could theoretically produce — show nothing rather than crash.
     private var group: GroupState? { ledger.state[groupId] }
@@ -60,140 +66,55 @@ struct GroupDetailView: View {
         let meId = group.me(for: userId)?.id
         let canSplit = group.activeMembers.count >= 2
         let mode = displayModes.mode(for: groupId)
-        // One fold per render. Every card below reads from this value — the hero, the
-        // transfers, every member row — instead of asking the projection again.
+        // One fold per render. Every card below reads from this value instead of asking the
+        // projection again.
         let balances = group.balances()
         let transfers = balances.suggestedTransfers
-        // What was spent, and where the group stands — two screens behind one toggle at the
-        // bottom, the way Steven does it, instead of one long scroll.
-        return ScrollView {
-            // Lazy: the expense months are built as they scroll in, not all on first paint.
-            LazyVStack(alignment: .leading, spacing: 16) {
-                HStack(spacing: 8) {
-                    Text("\(group.activeMembers.count) personer")
-                    Text("·").accessibilityHidden(true)
-                    Text("\(group.visibleExpenses.count) utgifter")
-                }.font(.caption).foregroundStyle(Theme.secondary)
-                GroupSpendingView(group: group, balances: balances, meId: meId,
-                                  paymentsMode: segment == .standing,
-                                  onAudit: { if let meId { auditingMember = meId } })
-                switch segment {
-                case .expenses:
-                    if group.visibleExpenses.isEmpty {
-                        EmptySegment(
-                            text: canSplit ? "Inga utgifter än" : "Bjud in någon först",
-                            button: canSplit ? nil : ("Bjud in", { showingMembers = true })
-                        )
-                    }
-                    Text("Alla utgifter").font(Editorial.heading(24)).foregroundStyle(Theme.ink)
-                    ExpenseList(group: group, expenses: group.visibleExpenses, meId: meId, mode: mode) { viewingExpense = $0 }
-                    DeletedExpensesSection(
-                        group: group,
-                        showingDeleted: $showingDeleted,
-                        failure: restoreFailure,
-                        onRestore: restore
+        let total = totalSpent(group)
+        let footerBalances: [Steven.Balance] = group.nets(for: userId, in: balances)
+            .map { Steven.Balance(netMinor: $0.amountMinor, currency: $0.currency) }
+            .filter { $0 != .settled }
+
+        return VStack(spacing: 0) {
+            GroupNavBar(group: group, onBack: { dismiss() }, onMembers: { showingMembers = true })
+            ScrollView {
+                VStack(spacing: 0) {
+                    GroupHeader(
+                        group: group, meId: meId, totalMinor: total.amountMinor, totalApproximate: total.approximate,
+                        photo: photos.images.uiImage(for: groupId), onShowPhoto: { showingPhoto = true }
                     )
-
-                case .standing:
-                    // Somebody's books are waiting on this answer, so it comes before anything
-                    // historical.
-                    PendingPaymentsCard(
-                        group: group,
-                        meId: meId,
-                        failure: confirmFailure,
-                        onAnswer: answer
-                    )
-
-                    // The "om gruppen" blurb, when someone has written one. Quiet text, not a
-                    // card: it is context, not data.
-                    if let about = group.about {
-                        Text(about)
-                            .font(.subheadline)
-                            .foregroundStyle(Theme.secondary)
-                            .padding(.horizontal, 4)
-                    }
-
-                    TransfersCard(
-                        group: group,
-                        transfers: transfers,
-                        meId: meId,
-                        mode: mode,
-                        onSettle: { settlingTransfer = TransferPresentation(transfer: $0) }
-                    )
-
-                    MembersCard(group: group, balances: balances, meId: meId, mode: mode,
-                                rates: rates.rates, myPhoto: profile.avatarData) {
-                        auditingMember = $0
-                    }
-
-                    GroupRepaymentHistory(group: group)
-                    DisclosureGroup("Gruppinformation") {
-                        GroupHeroCard(
-                            group: group,
-                            balances: balances,
-                            userId: userId,
-                            mode: mode,
-                            rates: rates.rates,
-                            photo: photos.images.uiImage(for: groupId),
-                            onPhotoPicked: { jpeg in Task { await photos.stage(jpeg, for: groupId) } },
-                            onShowPhoto: { showingPhoto = true },
-                            onMode: { displayModes.set($0, for: groupId) },
-                            onAudit: { if let meId { auditingMember = meId } },
-                            onAddExpense: {
-                                expenseModel = NewExpenseModel(ledger: ledger, userId: userId, groupId: groupId)
-                            },
-                            onMembers: { showingMembers = true }
-                        )
-                    }.tint(Theme.ink)
-
+                    Steven.UnderlineTabs(selection: $tab, tabs: [
+                        (GroupTab.expenses, "Utgifter"), (.standing, "Ställning"), (.payments, "Betalningar"),
+                    ])
+                    tabContent(group: group, meId: meId, canSplit: canSplit, mode: mode,
+                              balances: balances, transfers: transfers)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(StevenColor.content)
                 }
-                Color.clear.frame(height: 24)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 4)
+            .background(StevenColor.surface)
         }
-        .background(GroupBackdrop(tint: Theme.GroupTint.forGroup(group.id),
-                                  photo: photos.images.uiImage(for: groupId)))
-        // The app's own tab bar steps aside inside a group; this bar takes its place — the
-        // three views on the left, the one action on the right.
-        .toolbarVisibility(.hidden, for: .tabBar)
+        .background(StevenColor.screen)
+        .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .bottom) {
-            GroupBottomBar(segment: $segment, canAdd: canSplit) {
-                expenseModel = NewExpenseModel(ledger: ledger, userId: userId, groupId: groupId)
-            }
-        }
-        .navigationTitle(GroupBadge.title(of: group.name))
-        .toolbar {
-            // One button up here, the way Swish does it: the things you do rarely live under it.
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button {
-                        showingMembers = true
-                    } label: {
-                        Label("Medlemmar och inbjudan", systemImage: "person.2")
+            Steven.BalanceFooter(
+                balances: footerBalances,
+                onPay: {
+                    if let transfer = payTransfer(group, meId, balances, transfers) {
+                        settlingTransfer = TransferPresentation(transfer: transfer)
                     }
-                    // The audit trail that leaves the app (product principles: CSV export
-                    // early). Generated lazily — the file only exists once somebody picks a
-                    // destination.
-                    ShareLink(
-                        item: CSVExportFile(group: group),
-                        preview: SharePreview(CSVExportFile.filename(for: group))
-                    ) {
-                        Label("Exportera CSV", systemImage: "square.and.arrow.up")
+                },
+                onRemind: {
+                    if let transfer = remindTransfer(group, meId, balances, transfers) {
+                        remindingText = reminderText(for: transfer, in: group)
                     }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .accessibilityLabel("Mer")
-                }
-            }
+                },
+                onAdd: { expenseModel = NewExpenseModel(ledger: ledger, userId: userId, groupId: groupId) }
+            )
         }
         .sheet(isPresented: $showingMembers) {
-            MembersSheet(ledger: ledger, userId: userId, groupId: groupId, invites: invites,
-                         profile: profile)
+            MembersSheet(ledger: ledger, userId: userId, groupId: groupId, invites: invites, profile: profile)
         }
-        // Inline, not large: the hero card now carries the full, wrapping name, and a large bar
-        // title would show a truncated copy of it directly above the real thing.
-        .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $settlingTransfer) { presentation in
             SettleUpSheet(ledger: ledger, userId: userId, groupId: groupId,
                           transfer: presentation.transfer, payees: payees)
@@ -214,6 +135,56 @@ struct GroupDetailView: View {
         .sheet(isPresented: $showingPhoto) {
             GroupPhotoViewer(groupName: group.name, groupId: groupId, photos: photos)
         }
+        .sheet(isPresented: Binding(
+            get: { remindingText != nil },
+            set: { shown in if !shown { remindingText = nil } }
+        )) {
+            ShareSheet(items: [remindingText ?? ""])
+        }
+    }
+
+    @ViewBuilder
+    private func tabContent(
+        group: GroupState, meId: MemberID?, canSplit: Bool, mode: CurrencyDisplay,
+        balances: GroupBalances, transfers: [SuggestedTransfer]
+    ) -> some View {
+        switch tab {
+        case .expenses:
+            GroupExpensesTab(
+                group: group, meId: meId, mode: mode, canSplit: canSplit,
+                onSelect: { viewingExpense = $0 },
+                onInvite: { showingMembers = true },
+                onAddExpense: { expenseModel = NewExpenseModel(ledger: ledger, userId: userId, groupId: groupId) },
+                showingDeleted: $showingDeleted, restoreFailure: restoreFailure, onRestore: restore
+            )
+            .padding(.top, 8)
+            .padding(.bottom, 24)
+
+        case .standing, .payments:
+            // Neither tab has its own Steven screen yet (those are #149 and #150) — both show
+            // today's existing content in the meantime, per the issue that asked for this shell.
+            legacyStandingContent(group: group, balances: balances, transfers: transfers, meId: meId, mode: mode)
+        }
+    }
+
+    private func legacyStandingContent(
+        group: GroupState, balances: GroupBalances, transfers: [SuggestedTransfer],
+        meId: MemberID?, mode: CurrencyDisplay
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            PendingPaymentsCard(group: group, meId: meId, failure: confirmFailure, onAnswer: answer)
+            if let about = group.about {
+                Text(about).font(.subheadline).foregroundStyle(Theme.secondary).padding(.horizontal, 4)
+            }
+            TransfersCard(group: group, transfers: transfers, meId: meId, mode: mode,
+                          onSettle: { settlingTransfer = TransferPresentation(transfer: $0) })
+            MembersCard(group: group, balances: balances, meId: meId, mode: mode, rates: rates.rates,
+                       myPhoto: profile.avatarData) { auditingMember = $0 }
+            GroupRepaymentHistory(group: group)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
+        .padding(.bottom, 24)
     }
 
     private func restore(_ expenseId: ExpenseID) {
@@ -240,6 +211,87 @@ struct GroupDetailView: View {
             confirmFailure = String(describing: error)
         }
     }
+
+    /// The group's total spend for `GroupHeader` (§1.2): every non-deleted expense, summed in the
+    /// primary currency. A mixed group converts the rest with today's ECB rates and the result is
+    /// marked ≈; with no rate cached yet it falls back to adding the raw minor units across
+    /// currencies — wrong in principle, but already flagged ≈, and it only happens offline before
+    /// any rate has ever been fetched.
+    private func totalSpent(_ group: GroupState) -> (amountMinor: Int64, approximate: Bool) {
+        var totalMinor: Int64 = 0
+        for expense in group.visibleExpenses {
+            if expense.currency == group.currency {
+                totalMinor += expense.amountMinor
+            } else if let converted = rates.rates?.convert(
+                Money(amountMinor: expense.amountMinor, currency: expense.currency), to: group.currency
+            ) {
+                totalMinor += converted.amountMinor
+            } else {
+                totalMinor += expense.amountMinor
+            }
+        }
+        let mixed = Set(group.visibleExpenses.map(\.currency)).count > 1
+        return (totalMinor, mixed)
+    }
+
+    /// The suggested transfer "Betala" settles: the first currency where you owe (6.4 — "knappen
+    /// gäller den första öppna"), among the ones you are the payer of.
+    private func payTransfer(
+        _ group: GroupState, _ meId: MemberID?, _ balances: GroupBalances, _ transfers: [SuggestedTransfer]
+    ) -> SuggestedTransfer? {
+        guard let meId, let currency = firstOpenCurrency(group, balances) else { return nil }
+        return transfers.first { $0.currency == currency && $0.from == meId }
+    }
+
+    /// The suggested transfer "Påminn" is about: the first currency where somebody owes you.
+    private func remindTransfer(
+        _ group: GroupState, _ meId: MemberID?, _ balances: GroupBalances, _ transfers: [SuggestedTransfer]
+    ) -> SuggestedTransfer? {
+        guard let meId, let currency = firstOpenCurrency(group, balances) else { return nil }
+        return transfers.first { $0.currency == currency && $0.to == meId }
+    }
+
+    /// The currency of the first non-settled line in `GroupHeader`'s own order (primary first) —
+    /// the one decision 6.4's "den första öppna" means.
+    private func firstOpenCurrency(_ group: GroupState, _ balances: GroupBalances) -> CurrencyCode? {
+        group.nets(for: userId, in: balances).first { $0.amountMinor != 0 }?.currency
+    }
+
+    /// "Påminn" (6.4): a ready-made share-sheet message with the amount, the group and — when the
+    /// profile has one — your own payment number. The phone prints in international form
+    /// (+46701234567) rather than Carl's pretty "070-123 45 67" example: there is no national
+    /// formatter for it yet (flagged in the PR).
+    private func reminderText(for transfer: SuggestedTransfer, in group: GroupState) -> String {
+        let amount = StevenMoneyFormat.string(transfer.amountMinor, transfer.currency, explicit: false)
+        let groupTitle = GroupBadge.title(of: group.name)
+        guard let phone = profile.paymentPhone else {
+            return String(localized: "Hej! Du är skyldig mig \(amount) i \(groupTitle). 🙂")
+        }
+        switch phone.country {
+        case .sweden:
+            return String(localized: "Hej! Du är skyldig mig \(amount) i \(groupTitle). Swisha gärna till \(phone.international) 🙂")
+        case .denmark:
+            return String(localized: "Hej! Du är skyldig mig \(amount) i \(groupTitle). Betala gärna med MobilePay till \(phone.international) 🙂")
+        }
+    }
+}
+
+/// The group's three tabs (§1.2). `standing`/`payments` render the same, old content for now —
+/// see `GroupDetailView.legacyStandingContent`.
+enum GroupTab: Hashable {
+    case expenses, standing, payments
+}
+
+/// The system share sheet, presented imperatively from "Påminn" rather than a `ShareLink` (which
+/// has to be the tapped control itself) — `Steven.BalanceFooter`'s action is a plain closure.
+private struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }
 
 /// Payments waiting on somebody's word (M8). The payee gets the two buttons; everyone else
@@ -327,265 +379,6 @@ private struct PendingPaymentsCard: View {
 private struct TransferPresentation: Identifiable {
     let id = UUID()
     let transfer: SuggestedTransfer
-}
-
-// MARK: - Hero
-
-/// Your position in this group: the sentence, the number large, and how much of the group is
-/// already settled. Settled gets the green celebration instead of a zero. The group's badge sits
-/// top-trailing and is a photo picker — tap it to give the group a face; the numbers themselves
-/// still open the audit.
-private struct GroupHeroCard: View {
-    let group: GroupState
-    /// Folded once by the screen; every number on this card comes from here.
-    let balances: GroupBalances
-    let userId: UserID
-    let mode: CurrencyDisplay
-    let rates: ExchangeRates?
-    let photo: UIImage?
-    let onPhotoPicked: (Data?) -> Void
-    /// Opens the full-image viewer — the banner is a crop, and the whole picture lives one tap in.
-    let onShowPhoto: () -> Void
-    let onMode: (CurrencyDisplay) -> Void
-    let onAudit: () -> Void
-    /// The two ways forward from a group with no expense yet — see `fresh`.
-    let onAddExpense: () -> Void
-    let onMembers: () -> Void
-
-    @State private var photoItem: PhotosPickerItem?
-
-    /// No expense yet. Every group starts here, and the balances are technically zero, but
-    /// "Ni är kvitt 🎉" for a group nothing has happened in is a party for nothing — the
-    /// celebration is saved for balances that were real and got cleared.
-    private var isFresh: Bool { group.visibleExpenses.isEmpty }
-
-    var body: some View {
-        let isSettled = balances.isSettled
-        VStack(spacing: 0) {
-            // The photo as the card's crown — tapping it opens the whole image. The small badge
-            // below stays the picker for a group that has no picture yet.
-            if let photo {
-                Button(action: onShowPhoto) {
-                    // Adaptive height, but a strip either way: the widest a photo gets is a
-                    // little taller than a 3:1 letterbox. The old range let a portrait picture
-                    // claim half the screen and push the balance below the fold — the whole
-                    // image is one tap away in the viewer, so the banner only has to say
-                    // "this group", not show the picture.
-                    GroupPhotoBanner(image: photo, aspect: 2.4...3.2)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Visa gruppbilden")
-            }
-            // The name is the navigation title; the card is the answer to "what do I owe".
-            Group {
-                if isFresh {
-                    fresh
-                } else if isSettled {
-                    settled
-                } else {
-                    open
-                }
-            }
-            .padding(24)
-        }
-        .flushCardSurface()
-        .task(id: photoItem) { await loadPhoto() }
-    }
-
-    private var badge: some View {
-        PhotosPicker(selection: $photoItem, matching: .images) {
-            ZStack(alignment: .bottomTrailing) {
-                GroupBadge(name: group.name, size: 48, groupId: group.id)
-                // The same camera chip as the profile avatar in Jag. The bare badge *was* the
-                // picker before, and read as decoration — a function nobody can find does not
-                // exist. Only shown while the group has no photo, so no clash with the badge's
-                // own emoji corner.
-                Image(systemName: "camera.fill")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Theme.accentInk)
-                    .padding(4)
-                    .background(Editorial.yellow, in: .circle)
-                    .overlay(Circle().strokeBorder(Theme.card, lineWidth: 2))
-                    .offset(x: 4, y: 4)
-            }
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Välj gruppbild")
-    }
-
-    private func loadPhoto() async {
-        guard let photoItem else { return }
-        // Downscaled but *not* cropped — the viewer shows the whole picture, and a crop here
-        // would be a crop nobody chose. The banner does its own cropping at draw time.
-        if let data = try? await photoItem.loadTransferable(type: Data.self),
-           let scaled = UIImage(data: data)?.downscaled(maxSide: 1200),
-           let jpeg = scaled.jpegData(compressionQuality: 0.8) {
-            onPhotoPicked(jpeg)
-        }
-    }
-
-    /// Before the first expense: one line, one button. Alone in the group the button invites,
-    /// because an expense needs somebody to split with; otherwise it adds the expense.
-    private var fresh: some View {
-        let canSplit = group.activeMembers.count >= 2
-        return VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top, spacing: 16) {
-                Text("Inga utgifter än")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(Theme.ink)
-                Spacer(minLength: 0)
-                if photo == nil {
-                    badge
-                }
-            }
-            if canSplit {
-                Button("Lägg till utgift", action: onAddExpense)
-                    .buttonStyle(PrimaryButtonStyle())
-            } else {
-                Button("Bjud in", action: onMembers)
-                    .buttonStyle(PrimaryButtonStyle())
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var settled: some View {
-        HStack(alignment: .top, spacing: 16) {
-            Text("Ni är kvitt")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(Theme.ink)
-            Spacer()
-            if photo == nil {
-                badge
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    /// The nets to draw, shaped by the viewing mode. Exact by default; ≈ on request.
-    private var displayedNets: [(money: Money, approximate: Bool)] {
-        let nets = group.nets(for: userId, in: balances)
-        switch mode {
-        case .native:
-            return nets.map { ($0, false) }
-        case .only(let currency):
-            return nets.filter { $0.currency == currency }.map { ($0, false) }
-        case .converted:
-            guard let rates else { return nets.map { ($0, false) } }
-            // Sum in the primary currency, integer math throughout. Any bucket the table
-            // cannot convert keeps its own line rather than silently vanishing from the total.
-            var totalMinor: Int64 = 0
-            var stubborn: [(Money, Bool)] = []
-            var anyConverted = false
-            for net in nets {
-                if let converted = rates.convert(net, to: group.currency) {
-                    totalMinor += converted.amountMinor
-                    if net.currency != group.currency { anyConverted = true }
-                } else {
-                    stubborn.append((net, false))
-                }
-            }
-            return [(Money(amountMinor: totalMinor, currency: group.currency), anyConverted)] + stubborn
-        }
-    }
-
-    private var open: some View {
-        let nets = displayedNets
-        let lead = nets.first
-
-        return VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top, spacing: 16) {
-                Button(action: onAudit) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        if let lead {
-                            let direction = BalanceDirection(lead.money.amountMinor)
-                            Text(direction == .owe ? "Du är skyldig" : (direction == .owed ? "Du ligger ute med" : "Din balans"))
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(Theme.secondary)
-
-                            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                                if lead.approximate {
-                                    // The ≈ is the honesty marker: this number moves when the
-                                    // ECB fixing does, without any money moving.
-                                    Text("≈").font(.system(size: 28, weight: .medium))
-                                        .foregroundStyle(Theme.tertiary)
-                                }
-                                SignedAmountText(
-                                    amountMinor: lead.money.amountMinor,
-                                    currency: lead.money.currency,
-                                    size: 40,
-                                    sign: .none,
-                                    explicit: lead.money.currency != group.currency,
-                                    accessibilityPhrase: "\(BalanceDirection(lead.money.amountMinor).spokenWord) \(MoneyFormat.string(abs(lead.money.amountMinor), lead.money.currency, explicit: true))"
-                                )
-                                .contentTransition(.numericText())
-                            }
-
-                            // The other buckets, exact and explicit — the default view leads with
-                            // precision and never hides a currency you have money in.
-                            ForEach(nets.dropFirst(), id: \.money.currency) { line in
-                                SignedAmountText(
-                                    amountMinor: line.money.amountMinor,
-                                    currency: line.money.currency,
-                                    size: 22,
-                                    explicit: true
-                                )
-                            }
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(.rect)
-                }
-                .buttonStyle(ScaleButtonStyle())
-
-                VStack(alignment: .trailing, spacing: 10) {
-                    // With a banner above, the badge would repeat the photo — the emoji identity
-                    // is enough, and the banner itself is the picker.
-                    if photo == nil {
-                        badge
-                    }
-                    currencyMenu
-                }
-            }
-        }
-    }
-
-    /// The mode switch, only shown once there is more than one currency to have an opinion about.
-    @ViewBuilder
-    private var currencyMenu: some View {
-        let currencies = balances.currencies
-        if currencies.count > 1 {
-            Menu {
-                Picker("Visa", selection: Binding(get: { mode }, set: onMode)) {
-                    Text("Alla valutor").tag(CurrencyDisplay.native)
-                    ForEach(currencies, id: \.self) { currency in
-                        Text("Bara \(currency.code)").tag(CurrencyDisplay.only(currency))
-                    }
-                    if rates != nil {
-                        Text("≈ i \(group.currency.code)").tag(CurrencyDisplay.converted)
-                    }
-                }
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "coloncurrencysign.arrow.circlepath")
-                    Text(modeLabel)
-                }
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Theme.secondary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Theme.ink.opacity(0.05), in: .capsule)
-            }
-        }
-    }
-
-    private var modeLabel: String {
-        switch mode {
-        case .native: return String(localized: "Alla")
-        case .only(let currency): return currency.code
-        case .converted: return "≈ \(group.currency.code)"
-        }
-    }
 }
 
 // MARK: - Vem är skyldig vem
@@ -687,7 +480,6 @@ private struct TransferRow: View {
         "\(name(transfer.from)) → \(name(transfer.to)), \(MoneyFormat.string(transfer.amountMinor, transfer.currency, explicit: true))"
     }
 }
-
 
 // MARK: - Medlemmar
 
@@ -794,266 +586,6 @@ private struct MembersCard: View {
 
     private func lines(forNative memberId: MemberID) -> [(money: Money, approximate: Bool)] {
         balances.byCurrency.map { ($0.money(for: memberId), false) }
-    }
-}
-
-// MARK: - The two views
-
-/// The two ways to look at a group: what was spent, and where everyone stands.
-enum GroupSegment: CaseIterable, Hashable {
-    case expenses, standing
-
-    var title: LocalizedStringKey {
-        switch self {
-        case .expenses: return "Utgifter"
-        case .standing: return "Betalningar"
-        }
-    }
-}
-
-/// The group uses the same charcoal/pastel navigation roles as the dashboard.
-private struct GroupBottomBar: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Binding var segment: GroupSegment
-    /// Alone in the group there is nobody to split with; the plus waits until there is.
-    let canAdd: Bool
-    let onAdd: () -> Void
-
-    var body: some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 2) {
-                ForEach(GroupSegment.allCases, id: \.self) { candidate in
-                    let isOn = segment == candidate
-                    Button {
-                        withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) { segment = candidate }
-                    } label: {
-                        Text(candidate.title)
-                            .font(.caption.weight(.semibold))
-                            .fixedSize(horizontal: true, vertical: false)
-                            .foregroundStyle(isOn ? Editorial.coal : Theme.secondary)
-                            .padding(.horizontal, 18)
-                            .frame(minHeight: 44)
-                            .background(isOn ? Editorial.mint : .clear, in: .capsule)
-                            .contentShape(.capsule)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(isOn ? .isSelected : [])
-                }
-            }
-            .padding(4)
-            .background(Theme.card, in: .capsule)
-
-            if canAdd {
-                Button(action: onAdd) {
-                    Image(systemName: "plus")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(Theme.accentInk)
-                        .frame(width: 48, height: 48)
-                        .background(Editorial.yellow, in: .circle)
-                }
-                .buttonStyle(ScaleButtonStyle())
-                .accessibilityLabel("Lägg till utgift")
-            }
-        }
-        // Match the compact app navigation; content above still honors larger text.
-        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-        .padding(.horizontal, 20)
-        .padding(.top, 8)
-        .padding(.bottom, 4)
-    }
-}
-
-/// What a segment says when it has nothing to list: one line, and at most one button.
-private struct EmptySegment: View {
-    let text: LocalizedStringKey
-    let button: (title: LocalizedStringKey, action: () -> Void)?
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Text(text)
-                .font(.body)
-                .foregroundStyle(Theme.secondary)
-            if let button {
-                Button(button.title, action: button.action)
-                    .buttonStyle(PrimaryButtonStyle())
-                    .fixedSize()
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 60)
-    }
-}
-
-// MARK: - Expense list
-
-private struct ExpenseList: View {
-    let group: GroupState
-    /// Newest first, already narrowed to the segment (yours, or everyone else's).
-    let expenses: [Expense]
-    let meId: MemberID?
-    let mode: CurrencyDisplay
-    let onSelect: (ExpenseID) -> Void
-
-    /// The only-mode filter narrows the list; native and ≈ modes always show every expense
-    /// in its own currency — an expense is a fact, and facts do not convert.
-    private var visibleUnderMode: [Expense] {
-        if case .only(let currency) = mode {
-            return expenses.filter { $0.currency == currency }
-        }
-        return expenses
-    }
-
-    var body: some View {
-        // visibleExpenses is already newest-first; chunk into months preserving that order.
-        let months = MonthGroup.group(visibleUnderMode)
-        ForEach(months) { month in
-            SectionHeader(title: month.title)
-            LazyVStack(spacing: 0) {
-                ForEach(Array(month.expenses.enumerated()), id: \.element.id) { index, expense in
-                    if index > 0 {
-                        Rectangle().fill(Theme.hairline).frame(height: 1).padding(.leading, 62)
-                    }
-                    Button {
-                        onSelect(expense.id)
-                    } label: {
-                        ExpenseRow(group: group, meId: meId, expense: expense)
-                            .contentShape(.rect)
-                    }
-                    .buttonStyle(ScaleButtonStyle())
-                }
-            }
-            .cardSurface(padding: 8)
-        }
-    }
-}
-
-/// The recovery half of soft delete. Hidden entirely until the group has deleted expenses;
-/// restoring writes an `ExpenseRestored` and the row rejoins the list above.
-private struct DeletedExpensesSection: View {
-    let group: GroupState
-    @Binding var showingDeleted: Bool
-    let failure: String?
-    let onRestore: (ExpenseID) -> Void
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        let deleted = group.deletedExpenses
-        if !deleted.isEmpty {
-            Button {
-                withAnimation(reduceMotion ? nil : .spring(duration: 0.3)) { showingDeleted.toggle() }
-            } label: {
-                Text(showingDeleted ? "Dölj borttagna" : "Visa borttagna (\(deleted.count))")
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(Theme.secondary)
-                    .frame(maxWidth: .infinity)
-            }
-            .padding(.top, 4)
-
-            if showingDeleted {
-                VStack(spacing: 0) {
-                    ForEach(Array(deleted.enumerated()), id: \.element.id) { index, expense in
-                        if index > 0 {
-                            Rectangle().fill(Theme.hairline).frame(height: 1)
-                        }
-                        HStack {
-                            Text(expense.title)
-                                .font(.subheadline)
-                                .strikethrough()
-                                .foregroundStyle(Theme.secondary)
-                            Spacer()
-                            NeutralAmountText(
-                                amountMinor: expense.amountMinor,
-                                currency: expense.currency,
-                                size: 14
-                            )
-                            .foregroundStyle(Theme.secondary)
-                            Button("Återställ") { onRestore(expense.id) }
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(Theme.accent)
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                    }
-                }
-                .cardSurface(padding: 8)
-
-                if let failure {
-                    Text(failure).font(.footnote).foregroundStyle(Theme.negative)
-                }
-            }
-        }
-    }
-}
-
-/// One month's worth of expenses, newest month first.
-private struct MonthGroup: Identifiable {
-    let id: String
-    let title: String
-    let expenses: [Expense]
-
-    static func group(_ expenses: [Expense]) -> [MonthGroup] {
-        var order: [String] = []
-        var byMonth: [String: [Expense]] = [:]
-        for expense in expenses {
-            let key = "\(expense.date.year)-\(expense.date.month)"
-            if byMonth[key] == nil { order.append(key) }
-            byMonth[key, default: []].append(expense)
-        }
-        return order.map { key in
-            let first = byMonth[key]!.first!
-            return MonthGroup(id: key, title: title(for: first.date), expenses: byMonth[key]!)
-        }
-    }
-
-    /// "Juli" for the current year, "Juli 2025" for older ones. Locale-aware month names.
-    private static func title(for date: CalendarDate) -> String {
-        let symbols = Calendar.current.standaloneMonthSymbols
-        let name = (1...12).contains(date.month) ? symbols[date.month - 1].capitalized : "?"
-        let currentYear = CalendarDate(Date()).year
-        return date.year == currentYear ? name : "\(name) \(date.year)"
-    }
-}
-
-private struct ExpenseRow: View {
-    let group: GroupState
-    let meId: MemberID?
-    let expense: Expense
-
-    var body: some View {
-        HStack(spacing: 14) {
-            CategoryGlyph(categoryId: expense.categoryId)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(expense.title).font(.body.weight(.medium)).foregroundStyle(Theme.ink)
-                Text(payerLine).font(.caption).foregroundStyle(Theme.secondary)
-            }
-
-            Spacer()
-
-            NeutralAmountText(
-                amountMinor: expense.amountMinor,
-                currency: expense.currency,
-                size: 16,
-                explicit: expense.currency != group.currency
-            )
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .accessibilityElement(children: .combine)
-    }
-
-    private var payerLine: String {
-        let payers = expense.payload.payers
-        guard let first = payers.first else { return "" }
-        let name = first.memberId == meId
-            ? String(localized: "Du")
-            : group.members[first.memberId]?.displayName ?? "?"
-        let paid = payers.count == 1
-            ? String(localized: "\(name) betalade")
-            : String(localized: "\(name) med flera betalade")
-        // The day, so a row is placed in time without opening it. The month header carries the
-        // month; this carries the date within it.
-        return "\(paid) · \(expense.date.day)/\(expense.date.month)"
     }
 }
 
