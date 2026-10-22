@@ -42,10 +42,12 @@ struct HomeView: View {
         .background(Editorial.purple.ignoresSafeArea())
         .navigationBarHidden(true)
         .navigationDestination(for: GroupID.self) { groupId in
+            // Steven draws its own nav row (`GroupNavBar`) with no title; the system bar stays
+            // hidden the same way the list above it does.
             GroupDetailView(ledger: ledger, userId: userId, groupId: groupId,
                             invites: invites, profile: profile, photos: photos, rates: rates,
                             profiles: profiles)
-                .toolbar(.visible, for: .navigationBar)
+                .toolbar(.hidden, for: .navigationBar)
         }
     }
 
