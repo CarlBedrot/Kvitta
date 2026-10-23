@@ -25,7 +25,7 @@ final class NewExpenseModel: Identifiable {
     let userId: UserID
     let purpose: Purpose
 
-    private(set) var groupId: GroupID
+    let groupId: GroupID
     var amount = AmountInput()
     var descriptionText = ""
     var categoryId = Categories.fallbackId
@@ -85,15 +85,6 @@ final class NewExpenseModel: Identifiable {
     var members: [Member] { group?.activeMembers ?? [] }
     var memberIds: [MemberID] { members.map(\.id) }
     var amountMinor: Int64 { amount.amountMinor }
-
-    /// Switching the group resets the split, payer and currency to the new group's.
-    func selectGroup(_ id: GroupID) {
-        groupId = id
-        let ids = memberIds
-        draft = SplitDraft(members: ids)
-        payerId = group?.me(for: userId)?.id ?? ids.first
-        currency = group?.currency ?? .sek
-    }
 
     // MARK: - Payer display
 
