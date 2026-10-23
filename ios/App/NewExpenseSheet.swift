@@ -2,37 +2,41 @@ import SwiftUI
 import UIKit
 import KvittaCore
 
-/// Ny utgift — the amount-first add sheet. Opens straight onto a big amount over a custom keypad,
-/// Swish-style: the 90 % case is amount + description, then Spara, in under ten seconds.
-///
-/// The group and split controls sit directly on the shared ivory canvas.
+/// Ny utgift — the amount-first add sheet, in Steven's two steps (README §3.1): belopp
+/// (`ExpenseAmountStep`, 12/13), then description, category, split and date here. An edit has
+/// nothing new to type into the amount, so it opens straight on this step (§3.2); "Tillbaka"
+/// still reaches the amount step either way.
 struct NewExpenseSheet: View {
     @Bindable var model: NewExpenseModel
     @Environment(\.dismiss) private var dismiss
     @State private var showingSplitEditor = false
     @State private var saveTick = 0
+    @State private var step: Step
 
-    /// Only groups you can actually split in appear in the menu.
-    private var selectableGroups: [GroupState] {
-        model.ledger.state.groupsByLastActivity.filter { $0.activeMembers.count >= 2 }
+    private enum Step { case amount, details }
+
+    init(model: NewExpenseModel) {
+        self.model = model
+        _step = State(initialValue: model.isEditing ? .details : .amount)
     }
 
     var body: some View {
+        switch step {
+        case .amount:
+            ExpenseAmountStep(model: model, onCancel: { dismiss() }, onNext: { step = .details })
+        case .details:
+            detailsStep
+        }
+    }
+
+    private var detailsStep: some View {
         GeometryReader { geometry in
             ScrollView {
                 VStack(spacing: 0) {
-                    SheetHeader(model: model, groups: selectableGroups, onCancel: { dismiss() })
-                    AmountDisplay(
-                        display: model.amount.display,
-                        currency: model.currency,
-                        primary: model.group?.currency ?? .sek,
-                        // Editing an amount must not change its currency.
-                        onCurrency: model.isEditing ? nil : { model.currency = $0 }
-                    )
+                    DetailsHeader(onBack: { step = .amount }, onCancel: { dismiss() })
                     DescriptionSection(model: model)
                     SummaryRow(model: model) { showingSplitEditor = true }
                     Spacer(minLength: 8)
-                    Keypad(amount: $model.amount)
                     SaveButton(enabled: model.isValid, action: save)
                 }
                 .frame(minHeight: geometry.size.height)
@@ -40,8 +44,7 @@ struct NewExpenseSheet: View {
             .scrollBounceBehavior(.basedOnSize)
             .scrollDismissesKeyboard(.interactively)
         }
-        // The same wash as the group's own screen, so the sheet reads as part of that group —
-        // and follows the picker when you change which one.
+        // The same wash as the group's own screen.
         .background(Theme.bg)
         .sheet(isPresented: $showingSplitEditor) {
             SplitEditorSheet(model: model)
@@ -67,45 +70,23 @@ struct NewExpenseSheet: View {
     }
 }
 
-// MARK: - Header
+// MARK: - Details header
 
-private struct SheetHeader: View {
-    @Bindable var model: NewExpenseModel
-    let groups: [GroupState]
+private struct DetailsHeader: View {
+    let onBack: () -> Void
     let onCancel: () -> Void
 
     var body: some View {
         HStack {
-            if model.isEditing {
-                // An edit stays in its group: moving an expense between ledgers is not a
-                // correction, it is a delete and a re-add.
-                Text(model.group?.name ?? "")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 13)
-                    .padding(.vertical, 7)
-            } else {
-                Menu {
-                    ForEach(groups) { group in
-                        Button(group.name) { model.selectGroup(group.id) }
-                    }
-                } label: {
-                    HStack(spacing: 6) {
-                        Text(model.group?.name ?? "")
-                            .fixedSize(horizontal: false, vertical: true)
-                        Image(systemName: "chevron.down").font(.caption)
-                    }
-                    .font(.subheadline.weight(.semibold))
+            Button(action: onBack) {
+                Image(systemName: "chevron.left")
+                    .font(.body.weight(.medium))
                     .foregroundStyle(Theme.ink)
-                    .padding(.horizontal, 13)
-                    .padding(.vertical, 7)
-                    .background(Theme.card, in: .capsule)
-                }
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(.rect)
             }
-
+            .accessibilityLabel(Text("Tillbaka"))
             Spacer()
-
             Button("Avbryt", action: onCancel)
                 .font(.body.weight(.medium))
                 .foregroundStyle(Theme.secondary)
@@ -114,63 +95,6 @@ private struct SheetHeader: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
-    }
-}
-
-// MARK: - Amount
-
-private struct AmountDisplay: View {
-    let display: String
-    let currency: CurrencyCode
-    let primary: CurrencyCode
-    /// `nil` locks the currency (editing). Otherwise the suffix is a menu — the M7 entry point:
-    /// type 200, tap "kr", pick DKK, and the dinner lands in the DKK bucket.
-    let onCurrency: ((CurrencyCode) -> Void)?
-
-    private static let choices: [CurrencyCode] = [.sek, .dkk, .nok, .eur]
-
-    /// Explicit whenever the expense strays from the group's primary — "kr" alone cannot say
-    /// which kronor.
-    private var suffix: String {
-        currency == primary ? MoneyFormat.symbol(currency) : currency.code
-    }
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text(display)
-                .accessibilityLabel("Belopp \(display) \(currency.code)")
-                .font(.system(size: 58, weight: .semibold))
-                .monospacedDigit()
-                .foregroundStyle(Theme.ink)
-            if let onCurrency {
-                Menu {
-                    ForEach(Self.choices, id: \.self) { choice in
-                        Button(choice == primary ? "\(choice.code) · \(MoneyFormat.symbol(choice))" : choice.code) {
-                            onCurrency(choice)
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 3) {
-                        Text(suffix)
-                            .font(.system(size: 26, weight: .medium))
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 13, weight: .semibold))
-                    }
-                    .foregroundStyle(currency == primary ? Theme.secondary : Theme.accent)
-                    .frame(minWidth: 44, minHeight: 44)
-                }
-                .accessibilityLabel("Valuta")
-                .accessibilityValue(currency.code)
-            } else {
-                Text(suffix)
-                    .font(.system(size: 26, weight: .medium))
-                    .foregroundStyle(Theme.secondary)
-            }
-        }
-        .padding(.top, 20)
-        .padding(.bottom, 6)
-        .contentTransition(.numericText())
-        .accessibilityElement(children: .contain)
     }
 }
 
@@ -273,93 +197,6 @@ private struct SummaryRow: View {
 /// The participants as one overlapping run of faces — a group sharing a cost is one object,
 /// like the pair in a transfer. You wear your photo; everyone else their initials. Past five the
 /// run ends in a count, because a dinner for twelve is not twelve legible circles.
-
-// MARK: - Keypad
-
-private struct Keypad: View {
-    @Binding var amount: AmountInput
-
-    private let rows: [[KeypadKey]] = [
-        [.digit("1"), .digit("2"), .digit("3")],
-        [.digit("4"), .digit("5"), .digit("6")],
-        [.digit("7"), .digit("8"), .digit("9")],
-        [.comma, .digit("0"), .backspace],
-    ]
-
-    var body: some View {
-        VStack(spacing: 4) {
-            ForEach(rows.indices, id: \.self) { row in
-                HStack(spacing: 4) {
-                    ForEach(rows[row]) { key in
-                        KeyButton(key: key) { press(key) }
-                    }
-                }
-            }
-        }
-        .padding(.horizontal, 34)
-        .padding(.top, 8)
-        // A key that moves nothing — backspace on an empty amount, a second comma — is a key that
-        // did nothing, and the silence is the honest answer. Triggering on the value rather than
-        // on the tap gets that for free.
-        .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.45), trigger: amount)
-    }
-
-    private func press(_ key: KeypadKey) {
-        switch key {
-        case .digit(let d): amount.input(d)
-        case .comma: amount.comma()
-        case .backspace: amount.backspace()
-        }
-    }
-}
-
-private enum KeypadKey: Identifiable, Hashable {
-    case digit(Character)
-    case comma
-    case backspace
-
-    var id: String {
-        switch self {
-        case .digit(let d): return String(d)
-        case .comma: return ","
-        case .backspace: return "⌫"
-        }
-    }
-
-    var label: String {
-        switch self {
-        case .digit(let d): return String(d)
-        case .comma: return ","
-        case .backspace: return "⌫"
-        }
-    }
-}
-
-private struct KeyButton: View {
-    let key: KeypadKey
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(key.label)
-                .font(.system(size: 27, weight: .regular))
-                .foregroundStyle(Theme.ink)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(accessibilityLabel)
-    }
-
-    private var accessibilityLabel: String {
-        switch key {
-        case .digit(let d): return String(d)
-        case .comma: return String(localized: "komma")
-        case .backspace: return String(localized: "radera")
-        }
-    }
-}
 
 // MARK: - Save
 
