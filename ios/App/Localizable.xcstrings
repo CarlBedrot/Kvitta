@@ -1019,6 +1019,66 @@
         }
       }
     },
+    "Du betalar **%@** till %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You're paying **%@** to %@"
+          }
+        }
+      }
+    },
+    "%@ betalar dig **%@**": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is paying you **%@**"
+          }
+        }
+      }
+    },
+    "%@ betalar %@ **%@**": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is paying %@ **%@**"
+          }
+        }
+      }
+    },
+    "Hej! Du är skyldig mig %@ i %@. Swisha gärna till %@ 🙂": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hey! You owe me %@ in %@. Feel free to Swish to %@ 🙂"
+          }
+        }
+      }
+    },
+    "Hej! Du är skyldig mig %@ i %@. Betala gärna via MobilePay till %@ 🙂": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hey! You owe me %@ in %@. Feel free to pay via MobilePay to %@ 🙂"
+          }
+        }
+      }
+    },
+    "Hej! Du är skyldig mig %@ i %@. 🙂": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hey! You owe me %@ in %@. 🙂"
+          }
+        }
+      }
+    },
     "Telefonnummer": {
       "localizations": {
         "en": {
