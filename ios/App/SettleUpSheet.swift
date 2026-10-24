@@ -8,6 +8,10 @@ import KvittaStorage
 /// The app never moves money (design doc §11) — it hands the amount to Swish or MobilePay and then
 /// writes a `PaymentRecorded` event saying the money moved. "Markera som betald" stays the whole
 /// flow for cash, and is the fallback whenever the payment app is not installed.
+///
+/// Restyled to Steven's ark (README §3.3, §6.4, decision 6.4): no reference image exists for this
+/// screen, so the layout borrows 15's pattern (a centred avatar and a bold-amount sentence) rather
+/// than guessing a new one.
 struct SettleUpSheet: View {
     let ledger: LedgerStore
     let userId: UserID
@@ -45,48 +49,50 @@ struct SettleUpSheet: View {
     private var group: GroupState? { ledger.state[groupId] }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                header
-                if recorded {
-                    recordedSteps
-                        .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
-                } else {
-                    amountSection
-                    if iAmThePayer { recipientSection }
-                }
-                Spacer(minLength: 28)
+        VStack(spacing: 0) {
+            Steven.NavTitleBar(title: "Betala", leading: .close({ dismiss() }))
+            ScrollView {
+                VStack(spacing: 0) {
+                    header
+                    if recorded {
+                        recordedSteps
+                            .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
+                    } else {
+                        if iAmThePayer { recipientSection }
+                    }
+                    Spacer(minLength: 28)
 
-                if recorded {
-                    Button("Klart") { dismiss() }
-                        .buttonStyle(PrimaryButtonStyle())
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 24)
-                }
-                if let copiedValue {
-                    Text(copiedValue)
-                        .font(.footnote)
-                        .foregroundStyle(Theme.secondary)
-                        .padding(.bottom, 8)
-                }
+                    if recorded {
+                        Button("Klart") { dismiss() }
+                            .buttonStyle(Steven.FilledButtonStyle())
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 24)
+                    }
+                    if let copiedValue {
+                        Text(copiedValue)
+                            .stevenFont(.footnote)
+                            .foregroundStyle(StevenColor.muted)
+                            .padding(.bottom, 8)
+                    }
 
-                if let failure {
-                    SliceNotice(text: failure).padding(.bottom, 8)
-                }
+                    if let failure {
+                        SliceNotice(text: failure).padding(.bottom, 8)
+                    }
 
-                if recorded {
-                    EmptyView()
-                } else if askingToConfirm {
-                    confirmReturn
-                } else {
-                    actions
+                    if recorded {
+                        EmptyView()
+                    } else if askingToConfirm {
+                        confirmReturn
+                    } else {
+                        actions
+                    }
                 }
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: .infinity)
         }
         .animation(reduceMotion ? nil : .spring(duration: 0.35), value: recorded)
-        .background(AmbientBackground())
-        .tint(Theme.accent)
+        .background(StevenColor.surface)
+        .tint(StevenColor.accent)
         .sensoryFeedback(.success, trigger: settleTick)
         .onChange(of: scenePhase) { _, phase in
             // Back from the payment app. Asking is the point — see `awaitingReturn`.
@@ -101,32 +107,94 @@ struct SettleUpSheet: View {
         }
     }
 
+    /// Avatar, amount sentence and the group it belongs to — the centre of 15's pattern, the
+    /// only one this ark has to borrow since Steven never shows a settle-up screen.
+    private var header: some View {
+        VStack(spacing: 12) {
+            Steven.AvatarView(
+                name: name(counterpart),
+                id: counterpart,
+                size: StevenMetric.avatarHero,
+                isMe: counterpart == group?.me(for: userId)?.id,
+                photo: photo(for: counterpart)
+            )
+            .padding(.top, 20)
+            sentence
+            if let group {
+                Text(verbatim: "\(group.name) · \(transfer.currency.code)")
+                    .stevenFont(.footnote)
+                    .foregroundStyle(StevenColor.muted)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    /// "Du betalar **676,55 kr** till Ellen" (15's pattern) — the other two directions this sheet
+    /// also serves (someone owes you, or a transfer between two other members) get the same
+    /// sentence shape so the screen never shows a role it has no copy for.
+    private var sentence: some View {
+        let amount = StevenMoneyFormat.string(transfer.amountMinor, transfer.currency, explicit: true)
+        return Group {
+            if iAmThePayer {
+                Text("Du betalar **\(amount)** till \(name(transfer.to))")
+            } else if theyOweMe {
+                Text("\(name(transfer.from)) betalar dig **\(amount)**")
+            } else {
+                Text("\(name(transfer.from)) betalar \(name(transfer.to)) **\(amount)**")
+            }
+        }
+        .stevenFont(.rowTitle)
+        .foregroundStyle(StevenColor.ink)
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, 20)
+    }
+
+    /// Whoever this transfer names that is not you — your own face is never the useful one to
+    /// show back to you.
+    private var counterpart: MemberID {
+        let myId = group?.me(for: userId)?.id
+        return transfer.to == myId ? transfer.from : transfer.to
+    }
+
     @ViewBuilder
     private var recipientSection: some View {
-        VStack(spacing: 12) {
-            if let phone = recipientPhone {
+        if let phone = recipientPhone {
+            VStack(spacing: 12) {
                 Button { askingForNumber = true } label: {
-                    Label(phone.international, systemImage: "pencil")
-                        .font(.subheadline)
-                        .frame(minHeight: 44)
+                    Steven.FormRow(label: "Mottagarens nummer", showsSeparator: false) {
+                        HStack(spacing: 8) {
+                            Text(verbatim: phone.international)
+                                .stevenFont(.rowTitle)
+                                .foregroundStyle(StevenColor.accent)
+                            Text("Ändra")
+                                .stevenFont(.rowTitleBold)
+                                .foregroundStyle(StevenColor.accent)
+                        }
+                    }
                 }
+                .buttonStyle(.plain)
                 .accessibilityLabel(String(localized: "Ändra mottagarens nummer: \(phone.international)"))
+                .stevenCardBackground()
+                .padding(.horizontal, 20)
+
                 if phone.country.currency != transfer.currency {
                     Text("Numret använder \(phone.country.currency.code), men skulden är i \(transfer.currency.code). Kom överens om hur ni betalar. Slice växlar inte beloppet.")
-                        .font(.footnote).foregroundStyle(Theme.secondary)
+                        .stevenFont(.footnote)
+                        .foregroundStyle(StevenColor.muted)
                         .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
                 } else if phone.country == .denmark {
                     Text("Välj mottagare och ange beloppet i MobilePay.")
-                        .font(.footnote).foregroundStyle(Theme.secondary)
+                        .stevenFont(.footnote)
+                        .foregroundStyle(StevenColor.muted)
                     ViewThatFits(in: .horizontal) {
                         HStack(spacing: 20) { copyNumber(phone); copyAmount }
                         VStack { copyNumber(phone); copyAmount }
                     }
                 }
             }
+            .padding(.top, 20)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
     }
 
     private func copyNumber(_ phone: PaymentPhoneNumber) -> some View {
@@ -134,7 +202,9 @@ struct SettleUpSheet: View {
             UIPasteboard.general.string = phone.international
             copiedValue = String(localized: "Numret är kopierat.")
         }
-        .font(.subheadline.weight(.semibold)).frame(minHeight: 44)
+        .stevenFont(.rowTitleBold)
+        .foregroundStyle(StevenColor.accent)
+        .frame(minHeight: StevenMetric.minimumHitTarget)
     }
 
     private var copyAmount: some View {
@@ -142,37 +212,13 @@ struct SettleUpSheet: View {
             UIPasteboard.general.string = PaymentLinkBuilder.decimalString(transfer.amountMinor)
             copiedValue = String(localized: "Beloppet är kopierat.")
         }
-        .font(.subheadline.weight(.semibold)).frame(minHeight: 44)
+        .stevenFont(.rowTitleBold)
+        .foregroundStyle(StevenColor.accent)
+        .frame(minHeight: StevenMetric.minimumHitTarget)
     }
 
     private var recipientPhone: PaymentPhoneNumber? {
         payees.number(for: transfer.to).flatMap { PaymentPhoneNumber($0) }
-    }
-
-    /// Who, before how much: the same two faces as the transfer row that opened this sheet,
-    /// so the sheet reads as that row brought closer rather than as a new place.
-    private var header: some View {
-        VStack(spacing: 0) {
-            Text(iAmThePayer ? "Betala" : "Gör upp")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.secondary)
-                .padding(.top, 20)
-
-            HStack(spacing: 12) {
-                Avatar(name: name(transfer.from), photo: photo(for: transfer.from), size: 44)
-                Image(systemName: "arrow.right")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(Theme.tertiary)
-                Avatar(name: name(transfer.to), photo: photo(for: transfer.to), size: 44)
-            }
-            .padding(.top, 14)
-            .accessibilityHidden(true)
-
-            (Text(name(transfer.from)) + Text(verbatim: " → ") + Text(name(transfer.to)))
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(Theme.ink)
-                .padding(.top, 8)
-        }
     }
 
     /// The normal state: a payment app if one applies, and the slide that writes the books.
@@ -195,12 +241,12 @@ struct SettleUpSheet: View {
             Button(link.method == .swish ? "Betala med Swish" : "Öppna MobilePay") {
                 handOff(to: link)
             }
-            .buttonStyle(PrimaryButtonStyle())
+            .buttonStyle(Steven.FilledButtonStyle())
             .padding(.horizontal, 20)
             .padding(.bottom, 16)
         } else if needsNumber {
             Button("Lägg till mottagarens nummer") { askingForNumber = true }
-                .buttonStyle(PrimaryButtonStyle())
+                .buttonStyle(Steven.FilledButtonStyle())
                 .padding(.horizontal, 20)
                 .padding(.bottom, 16)
         }
@@ -212,18 +258,13 @@ struct SettleUpSheet: View {
                 settle(method: .cash)
             }
             .padding(.horizontal, 20)
+            .padding(.bottom, 24)
         } else {
             Button("Redan betalat?") { confirmingManualPayment = true }
-                .font(.body.weight(.medium))
-                .foregroundStyle(Theme.accent)
-                .frame(minHeight: 44)
+                .buttonStyle(Steven.OutlineButtonStyle())
+                .padding(.horizontal, 20)
+                .padding(.bottom, 24)
         }
-
-        Button("Avbryt") { dismiss() }
-            .font(.body.weight(.medium))
-            .foregroundStyle(Theme.secondary)
-            .padding(.top, 14)
-            .padding(.bottom, 24)
     }
 
     /// Back from Swish or MobilePay: the question, answered with the same weight as the cash
@@ -232,8 +273,8 @@ struct SettleUpSheet: View {
     @ViewBuilder
     private var confirmReturn: some View {
         Text("Gick betalningen igenom?")
-            .font(.body.weight(.semibold))
-            .foregroundStyle(Theme.ink)
+            .stevenFont(.rowTitleBold)
+            .foregroundStyle(StevenColor.ink)
             .padding(.bottom, 12)
 
         SlideToConfirm(label: String(localized: "Dra för att bekräfta betalningen")) {
@@ -245,37 +286,25 @@ struct SettleUpSheet: View {
             awaitingReturn = nil
             askingToConfirm = false
         }
-        .font(.body.weight(.medium))
-        .foregroundStyle(Theme.secondary)
+        .stevenFont(.rowTitleBold)
+        .foregroundStyle(StevenColor.accent)
+        .frame(minHeight: StevenMetric.minimumHitTarget)
         .padding(.top, 14)
         .padding(.bottom, 24)
     }
 
-    private var amountSection: some View {
-        // Always spell out the debt currency before leaving for a payment app.
-        let currency = transfer.currency
-        return VStack(spacing: 12) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(MoneyFormat.string(transfer.amountMinor, currency, explicit: true))
-                    .font(.largeTitle.weight(.semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.ink)
-            }
-        }
-        .padding(.top, 20)
-    }
-
-    /// Where the payment stands now that it is written, as the sequence it will move through.
+    /// Where the payment stands now that it is written, as the sequence it will move through
+    /// (Steven list rows, §2.5's `ListRow`/`Hairline` vocabulary rather than a bespoke card).
     ///
-    /// Three steps when somebody still has to answer — Registrerad, Väntar på <namn>, Kvitt —
-    /// so the frozen balance on the group screen has a name before anyone sees it. Two steps,
-    /// both done, when there is nobody to ask: a payee without a linked account, or a payment
-    /// the payee recorded themselves, is confirmed the instant it exists (`Projector`).
+    /// Three steps when somebody still has to answer — Registrerad, Väntar på X, Kvitt — so the
+    /// frozen balance on the group screen has a name before anyone sees it. Two steps, both done,
+    /// when there is nobody to ask: a payee without a linked account, or a payment the payee
+    /// recorded themselves, is confirmed the instant it exists (`Projector`).
     private var recordedSteps: some View {
         VStack(spacing: 16) {
             Text("Betalningen är registrerad")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(Theme.ink)
+                .stevenFont(.cardTitle)
+                .foregroundStyle(StevenColor.ink)
                 .padding(.top, 24)
 
             VStack(spacing: 0) {
@@ -291,8 +320,7 @@ struct SettleUpSheet: View {
                     SettleStepRow(title: String(localized: "Kvitt"), state: .done, isLast: true)
                 }
             }
-            .padding(.horizontal, 4)
-            .cardSurface(padding: 16)
+            .stevenCardBackground()
             .padding(.horizontal, 20)
         }
         .accessibilityElement(children: .combine)
@@ -409,16 +437,18 @@ private struct SettleStepRow: View {
                 marker
                 if !isLast {
                     Rectangle()
-                        .fill(state == .done ? Theme.positive : Theme.hairline)
+                        .fill(state == .done ? StevenColor.accentFill : StevenColor.hairline)
                         .frame(width: 2, height: 22)
                 }
             }
             Text(title)
-                .font(.body.weight(state == .upcoming ? .regular : .semibold))
-                .foregroundStyle(state == .upcoming ? Theme.secondary : Theme.ink)
+                .stevenFont(state == .upcoming ? .rowTitle : .rowTitleBold)
+                .foregroundStyle(state == .upcoming ? StevenColor.muted : StevenColor.ink)
                 .padding(.top, 1)
             Spacer(minLength: 0)
         }
+        .padding(.horizontal, StevenMetric.gutter)
+        .frame(minHeight: StevenMetric.rowHeight)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityText)
     }
@@ -429,16 +459,16 @@ private struct SettleStepRow: View {
         case .done:
             Image(systemName: "checkmark")
                 .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(StevenColor.onAccentFill)
                 .frame(width: 22, height: 22)
-                .background(Theme.positive, in: .circle)
+                .background(StevenColor.accentFill, in: .circle)
         case .current:
             Circle()
-                .strokeBorder(Theme.accent, lineWidth: 2.5)
+                .strokeBorder(StevenColor.accent, lineWidth: 2.5)
                 .frame(width: 22, height: 22)
         case .upcoming:
             Circle()
-                .strokeBorder(Theme.hairline, lineWidth: 2)
+                .strokeBorder(StevenColor.hairline, lineWidth: 2)
                 .frame(width: 22, height: 22)
         }
     }
