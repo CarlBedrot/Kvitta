@@ -1447,6 +1447,16 @@
         }
       }
     },
+    "Så räknas det" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How it's calculated"
+          }
+        }
+      }
+    },
     "Väntar på %@" : {
       "localizations" : {
         "en" : {
