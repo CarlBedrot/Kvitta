@@ -12,11 +12,16 @@ import KvittaStorage
 /// deviation from the mockup: the mockup sketches a pairwise "Din balans med Jonas", but the
 /// audited quantity in this app is a member's balance against the group — that is what the
 /// balance card and the transfers are derived from, so it is what tapping them must explain.
+///
+/// Steven ark (#149, README §2.5 `NavTitleBar`, §4.4 "Saldorevision… STÄLLNING → utfälld rad →
+/// 'Så räknas det'"): only `ios/App/Steven/` tokens below, no `Theme`/`cardSurface` survivors.
 struct BalanceAuditSheet: View {
     let ledger: LedgerStore
     let userId: UserID
     let groupId: GroupID
     let memberId: MemberID
+
+    @Environment(\.dismiss) private var dismiss
 
     private var group: GroupState? { ledger.state[groupId] }
 
@@ -25,7 +30,7 @@ struct BalanceAuditSheet: View {
             content(for: group)
         } else {
             ContentUnavailableView("Gruppen finns inte längre", systemImage: "person.2.slash")
-                .background(AmbientBackground())
+                .background(StevenColor.screen)
         }
     }
 
@@ -40,63 +45,66 @@ struct BalanceAuditSheet: View {
             .map { ($0, group.breakdown(for: memberId, in: $0)) }
             .filter { !$0.1.isEmpty }
 
-        return ScrollView {
-            LazyVStack(alignment: .leading, spacing: 14) {
-                Text(isMe ? String(localized: "Din balans") : memberName)
-                    .font(.title2.weight(.bold))
-                    .foregroundStyle(Theme.ink)
-                    .padding(.top, 20)
-
-                if perCurrency.isEmpty {
-                    Text("Inga utgifter eller betalningar än.")
-                        .font(.subheadline)
-                        .foregroundStyle(Theme.secondary)
-                        .frame(maxWidth: .infinity)
-                        .cardSurface()
-                } else {
-                    ForEach(perCurrency, id: \.0) { currency, entries in
-                        if perCurrency.count > 1 {
-                            SectionHeader(title: currency.code)
+        return VStack(spacing: 0) {
+            Steven.NavTitleBar(leading: .close { dismiss() }) {
+                Text(verbatim: isMe ? String(localized: "Din balans") : memberName)
+            }
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 14) {
+                    if perCurrency.isEmpty {
+                        Steven.Card {
+                            Text("Inga utgifter eller betalningar än.")
+                                .stevenFont(.rowTitle)
+                                .foregroundStyle(StevenColor.muted)
+                                .frame(maxWidth: .infinity)
                         }
-                        // The answer first: share − paid = result. Then the receipts.
-                        if let summary = BalanceSummary(group: group, memberId: memberId, currency: currency) {
-                            SummaryCard(summary: summary, explicit: currency != group.currency,
+                    } else {
+                        ForEach(perCurrency, id: \.0) { currency, entries in
+                            if perCurrency.count > 1 {
+                                Steven.SectionHeader(verbatim: currency.code)
+                            }
+                            // The answer first: share − paid = result. Then the receipts.
+                            if let summary = BalanceSummary(group: group, memberId: memberId, currency: currency) {
+                                SummaryCard(summary: summary, explicit: currency != group.currency,
+                                            isMe: isMe, memberName: memberName)
+                            }
+                            Steven.SectionHeader("Så här räknade vi")
+                            entriesCard(entries, group: group, currency: currency,
                                         isMe: isMe, memberName: memberName)
                         }
-                        SectionHeader(title: String(localized: "Så här räknade vi"))
-                        entriesCard(entries, group: group, currency: currency,
-                                    isMe: isMe, memberName: memberName)
                     }
                 }
+                .padding(.horizontal, StevenMetric.gutter)
+                .padding(.top, 8)
+                .padding(.bottom, 26)
             }
-            .padding(.horizontal, 18)
-            .padding(.bottom, 26)
         }
-        .background(AmbientBackground())
+        .background(StevenColor.screen)
     }
 
     private func entriesCard(
         _ entries: [LedgerEntry], group: GroupState, currency: CurrencyCode,
         isMe: Bool, memberName: String
     ) -> some View {
-        LazyVStack(spacing: 0) {
-            ForEach(Array(entries.enumerated()), id: \.offset) { index, entry in
-                if index > 0 {
-                    Rectangle().fill(Theme.hairline).frame(height: 1)
+        Steven.Card(padding: 14) {
+            VStack(spacing: 0) {
+                ForEach(Array(entries.enumerated()), id: \.offset) { index, entry in
+                    if index > 0 {
+                        Steven.Hairline()
+                    }
+                    AuditRow(entry: entry, group: group, currency: currency)
                 }
-                AuditRow(entry: entry, group: group, currency: currency)
+                TotalRow(
+                    // The API's guarantee, restated where it is visible: the last running total IS
+                    // the balance. Render that value rather than recomputing anything.
+                    totalMinor: entries.last?.runningTotalMinor ?? 0,
+                    currency: currency,
+                    explicit: currency != group.currency,
+                    isMe: isMe,
+                    memberName: memberName
+                )
             }
-            TotalRow(
-                // The API's guarantee, restated where it is visible: the last running total IS
-                // the balance. Render that value rather than recomputing anything.
-                totalMinor: entries.last?.runningTotalMinor ?? 0,
-                currency: currency,
-                explicit: currency != group.currency,
-                isMe: isMe,
-                memberName: memberName
-            )
         }
-        .cardSurface(padding: 14)
     }
 }
 
@@ -112,53 +120,58 @@ private struct SummaryCard: View {
     let memberName: String
 
     var body: some View {
-        VStack(spacing: 0) {
-            line(
-                isMe ? String(localized: "Din andel av utgifterna") : String(localized: "Andel av utgifterna"),
-                amountMinor: summary.shareMinor
-            )
-            if summary.receivedMinor > 0 {
+        Steven.Card(padding: 14) {
+            VStack(spacing: 0) {
                 line(
-                    isMe ? String(localized: "Betalningar du fått") : String(localized: "Betalningar mottagna"),
-                    amountMinor: summary.receivedMinor
+                    isMe ? String(localized: "Din andel av utgifterna") : String(localized: "Andel av utgifterna"),
+                    amountMinor: summary.shareMinor
+                )
+                if summary.receivedMinor > 0 {
+                    line(
+                        isMe ? String(localized: "Betalningar du fått") : String(localized: "Betalningar mottagna"),
+                        amountMinor: summary.receivedMinor
+                    )
+                }
+                line(
+                    isMe ? String(localized: "Det du betalade") : String(localized: "Betalade"),
+                    amountMinor: -summary.paidMinor
+                )
+                if summary.sentMinor > 0 {
+                    line(
+                        isMe ? String(localized: "Betalningar du skickat") : String(localized: "Betalningar skickade"),
+                        amountMinor: -summary.sentMinor
+                    )
+                }
+                TotalRow(
+                    // Sign flipped on purpose: the lines above read as "what you owe", so a positive
+                    // running result is a debt in that column. The phrase and colour still follow
+                    // the balance's own convention, which is what the hero card shows.
+                    totalMinor: summary.resultMinor,
+                    currency: summary.currency,
+                    explicit: explicit,
+                    isMe: isMe,
+                    memberName: memberName
                 )
             }
-            line(
-                isMe ? String(localized: "Det du betalade") : String(localized: "Betalade"),
-                amountMinor: -summary.paidMinor
-            )
-            if summary.sentMinor > 0 {
-                line(
-                    isMe ? String(localized: "Betalningar du skickat") : String(localized: "Betalningar skickade"),
-                    amountMinor: -summary.sentMinor
-                )
-            }
-            TotalRow(
-                // Sign flipped on purpose: the lines above read as "what you owe", so a positive
-                // running result is a debt in that column. The phrase and colour still follow
-                // the balance's own convention, which is what the hero card shows.
-                totalMinor: summary.resultMinor,
-                currency: summary.currency,
-                explicit: explicit,
-                isMe: isMe,
-                memberName: memberName
-            )
         }
-        .cardSurface(padding: 14)
     }
 
     private func line(_ label: String, amountMinor: Int64) -> some View {
         HStack(alignment: .firstTextBaseline) {
             Text(label)
-                .font(.subheadline)
-                .foregroundStyle(Theme.ink)
+                .stevenFont(.rowTitle)
+                .foregroundStyle(StevenColor.ink)
             Spacer()
             // Zero has no sign to show; a negative line reads "−900 kr" so the subtraction is
             // visible on the page rather than implied by the label.
-            Text(MoneyFormat.string(amountMinor, summary.currency, sign: amountMinor < 0 ? .always : .none, explicit: explicit))
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(Theme.ink)
-                .monospacedDigit()
+            Steven.MoneyText(
+                amountMinor: amountMinor,
+                currency: summary.currency,
+                font: .rowTitle,
+                tone: .ink,
+                sign: amountMinor < 0 ? .always : .none,
+                explicit: explicit
+            )
         }
         .padding(.vertical, 7)
         .accessibilityElement(children: .combine)
@@ -180,20 +193,20 @@ private struct AuditRow: View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.ink)
-                Text("löpande: \(MoneyFormat.string(entry.runningTotalMinor, currency, sign: .always, explicit: explicit))")
-                    .font(.caption)
-                    .foregroundStyle(Theme.secondary)
+                    .stevenFont(.rowTitle)
+                    .foregroundStyle(StevenColor.ink)
+                Text(verbatim: "löpande: \(StevenMoneyFormat.string(entry.runningTotalMinor, currency, sign: .always, explicit: explicit))")
+                    .stevenFont(.footnote)
+                    .foregroundStyle(StevenColor.muted)
                     .monospacedDigit()
             }
             Spacer()
-            SignedAmountText(
+            Steven.MoneyText(
                 amountMinor: entry.deltaMinor,
                 currency: currency,
-                size: 15,
-                explicit: explicit,
-                accessibilityPhrase: "\(label), \(MoneyFormat.string(entry.deltaMinor, currency, sign: .always, explicit: explicit))"
+                font: .rowTitle,
+                tone: .direction,
+                explicit: explicit
             )
         }
         .padding(.vertical, 9)
@@ -225,19 +238,19 @@ private struct TotalRow: View {
 
     var body: some View {
         HStack {
-            Text(phrase).font(.body.weight(.bold)).foregroundStyle(Theme.ink)
+            Text(phrase).stevenFont(.rowTitleBold).foregroundStyle(StevenColor.ink)
             Spacer()
-            SignedAmountText(
+            Steven.MoneyText(
                 amountMinor: totalMinor,
                 currency: currency,
-                size: 17,
-                explicit: explicit,
-                accessibilityPhrase: "\(phrase): \(MoneyFormat.string(abs(totalMinor), currency, explicit: explicit))"
+                font: .rowTitleBold,
+                tone: .direction,
+                explicit: explicit
             )
         }
         .padding(.top, 12)
         .overlay(alignment: .top) {
-            Rectangle().fill(Theme.ink).frame(height: 2)
+            Rectangle().fill(StevenColor.ink).frame(height: 2)
         }
         .padding(.top, 6)
         .accessibilityElement(children: .combine)
