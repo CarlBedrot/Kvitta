@@ -11,6 +11,7 @@ struct NewExpenseSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingSplitEditor = false
     @State private var saveTick = 0
+    @State private var confirmingDelete = false
 
     /// Only groups you can actually split in appear in the menu.
     private var selectableGroups: [GroupState] {
@@ -34,6 +35,9 @@ struct NewExpenseSheet: View {
                     Spacer(minLength: 8)
                     Keypad(amount: $model.amount)
                     SaveButton(enabled: model.isValid, action: save)
+                    if model.isEditing {
+                        DeleteButton(action: { confirmingDelete = true })
+                    }
                 }
                 .frame(minHeight: geometry.size.height)
             }
@@ -52,6 +56,15 @@ struct NewExpenseSheet: View {
         } message: {
             Text(model.failure ?? "")
         }
+        .confirmationDialog(
+            "Ta bort utgiften?",
+            isPresented: $confirmingDelete,
+            titleVisibility: .visible
+        ) {
+            Button("Ta bort", role: .destructive, action: delete)
+        } message: {
+            Text("Den går att återställa under Visa borttagna.")
+        }
     }
 
     private var failureBinding: Binding<Bool> {
@@ -62,6 +75,12 @@ struct NewExpenseSheet: View {
         // Local and instant — a haptic and dismissal, never a spinner (CLAUDE.md).
         if model.save() {
             saveTick += 1
+            dismiss()
+        }
+    }
+
+    private func delete() {
+        if model.delete() {
             dismiss()
         }
     }
@@ -375,5 +394,23 @@ private struct SaveButton: View {
         .padding(.horizontal, 20)
         .padding(.top, 12)
         .padding(.bottom, 30)
+    }
+}
+
+/// "Ta bort utgift" (15, 3.2): a red text button at the bottom of the editor, only while editing
+/// an existing expense. Confirmation and the write itself live in `NewExpenseModel.delete()`.
+private struct DeleteButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(role: .destructive, action: action) {
+            Text("Ta bort utgift")
+                .font(.subheadline.weight(.medium))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+        }
+        .foregroundStyle(Theme.clay)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 20)
     }
 }

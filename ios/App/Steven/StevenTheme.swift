@@ -107,6 +107,11 @@ enum StevenFont: CaseIterable {
     case amountLarge
     /// Tab bar labels (01, 05).
     case tabBar
+    /// The payer sentence under the expense-detail avatar (15): "Carl betalade 368 kr". Its own
+    /// size — nothing else in §2.2's table is 20 pt — because the bold amount run inside it needs
+    /// a concrete `Text` (for `Text` concatenation), which `stevenFont` can't give: see
+    /// `ExpenseDetailSheet.PayerSentence`.
+    case sentence
 
     var size: CGFloat {
         switch self {
@@ -118,6 +123,7 @@ enum StevenFont: CaseIterable {
         case .footnote, .footnoteBold, .tab, .section: 15
         case .keypad: 28
         case .tabBar: 13
+        case .sentence: 20
         }
     }
 
@@ -127,7 +133,7 @@ enum StevenFont: CaseIterable {
         case .groupTitle, .cardTitle, .amountLarge, .navTitle, .rowTitleBold, .footnoteBold, .tab: .bold
         case .amountHero: .heavy
         case .tabBar: .semibold
-        case .rowTitle, .footnote, .section, .keypad: .regular
+        case .rowTitle, .footnote, .section, .keypad, .sentence: .regular
         }
     }
 
@@ -140,6 +146,7 @@ enum StevenFont: CaseIterable {
         case .rowTitle: .body
         case .footnote, .footnoteBold, .tab, .section: .subheadline
         case .tabBar: .caption
+        case .sentence: .title3
         }
     }
 

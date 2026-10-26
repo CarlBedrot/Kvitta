@@ -211,6 +211,16 @@
         }
       }
     },
+    "för %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "for %@"
+          }
+        }
+      }
+    },
     "Annan" : {
       "localizations" : {
         "en" : {
@@ -3943,6 +3953,46 @@
         }
       }
     },
+    "Utgift skapad manuellt, av %@, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expense created manually, by %@, %@"
+          }
+        }
+      }
+    },
+    "Utgift skapad manuellt, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expense created manually, %@"
+          }
+        }
+      }
+    },
+    "Ändrad av %@, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edited by %@, %@"
+          }
+        }
+      }
+    },
+    "Ändrad %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edited %@"
+          }
+        }
+      }
+    },
     "Snabbfunktioner" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4230,6 +4280,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete this expense?"
+          }
+        }
+      }
+    },
+    "Ta bort utgift" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete expense"
           }
         }
       }
