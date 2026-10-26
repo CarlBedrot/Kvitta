@@ -2,8 +2,9 @@ import SwiftUI
 import KvittaCore
 import KvittaStorage
 
-/// Utgiftsdetalj: the shares, the payer, when it was created and edited, and the two write
-/// actions — edit (a full-payload `ExpenseUpdated`) and soft delete (`ExpenseDeleted`).
+/// Utgiftsdetalj (15): the payer's face and the sentence, when it was created and last edited,
+/// and the shares everyone carries. The only write actions here are "Ändra", which opens the
+/// expense for editing, and the editor itself (soft delete lives there — see `NewExpenseSheet`).
 ///
 /// Presented by id and read live from the projection, so a save from the edit sheet on top of
 /// this one updates these numbers the moment it lands.
@@ -15,197 +16,251 @@ struct ExpenseDetailSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var editModel: NewExpenseModel?
-    @State private var confirmingDelete = false
-    @State private var failure: String?
 
     private var group: GroupState? { ledger.state[groupId] }
     private var expense: Expense? { group?.expenses[expenseId] }
 
     var body: some View {
-        Group {
+        VStack(spacing: 0) {
+            Steven.NavTitleBar(leading: .close({ dismiss() }), trailing: trailing) {
+                Text(verbatim: expense?.title ?? "")
+            }
             if let group, let expense {
                 content(group: group, expense: expense)
             } else {
                 ContentUnavailableView("Utgiften finns inte längre", systemImage: "questionmark.circle")
-                    .background(AmbientBackground())
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                Spacer()
-                EditorialCircleButton(symbol: "xmark", label: String(localized: "Stäng")) { dismiss() }
-            }.padding(.horizontal, 18).padding(.top, 12).background(Theme.bg)
+        .background(StevenColor.surface, ignoresSafeAreaEdges: .top)
+        .sheet(item: $editModel) { model in
+            NewExpenseSheet(model: model)
+                .presentationDragIndicator(.visible)
         }
+    }
+
+    private var trailing: Steven.NavTrailing {
+        guard let expense else { return .none }
+        return .text("Ändra", { startEditing(expense) })
+    }
+
+    private func startEditing(_ expense: Expense) {
+        editModel = NewExpenseModel(ledger: ledger, userId: userId, groupId: groupId, editing: expense)
     }
 
     private func content(group: GroupState, expense: Expense) -> some View {
         let meId = group.me(for: userId)?.id
         return ScrollView {
-            VStack(spacing: 14) {
-                ExpenseHeader(expense: expense)
-                SharesCard(group: group, meId: meId, expense: expense)
-                HistoryCard(group: group, expense: expense)
-
-                if let failure {
-                    SliceNotice(text: failure)
-                }
-
-                ActionButtons(
-                    onEdit: {
-                        editModel = NewExpenseModel(
-                            ledger: ledger, userId: userId, groupId: groupId, editing: expense
-                        )
-                    },
-                    onDelete: { confirmingDelete = true }
-                )
+            VStack(spacing: 0) {
+                PayerSummary(group: group, meId: meId, expense: expense)
+                ParticipantsSection(group: group, meId: meId, expense: expense)
+                Footnote(group: group, expense: expense)
             }
-            .padding(.horizontal, 18)
-            .padding(.top, 24)
             .padding(.bottom, 26)
-        }
-        .background(AmbientBackground())
-        .sheet(item: $editModel) { model in
-            NewExpenseSheet(model: model)
-                .presentationDragIndicator(.visible)
-        }
-        .confirmationDialog(
-            "Ta bort utgiften?",
-            isPresented: $confirmingDelete,
-            titleVisibility: .visible
-        ) {
-            Button("Ta bort", role: .destructive, action: delete)
-        } message: {
-            Text("Den går att återställa under Visa borttagna.")
-        }
-    }
-
-    private func delete() {
-        do {
-            // Soft delete: the event stays in the log, "Visa borttagna" and restore both work.
-            try ledger.record(.expenseDeleted(EmptyPayload()), entityId: expenseId.rawValue, in: groupId)
-            dismiss()
-        } catch {
-            failure = String(describing: error)
         }
     }
 }
 
-// MARK: - Sections
+// MARK: - Payer summary
 
-private struct ExpenseHeader: View {
+/// The avatar, the "Carl betalade **368 kr**" / "för Køben" sentence, and the date — all
+/// centered (15).
+private struct PayerSummary: View {
+    let group: GroupState
+    let meId: MemberID?
     let expense: Expense
+
+    private var payer: MoneyLine? { expense.payload.payers.first }
 
     var body: some View {
         VStack(spacing: 8) {
-            CategoryGlyph(categoryId: expense.categoryId, size: 64)
-            Text(expense.title)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(Theme.ink)
-            NeutralAmountText(amountMinor: expense.amountMinor, currency: expense.currency, size: 34)
-            Text(expense.date.displayString)
-                .font(.footnote)
-                .foregroundStyle(Theme.secondary)
+            // `payer` is only ever empty for a malformed expense the write-side invariant (every
+            // expense sums to a positive amount across at least one payer) should never produce —
+            // the expense's own id just keeps the pastel plate stable if it somehow does.
+            Steven.AvatarView(name: payerName, id: payer?.memberId ?? MemberID(rawValue: expense.id.rawValue),
+                               size: StevenMetric.avatarHero, isMe: payer?.memberId == meId)
+            PayerSentence(payerName: payerName, amountMinor: payer?.amountMinor ?? expense.amountMinor,
+                          currency: expense.currency)
+            Text(String(localized: "för \(expense.title)"))
+                .stevenFont(.sentence)
+                .foregroundStyle(StevenColor.ink)
+                .multilineTextAlignment(.center)
+            Text(verbatim: StevenExpenseDate.detailLine(expense.date))
+                .stevenFont(.rowTitle)
+                .foregroundStyle(StevenColor.muted)
+                .padding(.top, 4)
         }
+        .padding(.horizontal, StevenMetric.gutter)
+        .padding(.top, 32)
+        .padding(.bottom, 24)
         .frame(maxWidth: .infinity)
+    }
+
+    private var payerName: String {
+        guard let payer else { return "?" }
+        if payer.memberId == meId { return String(localized: "Du") }
+        return firstName(of: group.members[payer.memberId]?.displayName ?? "?")
     }
 }
 
-private struct SharesCard: View {
+/// "Carl betalade **368 kr**": one `Text` run so the bold amount sits inline with the regular
+/// words. `stevenFont` can't build it — it returns `some View`, not `Text`, and only `Text` can
+/// be concatenated with `+` — so this reads `StevenFont.sentence`'s own size and weight directly.
+private struct PayerSentence: View {
+    let payerName: String
+    let amountMinor: Int64
+    let currency: CurrencyCode
+
+    @ScaledMetric(relativeTo: StevenFont.sentence.textStyle) private var size: CGFloat = StevenFont.sentence.size
+
+    var body: some View {
+        (regular + bold)
+            .multilineTextAlignment(.center)
+            .foregroundStyle(StevenColor.ink)
+    }
+
+    private var regular: Text {
+        Text(verbatim: String(localized: "\(payerName) betalade") + " ")
+            .font(.system(size: size, weight: StevenFont.sentence.weight))
+    }
+
+    private var bold: Text {
+        Text(verbatim: StevenMoneyFormat.string(amountMinor, currency))
+            .font(.system(size: size, weight: .bold))
+            .monospacedDigit()
+    }
+}
+
+// MARK: - Participants
+
+/// "Deltagare" and one row per share (15). Sentence case, not the all-caps `SectionHeader` the
+/// rest of the app uses for section titles — the reference image shows it lowercase.
+private struct ParticipantsSection: View {
     let group: GroupState
     let meId: MemberID?
     let expense: Expense
 
     var body: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(expense.payload.payers.enumerated()), id: \.element.memberId) { _, line in
-                LabeledContent {
-                    NeutralAmountText(amountMinor: line.amountMinor, currency: expense.currency, size: 15)
-                } label: {
-                    Text("\(name(line.memberId)) betalade").foregroundStyle(Theme.ink)
-                }
-                .padding(.vertical, 8)
-            }
-            Rectangle().fill(Theme.hairline).frame(height: 1)
-            ForEach(Array(expense.payload.shares.enumerated()), id: \.element.memberId) { index, line in
-                if index > 0 {
-                    Rectangle().fill(Theme.hairline).frame(height: 1)
-                }
-                LabeledContent {
-                    NeutralAmountText(amountMinor: line.amountMinor, currency: expense.currency, size: 15)
-                } label: {
-                    Text(name(line.memberId)).foregroundStyle(Theme.secondary)
-                }
-                .padding(.vertical, 8)
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Deltagare")
+                .stevenFont(.footnote)
+                .foregroundStyle(StevenColor.muted)
+                .padding(.horizontal, StevenMetric.gutter)
+                .padding(.top, 20)
+                .padding(.bottom, 8)
+                .accessibilityAddTraits(.isHeader)
+            Steven.Hairline()
+            ForEach(expense.payload.shares, id: \.memberId) { share in
+                ParticipantRow(name: name(of: share.memberId), memberId: share.memberId,
+                                isMe: share.memberId == meId,
+                                amountMinor: share.amountMinor, currency: expense.currency)
             }
         }
-        .font(.subheadline)
-        .cardSurface(padding: 14)
     }
 
-    private func name(_ memberId: MemberID) -> String {
+    private func name(of memberId: MemberID) -> String {
         if memberId == meId { return String(localized: "Du") }
-        return group.members[memberId]?.displayName ?? "?"
+        return firstName(of: group.members[memberId]?.displayName ?? "?")
     }
 }
 
-/// Created / last edited, straight off the projected entity. The full event-by-event history
-/// belongs to a later round once the store exposes per-entity event queries.
-private struct HistoryCard: View {
+/// One participant: avatar 40, first name, their share in grey (15).
+private struct ParticipantRow: View {
+    let name: String
+    let memberId: MemberID
+    let isMe: Bool
+    let amountMinor: Int64
+    let currency: CurrencyCode
+
+    var body: some View {
+        HStack(spacing: 16) {
+            Steven.AvatarView(name: name, id: memberId, size: StevenMetric.avatarRow, isMe: isMe)
+            Text(verbatim: name).stevenFont(.rowTitle).foregroundStyle(StevenColor.ink)
+            Spacer(minLength: 8)
+            Steven.MoneyText(amountMinor: amountMinor, currency: currency, font: .rowTitle, tone: .muted)
+        }
+        .padding(.horizontal, StevenMetric.gutter)
+        .frame(minHeight: StevenMetric.rowHeight)
+        .overlay(alignment: .bottom) { Steven.Hairline(color: StevenColor.rowSeparator) }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+// MARK: - Footnote
+
+/// "Utgift skapad manuellt, av Carl Bedrot, 19 okt., 2026, 16:40" (+ a second line once edited),
+/// straight off the projected entity — the full event-by-event history belongs to a later round
+/// once the store exposes per-entity event queries.
+private struct Footnote: View {
     let group: GroupState
     let expense: Expense
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Skapad \(expense.createdAt.date.formatted(date: .abbreviated, time: .shortened))\(author(expense.createdBy))")
+            Text(verbatim: created)
             if expense.wasEdited {
-                Text("Senast redigerad \(expense.lastModifiedAt.date.formatted(date: .abbreviated, time: .shortened))\(author(expense.lastModifiedBy))")
+                Text(verbatim: edited)
             }
         }
-        .font(.footnote)
-        .foregroundStyle(Theme.secondary)
+        .stevenFont(.footnote)
+        .foregroundStyle(StevenColor.muted)
+        .padding(.horizontal, StevenMetric.gutter)
+        .padding(.top, 20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .cardSurface(padding: 14)
     }
 
-    /// " av Jonas" when the author maps to a member of this group, empty otherwise. Only linked
-    /// members are mappable — placeholder members never author events.
-    private func author(_ userId: UserID) -> String {
-        guard let member = group.members.values.first(where: { $0.linkedUserId == userId }) else {
-            return ""
+    private var created: String {
+        let when = StevenExpenseDate.footnoteLine(expense.createdAt.date)
+        guard let author = author(expense.createdBy) else {
+            return String(localized: "Utgift skapad manuellt, \(when)")
         }
-        return String(localized: " av \(member.displayName)")
+        return String(localized: "Utgift skapad manuellt, av \(author), \(when)")
+    }
+
+    private var edited: String {
+        let when = StevenExpenseDate.footnoteLine(expense.lastModifiedAt.date)
+        guard let author = author(expense.lastModifiedBy) else {
+            return String(localized: "Ändrad \(when)")
+        }
+        return String(localized: "Ändrad av \(author), \(when)")
+    }
+
+    /// Only linked members are mappable — placeholder members never author events.
+    private func author(_ userId: UserID) -> String? {
+        group.members.values.first { $0.linkedUserId == userId }?.displayName
     }
 }
 
-private struct ActionButtons: View {
-    let onEdit: () -> Void
-    let onDelete: () -> Void
+// MARK: - Shared helpers
 
-    var body: some View {
-        VStack(spacing: 10) {
-            Button("Redigera", action: onEdit)
-                .buttonStyle(PrimaryButtonStyle(fill: Theme.controlFill, label: Theme.controlLabel))
-
-            Button(role: .destructive, action: onDelete) {
-                Text("Ta bort")
-                    .font(.subheadline.weight(.medium))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-            }
-            .foregroundStyle(Theme.clay)
-        }
-        .padding(.top, 6)
-    }
+/// "Ellen Ekwall" → "Ellen"; a one-word name is left alone.
+private func firstName(of name: String) -> String {
+    name.split(separator: " ").first.map(String.init) ?? name
 }
 
-extension CalendarDate {
-    /// "26 juli 2026", locale-aware. Display only; the wire format stays ISO 8601.
-    var displayString: String {
+/// Steven's expense-detail date strings (15): hand-built like `StevenMoneyFormat`, because the
+/// comma placement is Steven's own style, not one of `Date.FormatStyle`'s locale defaults.
+/// Weekday and month names still come from the current locale, so English keeps reading in words.
+enum StevenExpenseDate {
+    /// "måndag 19, okt. 2026" — the sentence's date line.
+    static func detailLine(_ date: CalendarDate) -> String {
         var components = DateComponents()
-        components.year = year
-        components.month = month
-        components.day = day
-        guard let date = Calendar.current.date(from: components) else { return iso8601 }
-        return date.formatted(date: .long, time: .omitted)
+        components.year = date.year
+        components.month = date.month
+        components.day = date.day
+        guard let resolved = Calendar.current.date(from: components) else { return date.iso8601 }
+        let weekday = Calendar.current.weekdaySymbols[Calendar.current.component(.weekday, from: resolved) - 1]
+        let month = resolved.formatted(.dateTime.month(.abbreviated))
+        return "\(weekday) \(date.day), \(month) \(date.year)"
+    }
+
+    /// "19 okt., 2026, 16:40" — the footnote timestamp.
+    static func footnoteLine(_ date: Date) -> String {
+        let calendar = Calendar.current
+        let day = calendar.component(.day, from: date)
+        let year = calendar.component(.year, from: date)
+        let month = date.formatted(.dateTime.month(.abbreviated))
+        let time = date.formatted(.dateTime.hour().minute())
+        return "\(day) \(month), \(year), \(time)"
     }
 }

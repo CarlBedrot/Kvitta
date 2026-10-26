@@ -150,6 +150,21 @@ final class NewExpenseModel: Identifiable {
             return false
         }
     }
+
+    /// Soft-deletes the expense being edited ("Ta bort utgift", 15). Only meaningful while
+    /// editing — `create` has nothing to delete yet. The event stays in the log, so "Visa
+    /// borttagna" and restore both still work.
+    @discardableResult
+    func delete() -> Bool {
+        guard case .edit(let expenseId) = purpose else { return false }
+        do {
+            try ledger.record(.expenseDeleted(EmptyPayload()), entityId: expenseId.rawValue, in: groupId)
+            return true
+        } catch {
+            failure = String(describing: error)
+            return false
+        }
+    }
 }
 
 enum NewExpenseError: Error {
