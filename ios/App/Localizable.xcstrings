@@ -1487,6 +1487,26 @@
         }
       }
     },
+    "Vi räknar ut vem som är skyldig vem och föreslår så få överföringar som möjligt, i stället för att reda ut varje utgift för sig." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We work out who owes whom and suggest as few transfers as possible, instead of untangling every expense on its own."
+          }
+        }
+      }
+    },
+    "En betalning väntar på mottagarens bekräftelse. Bestrider de den räknas den aldrig; svarar ingen alls räknas den ändå efter 7 dagar, så en skuld aldrig fastnar bara för att någon glömmer bekräfta." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A payment waits for the recipient's confirmation. If they dispute it, it never counts; if nobody answers, it counts anyway after 7 days, so a debt never gets stuck just because someone forgets to confirm."
+          }
+        }
+      }
+    },
     "%@, klart" : {
       "localizations" : {
         "en" : {
@@ -4087,12 +4107,32 @@
         }
       }
     },
+    "Auto-bekräftad" : {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto-confirmed"
+          }
+        }
+      }
+    },
     "Avräknad" : {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Settled"
+          }
+        }
+      }
+    },
+    "Bekräftad" : {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmed"
           }
         }
       }
@@ -4361,6 +4401,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "pending"
+          }
+        }
+      }
+    },
+    "Väntar" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting"
           }
         }
       }
