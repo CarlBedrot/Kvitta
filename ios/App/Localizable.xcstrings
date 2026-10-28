@@ -5263,6 +5263,138 @@
           }
         }
       }
+    },
+    "Gruppnamn" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group name"
+          }
+        }
+      }
+    },
+    "Statistik" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Statistics"
+          }
+        }
+      }
+    },
+    "Lägg till medlemmar" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add members"
+          }
+        }
+      }
+    },
+    "Grupplänk" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group link"
+          }
+        }
+      }
+    },
+    "General" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "General"
+          }
+        }
+      }
+    },
+    "Gruppbild" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group photo"
+          }
+        }
+      }
+    },
+    "Arkivera grupp" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archive group"
+          }
+        }
+      }
+    },
+    "Lämna grupp" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave group"
+          }
+        }
+      }
+    },
+    "Lämna gruppen?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave the group?"
+          }
+        }
+      }
+    },
+    "Lämna" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave"
+          }
+        }
+      }
+    },
+    "Du tas bort ur gruppen. Det går inte att ångra." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You'll be removed from the group. This can't be undone."
+          }
+        }
+      }
+    },
+    "Du måste vara kvitt i alla valutor för att kunna lämna gruppen." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You need to be settled in every currency before you can leave the group."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
