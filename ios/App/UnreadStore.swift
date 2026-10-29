@@ -9,19 +9,24 @@ import KvittaStorage
 /// permanence for a fact that is nobody else's business. Same reasoning as `PayeeDirectory` and
 /// the Swish number.
 ///
-/// So read state is one integer in `UserDefaults`: the `receivedAt` of the newest event this
-/// device had heard about the last time the feed was on screen. Everything that arrived after it,
-/// and that somebody else wrote, is unread. That needs no network and no account, which matters —
-/// the app without an account is the offline app and must stay fully functional.
+/// Two layers, both local-only:
+/// - a watermark (the `receivedAt` of the newest event this device had heard about the last time
+///   everything was caught up) — advanced only by "Läs alla", never by merely opening the tab.
+/// - a set of entity ids read individually since that watermark, because Steven's cards (04) stay
+///   pink until *that* notification is opened, not until the whole feed has been glanced at.
+///
+/// Both need no network and no account — the app without an account is the offline app and must
+/// stay fully functional.
 @MainActor
 @Observable
 final class UnreadStore {
     private let defaults: UserDefaults
-    private let key = "se.kvitta.activity.lastSeenReceivedAt"
+    private let markKey = "se.kvitta.activity.lastSeenReceivedAt"
+    private let readOverridesKey = "se.kvitta.activity.readEntityIds"
 
-    /// The unread entity ids, recomputed rather than stored. A cached count would be a second copy
-    /// of a truth the log already holds, free to drift from it — the same argument that keeps
-    /// projections out of the database.
+    /// The unread entity ids, recomputed rather than stored wholesale. A cached count would be a
+    /// second copy of a truth the log already holds, free to drift from it — the same argument
+    /// that keeps projections out of the database.
     private(set) var unread: Set<UUID> = []
 
     init(defaults: UserDefaults = .standard) {
@@ -49,34 +54,46 @@ final class UnreadStore {
         // on another phone for months. Unread means "since you last looked", and someone who has
         // never looked has nothing to catch up on.
         if !hasMark {
-            defaults.set(pendingMark(from: ledger), forKey: key)
+            defaults.set(pendingMark(from: ledger), forKey: markKey)
+            defaults.removeObject(forKey: readOverridesKey)
             unread = []
             return
         }
-        unread = (try? ledger.unreadEntities(since: mark)) ?? []
+        let sinceMark = (try? ledger.unreadEntities(since: mark)) ?? []
+        unread = sinceMark.subtracting(readOverrides)
     }
 
-    /// Called when the feed has actually been on screen.
-    ///
-    /// The new mark is read from the log *before* the rows are drawn, not stamped as "now" after:
-    /// an event landing while the screen is open would otherwise be marked read having never been
-    /// rendered. Taking the mark first means it is at worst shown again, which is the harmless
-    /// direction to be wrong in.
-    func markRead(upTo mark: Int64) {
-        guard mark > self.mark else { return }
-        defaults.set(mark, forKey: key)
+    /// A single card opened. It stays read even though older, still-unopened cards above or
+    /// below it stay pink — the watermark alone cannot say that, so the id is kept on the side
+    /// until "Läs alla" folds it back in.
+    func markRead(_ entityId: UUID) {
+        guard unread.contains(entityId) else { return }
+        var overrides = readOverrides
+        overrides.insert(entityId)
+        defaults.set(overrides.map(\.uuidString), forKey: readOverridesKey)
+        unread.remove(entityId)
+    }
+
+    /// "Läs alla": catches the watermark up to now. The per-card overrides it was tracking become
+    /// moot the moment the watermark passes them, so they are dropped rather than left to grow.
+    func markAllRead(from ledger: LedgerStore) {
+        defaults.set(pendingMark(from: ledger), forKey: markKey)
+        defaults.removeObject(forKey: readOverridesKey)
         unread = []
     }
 
-    /// The mark to pass to `markRead` once the feed has been seen.
-    func pendingMark(from ledger: LedgerStore) -> Int64 {
-        (try? ledger.latestReceivedAt()) ?? mark
-    }
-
-    private var mark: Int64 { Int64(defaults.integer(forKey: key)) }
+    private var mark: Int64 { Int64(defaults.integer(forKey: markKey)) }
 
     /// Absent, not zero: a device whose log is genuinely empty has a legitimate mark of 0, and
     /// treating that as "never looked" would re-run the first-run adoption on every launch until
     /// the first event arrived.
-    private var hasMark: Bool { defaults.object(forKey: key) != nil }
+    private var hasMark: Bool { defaults.object(forKey: markKey) != nil }
+
+    private func pendingMark(from ledger: LedgerStore) -> Int64 {
+        (try? ledger.latestReceivedAt()) ?? mark
+    }
+
+    private var readOverrides: Set<UUID> {
+        Set((defaults.stringArray(forKey: readOverridesKey) ?? []).compactMap(UUID.init))
+    }
 }

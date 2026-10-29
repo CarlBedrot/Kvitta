@@ -47,7 +47,7 @@ struct RootView: View {
             }
             Tab(Steven.RootTab.notifications.title, systemImage: "bell", value: Steven.RootTab.notifications) {
                 NavigationStack {
-                    ActivityView(ledger: ledger, userId: userId, unread: unread)
+                    ActivityView(ledger: ledger, userId: userId, unread: unread, onOpenGroup: openGroup)
                 }
                 .modifier(PhoneTabBarHidden(isRegular: isRegular))
             }
@@ -140,6 +140,14 @@ struct RootView: View {
                      onNewGroup: { showingNewGroup = true },
                      onProfile: { selectedTab = .more })
         }
+    }
+
+    /// A Notiser card was opened: switch to Grupper and land straight on that group, replacing
+    /// whatever was already on the stack — a notification should go where it points, not add a
+    /// layer on top of wherever the user happened to have left that tab.
+    private func openGroup(_ groupId: GroupID) {
+        selectedTab = .groups
+        grupperPath = NavigationPath([groupId])
     }
 }
 
