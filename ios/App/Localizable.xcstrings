@@ -51,6 +51,76 @@
         }
       }
     },
+    "Läs alla" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark all read"
+          }
+        }
+      }
+    },
+    "Inga notiser än" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No notifications yet"
+          }
+        }
+      }
+    },
+    "lade till dig i utgiften" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "added you to the expense"
+          }
+        }
+      }
+    },
+    "ändrade utgiften" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "changed the expense"
+          }
+        }
+      }
+    },
+    "registrerade en betalning till dig." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "recorded a payment to you."
+          }
+        }
+      }
+    },
+    "registrerade en betalning från dig." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "recorded a payment from you."
+          }
+        }
+      }
+    },
+    "Någon" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Someone"
+          }
+        }
+      }
+    },
     "%lld olästa" : {
       "localizations" : {
         "en" : {
