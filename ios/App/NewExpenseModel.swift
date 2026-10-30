@@ -36,8 +36,9 @@ final class NewExpenseModel: Identifiable {
     var draft: SplitDraft
     var failure: String?
     /// The day the expense belongs to. Today for a new expense; preserved on edit, because
-    /// correcting a typo in the amount does not move the dinner to another day.
-    private var date: CalendarDate
+    /// correcting a typo in the amount does not move the dinner to another day. Settable: the
+    /// Steven details step's ANNAN section (#153) is the one place it can change.
+    var date: CalendarDate
 
     init(ledger: LedgerStore, userId: UserID, groupId: GroupID) {
         self.ledger = ledger

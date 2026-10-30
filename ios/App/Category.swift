@@ -86,3 +86,22 @@ extension Categories {
         ("nöje", ["bio", "konsert", "biljett", "nöje", "fest", "klubb", "museum", "spel"]),
     ]
 }
+
+extension Categories {
+    /// The chip row's order (Steven 9, image 14): this group's most recently used categories
+    /// first, deduped by most-recent expense, then whatever is left of the full set — so a
+    /// group that mostly buys taxis sees Taxi first, without losing the rest to the "…" sheet.
+    static func recentlyUsed(in group: GroupState?, limit: Int = 5) -> [Category] {
+        var seen = Set<String>()
+        var recentIds: [String] = []
+        for expense in group?.visibleExpenses ?? [] where recentIds.count < limit {
+            if seen.insert(expense.categoryId).inserted {
+                recentIds.append(expense.categoryId)
+            }
+        }
+        let recent = recentIds.compactMap { id in all.first { $0.id == id } }
+        guard recent.count < limit else { return recent }
+        let rest = all.filter { !seen.contains($0.id) }
+        return recent + rest.prefix(limit - recent.count)
+    }
+}

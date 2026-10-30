@@ -71,6 +71,26 @@
         }
       }
     },
+    "Alla kategorier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All categories"
+          }
+        }
+      }
+    },
+    "Växla till exakt belopp" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch to an exact amount"
+          }
+        }
+      }
+    },
     "Decimalkomma" : {
       "localizations" : {
         "en" : {
