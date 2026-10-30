@@ -44,6 +44,18 @@ struct SplitPreviewTests {
         #expect(preview.perPersonMinor == 10_000)
     }
 
+    @Test("100 kr on three people resolves to 33,34 / 33,33 / 33,33 — the Steven 9 details step's own shares")
+    func hundredKronorOnThreeResolvesWithCoreRounding() {
+        let three = Array(members.prefix(3))
+        let draft = SplitDraft(members: three)
+        let resolved = draft.resolvedShares(totalMinor: 10_000, members: three)
+
+        #expect(resolved != nil)
+        #expect(resolved?.map(\.amountMinor).reduce(0, +) == 10_000)
+        #expect(resolved?.map(\.amountMinor).sorted(by: >) == [3_334, 3_333, 3_333])
+        #expect(draft.isBalanced(totalMinor: 10_000, members: three))
+    }
+
     @Test("Before there is an amount, the row still knows who is included")
     func zeroAmountShowsParticipantsOnly() {
         let draft = SplitDraft(members: members)
