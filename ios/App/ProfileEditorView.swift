@@ -1,6 +1,11 @@
 import SwiftUI
 import KvittaCore
+import PhotosUI
 
+/// The one editor behind every row of `MinaDetaljerView`, and — with `required: true` — the
+/// fullscreen cover onboarding shows before the app will let you in at all (`RootView`). Same
+/// form, same validation, either way; only the title, the button label and whether "Avbryt"
+/// exists change.
 struct ProfileEditorView: View {
     let profile: UserProfile
     var required = false
@@ -8,6 +13,7 @@ struct ProfileEditorView: View {
     @State private var name: String
     @State private var number: String
     @State private var country: PaymentPhoneNumber.Country
+    @State private var photoItem: PhotosPickerItem?
 
     init(profile: UserProfile, required: Bool = false) {
         self.profile = profile
@@ -24,40 +30,65 @@ struct ProfileEditorView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    Avatar(name: name, photo: profile.avatarData, size: 72)
-                        .frame(maxWidth: .infinity)
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Namn").font(.subheadline.weight(.semibold))
-                        TextField("Ditt namn", text: $name)
-                            .textContentType(.name)
-                            .sliceField()
+            VStack(spacing: 0) {
+                Steven.NavTitleBar(
+                    title: required ? "Din profil" : "Redigera profil",
+                    leading: required ? .none : .close { dismiss() }
+                )
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        photoPicker
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Namn").stevenFont(.rowTitleBold).foregroundStyle(StevenColor.ink)
+                            TextField("Ditt namn", text: $name)
+                                .textContentType(.name)
+                                .sliceField()
+                        }
+                        PaymentPhoneFields(number: $number, country: $country)
+                        Text("Ange numret du använder för Swish eller MobilePay. Det delas med dina gruppmedlemmar när du är inloggad.")
+                            .stevenFont(.footnote)
+                            .foregroundStyle(StevenColor.muted)
+                        Button(required ? "Fortsätt" : "Spara") {
+                            if profile.save(name: name, phone: number, country: country) { dismiss() }
+                        }
+                        .buttonStyle(Steven.FilledButtonStyle())
+                        .disabled(!valid)
                     }
-                    PaymentPhoneFields(number: $number, country: $country)
-                    Text("Ange numret du använder för Swish eller MobilePay. Det delas med dina gruppmedlemmar när du är inloggad.")
-                        .font(.footnote)
-                        .foregroundStyle(Theme.secondary)
-                    Button(required ? "Fortsätt" : "Spara") {
-                        if profile.save(name: name, phone: number, country: country) { dismiss() }
-                    }
-                    .buttonStyle(PrimaryButtonStyle())
-                    .disabled(!valid)
+                    .padding(StevenMetric.gutter)
                 }
-                .foregroundStyle(Theme.ink)
-                .padding(20)
+                .scrollDismissesKeyboard(.interactively)
             }
-            .scrollDismissesKeyboard(.interactively)
-            .background(AmbientBackground())
-            .navigationTitle(required ? "Din profil" : "Redigera profil")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if !required {
-                    ToolbarItem(placement: .topBarLeading) { Button("Avbryt") { dismiss() } }
-                }
+            .background(StevenColor.screen)
+            .navigationBarHidden(true)
+            .task(id: photoItem) { await loadPhoto() }
+        }
+    }
+
+    private var photoPicker: some View {
+        PhotosPicker(selection: $photoItem, matching: .images) {
+            ZStack(alignment: .bottomTrailing) {
+                Avatar(name: name, photo: profile.avatarData, size: StevenMetric.avatarHero)
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(5)
+                    .background(StevenColor.accentFill, in: .circle)
+                    .overlay(Circle().strokeBorder(StevenColor.surface, lineWidth: 2))
             }
         }
-        .tint(Theme.accent)
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+    }
+
+    private func loadPhoto() async {
+        guard let photoItem else { return }
+        // Downscaled before storing: a full-resolution camera image in UserDefaults would be
+        // several megabytes read back on every launch.
+        if let data = try? await photoItem.loadTransferable(type: Data.self),
+           let square = UIImage(data: data)?.squareThumbnail(side: 256),
+           let jpeg = square.jpegData(compressionQuality: 0.85) {
+            profile.avatarData = jpeg
+        }
     }
 }
 

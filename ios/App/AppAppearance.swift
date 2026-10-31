@@ -22,4 +22,14 @@ enum AppAppearance: String, CaseIterable, Identifiable {
         case .dark: .dark
         }
     }
+
+    /// `title` as a plain `String`, for a `Steven.ListRow`'s trailing value — which takes a
+    /// `String`, not a `LocalizedStringKey`, because it is also used for numbers and amounts.
+    var valueText: String {
+        switch self {
+        case .system: String(localized: "Följ telefonen")
+        case .light: String(localized: "Ljust")
+        case .dark: String(localized: "Mörkt")
+        }
+    }
 }

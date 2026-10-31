@@ -104,29 +104,6 @@ struct SyncStatusBanner: View {
     }
 }
 
-struct SettingsRow<Content: View>: View {
-    let systemImage: String
-    let fill: Color
-    let title: LocalizedStringKey
-    @ViewBuilder let content: () -> Content
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: systemImage)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(fill)
-                .frame(width: 28, height: 28)
-                .accessibilityHidden(true)
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.ink)
-            Spacer(minLength: 12)
-            content()
-        }
-        .frame(minHeight: 44)
-    }
-}
-
 private extension SyncStatus {
     var isBlocked: Bool {
         if case .blocked = self { return true }
