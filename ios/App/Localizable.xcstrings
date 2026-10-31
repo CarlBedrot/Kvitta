@@ -5263,6 +5263,46 @@
           }
         }
       }
+    },
+    "ta bort mitt Slicekonto" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "delete my Slice account"
+          }
+        }
+      }
+    },
+    "Skriv till oss" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write to us"
+          }
+        }
+      }
+    },
+    "Det finns ännu ingen knapp som gör det automatiskt. Vi öppnar ett mejl i stället, så tar vi bort kontot manuellt." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There is no button that does this automatically yet. We'll open an email instead, and remove the account by hand."
+          }
+        }
+      }
+    },
+    "Jag använder Slice för att dela utgifter med vänner. Fråga mig om du vill vara med!" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I use Slice to split expenses with friends. Ask me if you want to join!"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

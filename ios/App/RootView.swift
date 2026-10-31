@@ -53,7 +53,7 @@ struct RootView: View {
             }
             .badge(unreadBadge)
             Tab(Steven.RootTab.more.title, systemImage: "ellipsis", value: Steven.RootTab.more) {
-                JagView(ledger: ledger, sync: sync, profile: profile, session: session,
+                MerView(ledger: ledger, sync: sync, profile: profile, session: session,
                         reminders: reminders, rates: rates, userId: userId)
                     .modifier(PhoneTabBarHidden(isRegular: isRegular))
             }
