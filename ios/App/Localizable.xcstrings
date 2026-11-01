@@ -2904,6 +2904,16 @@
         }
       }
     },
+    "Gruppnamn" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group name"
+          }
+        }
+      }
+    },
     "Grupperna är inte kvitt än" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2921,6 +2931,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Has the app"
+          }
+        }
+      }
+    },
+    "Har du fått en länk? Gå med" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Got a link? Join"
           }
         }
       }
