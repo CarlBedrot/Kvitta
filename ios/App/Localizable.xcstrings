@@ -363,6 +363,22 @@
       }
     }
   },
+  "Statistik": {
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Statistics"
+        }
+      },
+      "sv": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Statistik"
+        }
+      }
+    }
+  },
   "Inga matchande poster": {
     "localizations": {
       "sv": {
