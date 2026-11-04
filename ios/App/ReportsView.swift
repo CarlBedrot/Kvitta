@@ -1,119 +1,92 @@
 import SwiftUI
+import Charts
 import KvittaCore
 import KvittaStorage
 
-struct ReportDestination: Identifiable {
-    let id = UUID()
-    let page: ReportsView.Page
-    let currency: CurrencyCode
-    let groupId: GroupID?
-}
-
+/// STATISTIK (Steven 15/16, README §5.2, image 11): scoped to one group, `Steven.NavTitleBar` +
+/// `Steven.UnderlineTabs` (Utgifter · Kategorier · Veckorytm · Betalningar), charts in accent/coral
+/// on white `Steven.Card`s. Reached from Gruppinställningar → Statistik (#151) — that screen
+/// already pushes this exact initializer, so the parameter list below must keep its shape.
 struct ReportsView: View {
     enum Page: String, CaseIterable, Identifiable {
-        case reports, spending, categories, timing, activity
+        case spending, categories, timing, payments
         var id: String { rawValue }
+
+        var title: LocalizedStringKey {
+            switch self {
+            case .spending: "Utgifter"
+            case .categories: "Kategorier"
+            case .timing: "Veckorytm"
+            case .payments: "Betalningar"
+            }
+        }
     }
+
     let ledger: LedgerStore
     let userId: UserID
-    var initialPage: Page = .reports
+    var initialPage: Page = .spending
     var initialCurrency: CurrencyCode = .sek
     var groupId: GroupID?
+    /// Unused now that every screen is scoped to one group — kept only so the call in
+    /// `GroupSettingsView` (#151) can keep passing a no-op without this initializer changing shape.
     let onOpenGroup: (GroupID) -> Void
     let onAddExpense: () -> Void
-    @State private var activityKind = 0
+
+    @Environment(\.dismiss) private var dismiss
     @State private var initialized = false
     @State private var visibleLimit = 30
-    @Environment(\.dismiss) private var dismiss
-    @State private var page: Page = .reports
+    @State private var page: Page = .spending
     @State private var currency: CurrencyCode = .sek
     @State private var weekOffset = 0
     @State private var selectedDay: Int?
-    @State private var category: String = "restaurang"
-    @State private var query = ""
+    @State private var category: String = Categories.fallbackId
     @State private var selectedItem: ExpenseReport.Item?
 
+    private var group: GroupState? { groupId.flatMap { ledger.state[$0] } }
     private var report: ExpenseReport {
         ExpenseReport(groups: ledger.state.groupsByLastActivity.filter { groupId == nil || $0.id == groupId })
     }
-    private var activityEntries: [FeedEntry] {
-        let search = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        return FeedEntry.build(from: ledger.state, userId: userId, scope: .allActivity).filter { entry in
-            let isPayment = entry.paymentStatus != nil
-            return entry.currency == currency && (groupId == nil || entry.groupId == groupId)
-                && (activityKind == 0 || (activityKind == 1 && !isPayment) || (activityKind == 2 && isPayment))
-                && (search.isEmpty || (entry.title + " " + entry.subtitle).localizedCaseInsensitiveContains(search))
-        }
-    }
     private var days: ClosedRange<Int> { ExpenseReport.week(containing: CalendarDate(Date()), offset: weekOffset) }
-    private var items: [ExpenseReport.Item] { report.filtered(currency: currency, days: days) }
-    private var visible: [ExpenseReport.Item] {
-        report.filtered(currency: currency,
-                        days: page == .activity ? nil : selectedDay.map { $0...$0 } ?? days,
-                        category: page == .categories ? category : nil, search: query)
+    private var weekItems: [ExpenseReport.Item] { report.filtered(currency: currency, days: days) }
+    private var repayments: [Payment] {
+        group.map { GroupPaymentReport(group: $0, currency: currency, days: days).payments } ?? []
     }
-    private var surface: Color { page == .reports || page == .timing ? Editorial.mint : page == .categories ? Editorial.purple : Theme.bg }
-    private var isLight: Bool { page != .spending && page != .activity }
-    private var heading: String {
-        switch page {
-        case .reports: String(localized: "Rapporter")
-        case .spending: String(localized: "Utgifter")
-        case .categories: String(localized: "Kategorier")
-        case .timing: String(localized: "Veckorytm")
-        case .activity: String(localized: "Aktivitet")
-        }
-    }
+    private var categoryItems: [ExpenseReport.Item] { report.filtered(currency: currency, category: category) }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                EditorialHeading(title: heading, dark: isLight, onBack: { dismiss() })
-                if let groupId, let group = ledger.state[groupId] {
-                    Text(GroupBadge.title(of: group.name)).font(.caption)
-                        .foregroundStyle(isLight ? Editorial.coal : Theme.secondary)
-                }
-                pageControls
-                if page != .activity && page != .timing { periodControls }
-                if page == .timing { currencyMenu }
-                switch page {
-                case .reports: reportCover
-                case .spending: spending
-                case .categories: categoryStack
-                case .timing: timing
-                case .activity: activity
-                }
-                if page != .activity {
-                    Text("\(visible.count) utgifter").font(.caption.weight(.semibold))
-                        .foregroundStyle(isLight ? Editorial.coal : Theme.secondary)
-                    ForEach(visible.prefix(visibleLimit)) { item in
-                        EditorialExpenseRow(item: item, dark: isLight) { selectedItem = item }
+        VStack(spacing: 0) {
+            Steven.NavTitleBar(title: "Statistik", leading: .back { dismiss() })
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Steven.UnderlineTabs(selection: $page, tabs: Page.allCases.map { (tab: $0, title: $0.title) })
+                    VStack(alignment: .leading, spacing: 16) {
+                        selectors
+                        switch page {
+                        case .spending: spending
+                        case .categories: categories
+                        case .timing: timing
+                        case .payments: payments
+                        }
                     }
-                    if visible.count > visibleLimit {
-                        EditorialPill(title: String(localized: "Visa fler")) { visibleLimit += 30 }
-                    }
-                    if visible.isEmpty {
-                        Text("Inga utgifter under perioden")
-                            .font(.subheadline).foregroundStyle(isLight ? Editorial.coal : Theme.secondary)
-                    }
+                    .padding(.horizontal, StevenMetric.gutter)
+                    .padding(.top, 16)
+                    .padding(.bottom, 32)
                 }
-            }.padding(20).padding(.bottom, 32)
-        }
-        .background(surface.ignoresSafeArea())
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if page == .activity {
-                searchField.padding(.horizontal, 20).padding(.vertical, 12)
-                    .background(Theme.bg)
             }
         }
+        .background(StevenColor.screen)
+        .navigationBarBackButtonHidden()
         .toolbar(.hidden, for: .navigationBar)
-        .tint(isLight ? Editorial.coal : Theme.ink)
         .onAppear {
             guard !initialized else { return }
-            page = initialPage; currency = report.currencies.contains(initialCurrency) ? initialCurrency : report.currencies[0]; initialized = true
+            page = initialPage
+            currency = report.currencies.contains(initialCurrency) ? initialCurrency : report.currencies[0]
+            initialized = true
         }
         .onChange(of: ledger.state.appliedEventIds.count) { _, _ in
             if !report.currencies.contains(currency) { currency = report.currencies[0] }
         }
+        .onChange(of: page) { _, _ in selectedDay = nil; visibleLimit = 30 }
         .onChange(of: weekOffset) { _, _ in selectedDay = nil }
         .onChange(of: currency) { _, _ in selectedDay = nil }
         .sheet(item: $selectedItem) { item in
@@ -121,45 +94,35 @@ struct ReportsView: View {
         }
     }
 
-    private var pageControls: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(Page.allCases, id: \.self) { destination in
-                    EditorialPill(title: title(destination), selected: page == destination) {
-                        page = destination; selectedDay = nil; query = ""; visibleLimit = 30
-                    }
-                }
-            }
-        }
-    }
+    // MARK: - Shared controls
 
-    private func title(_ page: Page) -> String {
-        switch page {
-        case .reports: String(localized: "Översikt")
-        case .spending: String(localized: "Utgifter")
-        case .categories: String(localized: "Kategorier")
-        case .timing: String(localized: "Veckorytm")
-        case .activity: String(localized: "Aktivitet")
-        }
-    }
-
-    private var periodControls: some View {
+    /// Currency chip ("SEK ›", 12) and the week pager, side by side where they fit.
+    private var selectors: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 8) { currencyMenu; datePager }
-            VStack(alignment: .leading, spacing: 8) { currencyMenu; datePager }
+            HStack(spacing: 8) { currencyChip; if page != .categories { datePager } }
+            VStack(alignment: .leading, spacing: 8) { currencyChip; if page != .categories { datePager } }
         }
     }
 
-    private var currencyMenu: some View {
+    private var currencyChip: some View {
         Menu {
             ForEach(report.currencies, id: \.self) { code in
                 Button(code.code) { currency = code }
             }
         } label: {
-            Label(currency.code, systemImage: "chevron.down")
-                .font(.caption.weight(.semibold)).foregroundStyle(Editorial.coal)
-                .padding(.horizontal, 16).frame(minHeight: 44).background(Editorial.paper, in: .capsule)
-        }.accessibilityLabel("Valuta")
+            HStack(spacing: 4) {
+                Text(verbatim: currency.code).stevenFont(.rowTitle)
+                Image(systemName: "chevron.down").font(.system(size: 12, weight: .medium))
+            }
+            .foregroundStyle(StevenColor.ink)
+            .padding(.horizontal, 10).padding(.vertical, 4)
+            .frame(minHeight: StevenMetric.minimumHitTarget)
+            .overlay {
+                RoundedRectangle(cornerRadius: StevenMetric.controlRadius)
+                    .strokeBorder(StevenColor.hairline, lineWidth: 1)
+            }
+        }
+        .accessibilityLabel(Text("Valuta"))
     }
 
     private var datePager: some View {
@@ -167,199 +130,331 @@ struct ReportsView: View {
             Button { weekOffset -= 1 } label: { Image(systemName: "chevron.left").frame(width: 44, height: 44) }
                 .accessibilityLabel("Föregående vecka")
             Text(weekOffset == 0 ? String(localized: "Den här veckan") : ExpenseReport.label(for: days.lowerBound))
-                .font(.caption.weight(.medium)).lineLimit(2)
+                .stevenFont(.footnote).lineLimit(2)
             Button { weekOffset += 1 } label: { Image(systemName: "chevron.right").frame(width: 44, height: 44) }
                 .disabled(weekOffset >= 0).accessibilityLabel("Nästa vecka")
-        }.foregroundStyle(Editorial.coal).background(Editorial.paper, in: .capsule)
+        }
+        .foregroundStyle(StevenColor.ink)
     }
 
-    private var reportCover: some View {
-        VStack(spacing: 0) {
-            Image("ReportCover").resizable().scaledToFit().frame(maxHeight: 280)
-                .accessibilityHidden(true)
-            EditorialPanel(fill: Editorial.coal) {
-                VStack(alignment: .leading, spacing: 18) {
-                    searchField
-                    Text("DIN VECKA").font(Editorial.heading(20)).foregroundStyle(Editorial.paper)
-                    HStack(alignment: .top, spacing: 12) {
-                        Image(systemName: "chart.bar.xaxis").font(.title3)
-                            .foregroundStyle(Editorial.coal).frame(width: 44, height: 44)
-                            .background(Editorial.coral, in: .circle)
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Gemensamma utgifter").font(.subheadline).foregroundStyle(Editorial.muted)
-                            Text(total(items)).font(Editorial.heading(32)).foregroundStyle(Editorial.paper).monospacedDigit()
-                            Text("\(items.count) utgifter").font(.caption).foregroundStyle(Editorial.muted)
-                        }
-                        Spacer(minLength: 0)
-                        EditorialCircleButton(symbol: "arrow.up.right", label: String(localized: "Visa rapport")) { page = .spending }
-                    }
-                    HStack {
-                        Text("SLICE / RAPPORTER").font(.caption2.weight(.semibold)).foregroundStyle(Editorial.muted)
-                        Spacer()
-                        EditorialCircleButton(symbol: "plus", label: String(localized: "Lägg till utgift"), fill: Editorial.yellow, action: onAddExpense)
-                    }
-                }
-            }
-        }
-    }
+    // MARK: - Utgifter
 
     private var spending: some View {
-        EditorialPanel(fill: Editorial.coral, padding: 12) {
-            VStack(alignment: .leading, spacing: 10) {
-                EditorialMetric(title: String(localized: "Gemensamma utgifter"), value: total(items), badge: "\(items.count)")
-                EditorialMetric(title: String(localized: "Största utgiften"), value: items.max(by: { $0.amountMinor < $1.amountMinor }).map { MoneyFormat.string($0.amountMinor, currency, explicit: true) } ?? "—", badge: currency.code)
-                EditorialWeekChart(items: items, days: days, currency: currency, selectedDay: $selectedDay)
-            }
-        }
-    }
-
-    private var categoryStack: some View {
-        EditorialCardStack {
-            Menu {
-                ForEach(Categories.all) { option in Button(option.name) { category = option.id } }
-            } label: {
-                HStack { Text("Välj kategori"); Spacer(); Image(systemName: "chevron.down") }
-            }
-        } metadata: {
-            HStack {
-                Text("\(visible.count) utgifter").font(Editorial.heading(18))
-                Spacer()
-                Text(currency.code).font(.caption)
-            }
-        } content: {
-            VStack(alignment: .leading, spacing: 14) {
-                EditorialCardTitle(title: Categories.all.first(where: { $0.id == category })?.name ?? category,
-                                    symbol: Categories.symbol(for: category))
-                EditorialMetadataPill(text: total(visible))
-                Image("SharedDinner").resizable().scaledToFit().frame(maxHeight: 330).accessibilityHidden(true)
-                HStack {
-                    Text("GEMENSAMT / \(currency.code)").font(.caption2.weight(.semibold))
-                    Spacer()
-                    Image(systemName: "arrow.down")
-                }.foregroundStyle(Editorial.coal)
-            }
-        }
-    }
-
-    private var timing: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("NÄR NI DELAR\nPÅ VARDAGEN").font(Editorial.heading(38)).foregroundStyle(Editorial.coal)
-            WeeklyActivityDial(items: items, days: days)
-            datePager
-            Text("Antal utgifter per veckodag").font(.subheadline).foregroundStyle(Editorial.coal)
-            HStack {
-                EditorialBadge(text: String(localized: "\(items.count) utgifter"))
-                Spacer()
-                Text(currency.code).font(.caption.weight(.medium)).foregroundStyle(Editorial.coal)
-            }
-        }
-    }
-
-    private var searchField: some View {
-        HStack(spacing: 10) {
-            Button { page = .activity } label: {
-                Image(systemName: "magnifyingglass").foregroundStyle(Editorial.coal)
-                    .frame(width: 44, height: 44).background(Editorial.coral, in: .circle)
-            }.accessibilityLabel("Sök utgifter")
-            TextField("Sök utgifter", text: $query, prompt: Text("Sök utgifter").foregroundStyle(Theme.secondary))
-                .font(.subheadline).foregroundStyle(Theme.ink)
-                .submitLabel(.search)
-                .onSubmit { page = .activity }
-            if !query.isEmpty {
-                Button { query = "" } label: { Image(systemName: "xmark.circle.fill").frame(width: 44, height: 44) }
-                    .foregroundStyle(Theme.ink).accessibilityLabel("Rensa sökning")
-            }
-        }.padding(.horizontal, 14).frame(minHeight: 48).background(Theme.card, in: .capsule)
-    }
-
-    private var activity: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            currencyMenu
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "asterisk").foregroundStyle(Editorial.coal)
-                    .frame(width: 30, height: 30).background(Editorial.yellow, in: .circle)
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Utgifter & betalningar").font(.headline).foregroundStyle(Theme.ink)
-                    Text("Sök i det ni har lagt till. Tryck på en post för detaljer.")
-                        .font(.subheadline).foregroundStyle(Theme.secondary)
+        VStack(alignment: .leading, spacing: 16) {
+            Steven.Card {
+                VStack(alignment: .leading, spacing: 12) {
+                    metricRow(title: String(localized: "Gemensamma utgifter"), value: total(weekItems), badge: "\(weekItems.count)")
+                    metricRow(title: String(localized: "Största utgiften"),
+                              value: weekItems.map(\.amountMinor).max().map(amount) ?? "—", badge: currency.code)
+                    StevenWeekChart(items: weekItems, days: days, currency: currency, selectedDay: $selectedDay)
                 }
             }
-            ViewThatFits(in: .horizontal) {
-                HStack { Spacer(minLength: 0); activityFilters }
-                ScrollView(.horizontal, showsIndicators: false) { activityFilters }
+            expenseList(visible(weekItems, in: selectedDay.map { $0...$0 } ?? days))
+            if groupId != nil {
+                Button("Lägg till utgift", action: onAddExpense).buttonStyle(Steven.FilledButtonStyle())
             }
-            ForEach(activityEntries.prefix(visibleLimit)) { entry in
-                Button {
-                    if entry.paymentStatus != nil { onOpenGroup(entry.groupId) }
-                    else { selectedItem = report.items.first { $0.id.rawValue == entry.id } }
-                } label: {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(entry.title).font(.headline)
-                        Text(MoneyFormat.string(entry.amountMinor, entry.currency, explicit: true))
-                            .font(Editorial.heading(26)).monospacedDigit()
-                        Text(entry.subtitle).font(.caption)
-                        Text(entry.timestamp.date, style: .date).font(.caption2)
-                        if let item = report.items.first(where: { $0.id.rawValue == entry.id }) {
-                            Text("Registrerat av \(item.author)").font(.caption2)
-                        }
-                        if entry.wasEdited { Text("redigerad").font(.caption2) }
-                        if entry.paymentStatus == .pending { Text("väntar").font(.caption.weight(.semibold)) }
-                        if entry.paymentStatus == .disputed { Text("bestriden").font(.caption.weight(.semibold)) }
-                    }.foregroundStyle(Editorial.coal).padding(18)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(entry.paymentStatus == nil ? Editorial.mint : Editorial.paper, in: .rect(cornerRadius: 24))
-                }.buttonStyle(.plain)
-            }
-            if activityEntries.count > visibleLimit {
-                EditorialPill(title: String(localized: "Visa fler")) { visibleLimit += 30 }
-            }
-            if activityEntries.isEmpty { Text("Inga matchande poster").foregroundStyle(Theme.secondary) }
         }
     }
 
-    private var activityFilters: some View {
-        HStack(spacing: 8) {
-            EditorialPill(title: String(localized: "Alla"), selected: activityKind == 0) { activityKind = 0 }
-            EditorialPill(title: String(localized: "Utgifter"), selected: activityKind == 1) { activityKind = 1 }
-            EditorialPill(title: String(localized: "Betalningar"), selected: activityKind == 2) { activityKind = 2 }
-        }.fixedSize(horizontal: true, vertical: false)
+    // MARK: - Kategorier
+
+    private var categories: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Steven.Card {
+                VStack(alignment: .leading, spacing: 12) {
+                    Menu {
+                        ForEach(Categories.all) { option in Button(option.name) { category = option.id } }
+                    } label: {
+                        HStack {
+                            Image(systemName: Categories.symbol(for: category))
+                            Text(Categories.all.first { $0.id == category }?.name ?? category).stevenFont(.rowTitleBold)
+                            Spacer()
+                            Image(systemName: "chevron.down")
+                        }
+                        .foregroundStyle(StevenColor.ink)
+                    }
+                    Steven.MoneyText(amountMinor: ExpenseReport.total(categoryItems) ?? 0, currency: currency, font: .amountLarge)
+                    Text("\(categoryItems.count) utgifter").stevenFont(.footnote).foregroundStyle(StevenColor.muted)
+                }
+            }
+            expenseList(categoryItems)
+        }
+    }
+
+    // MARK: - Veckorytm
+
+    private var timing: some View {
+        Steven.Card {
+            VStack(alignment: .leading, spacing: 16) {
+                StevenWeekDial(items: weekItems, days: days)
+                datePager
+                HStack {
+                    Text("\(weekItems.count) utgifter").stevenFont(.footnote).foregroundStyle(StevenColor.muted)
+                    Spacer()
+                    Text(verbatim: currency.code).stevenFont(.footnoteBold).foregroundStyle(StevenColor.ink)
+                }
+            }
+        }
+    }
+
+    // MARK: - Betalningar
+
+    private var payments: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Steven.Card {
+                VStack(alignment: .leading, spacing: 12) {
+                    metricRow(title: String(localized: "Avräknade återbetalningar"),
+                              value: GroupPaymentReport.total(repayments).map(amount) ?? "—", badge: "\(repayments.count)")
+                    StevenWeekChart(items: [], days: days, currency: currency, payments: repayments, selectedDay: $selectedDay)
+                }
+            }
+            if repayments.isEmpty {
+                Text("Inga avräknade återbetalningar under perioden")
+                    .stevenFont(.footnote).foregroundStyle(StevenColor.muted)
+            } else {
+                Steven.Card(padding: 0) {
+                    VStack(spacing: 0) {
+                        ForEach(Array(filteredRepayments.enumerated()), id: \.element.id) { index, payment in
+                            PaymentStatRow(group: group, payment: payment, showsSeparator: index < filteredRepayments.count - 1)
+                        }
+                    }
+                }
+            }
+            if let group {
+                ShareLink(
+                    item: CSVExportFile(group: group),
+                    preview: SharePreview(CSVExportFile.filename(for: group))
+                ) {
+                    Text("Exportera CSV")
+                }
+                .buttonStyle(Steven.OutlineButtonStyle())
+            }
+        }
+    }
+
+    private var filteredRepayments: [Payment] {
+        guard let selectedDay else { return repayments }
+        return repayments.filter { $0.date.dayNumber == selectedDay }
+    }
+
+    // MARK: - Shared rows
+
+    private func metricRow(title: String, value: String, badge: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).stevenFont(.footnote).foregroundStyle(StevenColor.muted)
+                Text(verbatim: value).stevenFont(.amountLarge).foregroundStyle(StevenColor.ink).monospacedDigit()
+            }
+            Spacer(minLength: 8)
+            Text(verbatim: badge).stevenFont(.footnoteBold).foregroundStyle(StevenColor.muted)
+        }
+    }
+
+    private func visible(_ items: [ExpenseReport.Item], in range: ClosedRange<Int>) -> [ExpenseReport.Item] {
+        items.filter { range.contains($0.date.dayNumber) }
+    }
+
+    @ViewBuilder
+    private func expenseList(_ items: [ExpenseReport.Item]) -> some View {
+        if items.isEmpty {
+            Text("Inga utgifter under perioden").stevenFont(.footnote).foregroundStyle(StevenColor.muted)
+        } else {
+            Steven.Card(padding: 0) {
+                VStack(spacing: 0) {
+                    ForEach(Array(items.prefix(visibleLimit).enumerated()), id: \.element.id) { index, item in
+                        ExpenseStatRow(item: item, showsSeparator: index < min(items.count, visibleLimit) - 1) {
+                            selectedItem = item
+                        }
+                    }
+                }
+            }
+            if items.count > visibleLimit {
+                Button("Visa fler") { visibleLimit += 30 }.buttonStyle(Steven.OutlineButtonStyle())
+            }
+        }
     }
 
     private func total(_ entries: [ExpenseReport.Item]) -> String {
-        ExpenseReport.total(entries).map { MoneyFormat.string($0, currency, explicit: true) } ?? String(localized: "Beloppet är för stort för att visas.")
+        ExpenseReport.total(entries).map(amount) ?? String(localized: "Beloppet är för stort för att visas.")
+    }
+
+    private func amount(_ minor: Int64) -> String {
+        MoneyFormat.string(minor, currency, explicit: true)
     }
 }
 
-struct WeeklyActivityDial: View {
+/// One row of `expenseList`: category glyph, title + day, amount — the Steven list-row idiom
+/// (tonal icon, title, trailing value).
+private struct ExpenseStatRow: View {
+    let item: ExpenseReport.Item
+    var showsSeparator = true
+    let onSelect: () -> Void
+
+    var body: some View {
+        Button(action: onSelect) {
+            HStack(spacing: 14) {
+                Image(systemName: Categories.symbol(for: item.categoryId))
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(StevenColor.ink)
+                    .frame(width: StevenMetric.iconCircle, height: StevenMetric.iconCircle)
+                    .background(StevenColor.accentTint, in: .circle)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.title).stevenFont(.rowTitle).foregroundStyle(StevenColor.ink).lineLimit(1)
+                    Text(verbatim: "\(item.author) · \(ExpenseReport.label(for: item.date.dayNumber))")
+                        .stevenFont(.footnote).foregroundStyle(StevenColor.muted).lineLimit(1)
+                }
+                Spacer(minLength: 8)
+                Steven.MoneyText(amountMinor: item.amountMinor, currency: item.currency, font: .rowTitleBold)
+            }
+            .padding(.horizontal, StevenMetric.gutter)
+            .padding(.vertical, 10)
+            .frame(minHeight: StevenMetric.rowHeight)
+            .contentShape(.rect)
+            .overlay(alignment: .bottom) {
+                if showsSeparator { Steven.Hairline(color: StevenColor.rowSeparator) }
+            }
+        }
+        .buttonStyle(Steven.RowButtonStyle())
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// A settled/pending/disputed repayment in the Betalningar tab, same idiom as `ExpenseStatRow`.
+private struct PaymentStatRow: View {
+    let group: GroupState?
+    let payment: Payment
+    var showsSeparator = true
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "arrow.left.arrow.right")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(StevenColor.ink)
+                .frame(width: StevenMetric.iconCircle, height: StevenMetric.iconCircle)
+                .background(StevenColor.accentTint, in: .circle)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(verbatim: "\(name(payment.fromMemberId)) → \(name(payment.toMemberId))")
+                    .stevenFont(.rowTitle).foregroundStyle(StevenColor.ink).lineLimit(1)
+                Text(verbatim: "\(ExpenseReport.label(for: payment.date.dayNumber)) · \(status)")
+                    .stevenFont(.footnote).foregroundStyle(StevenColor.muted).lineLimit(1)
+            }
+            Spacer(minLength: 8)
+            Steven.MoneyText(amountMinor: payment.amountMinor, currency: payment.currency, font: .rowTitleBold)
+        }
+        .padding(.horizontal, StevenMetric.gutter)
+        .padding(.vertical, 10)
+        .frame(minHeight: StevenMetric.rowHeight)
+        .overlay(alignment: .bottom) {
+            if showsSeparator { Steven.Hairline(color: StevenColor.rowSeparator) }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func name(_ memberId: MemberID) -> String { group?.members[memberId]?.displayName ?? "?" }
+    private var status: String {
+        if payment.countsTowardBalances(asOf: CalendarDate(Date())) { return String(localized: "Avräknad") }
+        return payment.status == .disputed ? String(localized: "Bestriden") : String(localized: "Väntar på bekräftelse")
+    }
+}
+
+/// The week bar chart (08/12's accent/coral), moved here from the old `GroupSpendingView` and
+/// restyled: `StevenColor.owe` bars, the selected day in `accentFill`, a money badge on top of it.
+private struct StevenWeekChart: View {
+    let items: [ExpenseReport.Item]
+    let days: ClosedRange<Int>
+    let currency: CurrencyCode
+    var payments: [Payment]? = nil
+    @Binding var selectedDay: Int?
+
+    private var points: [(day: Int, total: Int64?)] {
+        days.map { day in
+            if let payments {
+                return (day, GroupPaymentReport.total(payments.filter { $0.date.dayNumber == day }))
+            }
+            return (day, ExpenseReport.total(items.filter { $0.date.dayNumber == day }))
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Chart {
+                ForEach(points, id: \.day) { point in
+                    if let total = point.total {
+                        BarMark(x: .value("Dag", point.day), y: .value("Belopp", total), width: .fixed(24))
+                            .foregroundStyle(selectedDay == point.day ? StevenColor.accentFill : StevenColor.owe)
+                            .cornerRadius(6)
+                            .annotation(position: .top) {
+                                if selectedDay == point.day {
+                                    Text(verbatim: MoneyFormat.string(total, currency, explicit: true))
+                                        .stevenFont(.footnoteBold)
+                                        .foregroundStyle(StevenColor.ink)
+                                        .padding(.horizontal, 8).padding(.vertical, 3)
+                                        .background(StevenColor.accentTint, in: .capsule)
+                                }
+                            }
+                    }
+                }
+            }
+            .chartXAxis(.hidden).chartYAxis(.hidden)
+            .chartXScale(domain: (days.lowerBound - 1)...(days.upperBound + 1))
+            .chartYScale(domain: 0...max(points.compactMap(\.total).max() ?? 0, 1))
+            .frame(height: 160)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(payments == nil ? String(localized: "Utgifter per dag, \(currency.code)") : String(localized: "Återbetalningar per dag, \(currency.code)"))
+            .accessibilityValue(points.map { "\(ExpenseReport.label(for: $0.day)): \(amount($0.total))" }.joined(separator: "; "))
+            HStack(spacing: 4) {
+                ForEach(Array(days), id: \.self) { day in
+                    Button { selectedDay = selectedDay == day ? nil : day } label: {
+                        Text(ExpenseReport.dayLabel(day))
+                            .stevenFont(.footnote).foregroundStyle(StevenColor.muted)
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                    }.buttonStyle(.plain)
+                }
+            }
+            if points.contains(where: { $0.total == nil }) {
+                Text("Beloppet är för stort för att visas.").stevenFont(.footnote).foregroundStyle(StevenColor.muted)
+            }
+        }
+    }
+
+    private func amount(_ minor: Int64?) -> String {
+        minor.map { MoneyFormat.string($0, currency, explicit: true) } ?? "—"
+    }
+}
+
+/// Veckorytm's circular day dial, restyled from `WeeklyActivityDial`: `StevenColor.surface` disc,
+/// `StevenColor.owe` ring segments, ink ticks and centre count.
+private struct StevenWeekDial: View {
     let items: [ExpenseReport.Item]
     let days: ClosedRange<Int>
     @ScaledMetric private var diameter: CGFloat = 270
 
     var body: some View {
         ZStack {
-            Circle().fill(Editorial.paper)
-            ForEach(0..<28) { tick in
-                Capsule().fill(Editorial.coal.opacity(tick % 4 == 0 ? 0.8 : 0.25))
+            ForEach(0..<28, id: \.self) { tick in
+                Capsule().fill(StevenColor.hairline.opacity(tick % 4 == 0 ? 1 : 0.6))
                     .frame(width: tick % 4 == 0 ? 2 : 1, height: tick % 4 == 0 ? 12 : 6)
                     .offset(y: -min(diameter, 320) / 2 + 22)
                     .rotationEffect(.degrees(Double(tick) * 360 / 28))
             }
-            ForEach(0..<7) { offset in
+            ForEach(0..<7, id: \.self) { offset in
                 let count = items.filter { $0.date.dayNumber == days.lowerBound + offset }.count
                 let fraction = items.isEmpty ? 0 : Double(count) / Double(items.count)
                 Circle().trim(from: Double(offset) / 7, to: Double(offset) / 7 + fraction / 7 * 0.85)
-                    .stroke(Editorial.coral, style: StrokeStyle(lineWidth: 18, lineCap: .round))
+                    .stroke(StevenColor.owe, style: StrokeStyle(lineWidth: 18, lineCap: .round))
                     .rotationEffect(.degrees(-90)).padding(56)
                 Text(ExpenseReport.dayLabel(days.lowerBound + offset))
-                    .font(.caption2.weight(.semibold)).foregroundStyle(Editorial.coal)
+                    .stevenFont(.footnoteBold).foregroundStyle(StevenColor.ink)
                     .rotationEffect(.degrees(-Double(offset) * 360 / 7))
                     .offset(y: -min(diameter, 320) / 2 + 44)
                     .rotationEffect(.degrees(Double(offset) * 360 / 7))
             }
             VStack(spacing: 2) {
-                Text("\(items.count)").font(Editorial.heading(42))
-                Text("utgifter").font(.caption)
-            }.foregroundStyle(Editorial.coal)
+                Text(verbatim: "\(items.count)").stevenFont(.amountHero).monospacedDigit()
+                Text("utgifter").stevenFont(.footnote)
+            }.foregroundStyle(StevenColor.ink)
         }
         .frame(width: min(diameter, 320), height: min(diameter, 320))
         .frame(maxWidth: .infinity)
