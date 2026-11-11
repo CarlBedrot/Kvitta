@@ -1,3 +1,5 @@
+> **Superseded 2026-10-20** by [docs/reference/steven/](../reference/steven/README.md), the current UI source of truth. Kept for history.
+
 # Slice — complete screenshot redesign
 
 User direction, 2026-09-29: recreate ALL visible components of the attached reference for

@@ -1,3 +1,5 @@
+> **Superseded 2026-10-20** by [docs/reference/steven/](../reference/steven/README.md), the current UI source of truth. Kept for history.
+
 # Reference redesign verification — 2026-09-29
 
 ## Automated

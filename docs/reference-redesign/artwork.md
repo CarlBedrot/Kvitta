@@ -1,3 +1,5 @@
+> **Superseded 2026-10-20** by [docs/reference/steven/](../reference/steven/README.md), the current UI source of truth. Kept for history.
+
 # Illustration provenance
 
 Generated with the built-in image-generation tool on 2026-09-29, then inspected in the actual
