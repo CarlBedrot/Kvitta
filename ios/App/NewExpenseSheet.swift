@@ -135,13 +135,17 @@ private struct AmountDisplay: View {
         currency == primary ? MoneyFormat.symbol(currency) : currency.code
     }
 
+    @ScaledMetric(relativeTo: .largeTitle) private var typeScale: CGFloat = 1
+
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text(display)
                 .accessibilityLabel("Belopp \(display) \(currency.code)")
-                .font(.system(size: 58, weight: .semibold))
+                .font(.system(size: 58 * typeScale, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(Theme.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
             if let onCurrency {
                 Menu {
                     ForEach(Self.choices, id: \.self) { choice in
@@ -152,7 +156,7 @@ private struct AmountDisplay: View {
                 } label: {
                     HStack(spacing: 3) {
                         Text(suffix)
-                            .font(.system(size: 26, weight: .medium))
+                            .font(.system(size: 26 * typeScale, weight: .medium))
                         Image(systemName: "chevron.down")
                             .font(.system(size: 13, weight: .semibold))
                     }
@@ -163,7 +167,7 @@ private struct AmountDisplay: View {
                 .accessibilityValue(currency.code)
             } else {
                 Text(suffix)
-                    .font(.system(size: 26, weight: .medium))
+                    .font(.system(size: 26 * typeScale, weight: .medium))
                     .foregroundStyle(Theme.secondary)
             }
         }

@@ -71,9 +71,13 @@ struct SignedAmountText: View {
     /// A spoken phrase for VoiceOver, e.g. "Du ska få 340 kronor". Falls back to the plain string.
     var accessibilityPhrase: String?
 
+    /// Scales `size` with Dynamic Type — plain `.system(size:)` does not on its own, and this is
+    /// the loudest number on the screen, the one place that scaling can least afford to be skipped.
+    @ScaledMetric(relativeTo: .body) private var typeScale: CGFloat = 1
+
     var body: some View {
         Text(MoneyFormat.string(amountMinor, currency, sign: sign, explicit: explicit))
-            .font(.system(size: size, weight: .semibold))
+            .font(.system(size: size * typeScale, weight: .semibold))
             .monospacedDigit()
             .foregroundStyle(Theme.tint(forSign: amountMinor))
             .accessibilityLabel(accessibilityPhrase ?? MoneyFormat.string(amountMinor, currency, sign: sign))
@@ -89,9 +93,11 @@ struct NeutralAmountText: View {
     var size: CGFloat = 17
     var explicit: Bool = false
 
+    @ScaledMetric(relativeTo: .body) private var typeScale: CGFloat = 1
+
     var body: some View {
         Text(MoneyFormat.string(amountMinor, currency, explicit: explicit))
-            .font(.system(size: size, weight: .semibold))
+            .font(.system(size: size * typeScale, weight: .semibold))
             .monospacedDigit()
             .foregroundStyle(Theme.ink)
     }
