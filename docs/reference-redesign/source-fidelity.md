@@ -1,3 +1,5 @@
+> **Superseded 2026-10-20** by [docs/reference/steven/](../reference/steven/README.md), the current UI source of truth. Kept for history.
+
 # Original-source fidelity pass — #133
 
 The user supplied tubik's [AI-Powered Mobile App for Restaurant Operations](https://dribbble.com/shots/26787072-AI-Powered-Mobile-App-for-Restaurant-Operations) after the initial seven-screen adaptation (#131 / #132). The larger page images clarify details lost in the 420 × 315 attachment.
